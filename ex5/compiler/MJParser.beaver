@@ -197,5 +197,5 @@ Operator = AND {: return new And(); :}
          | LESSTHAN {: return new LessThan(); :}
 ;
 
-Id = IDENTIFIER.id {: return id; :}
+Id = IDENTIFIER.id
 ;
