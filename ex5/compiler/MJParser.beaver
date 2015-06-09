@@ -1,0 +1,201 @@
+ // this code is inlined before the generated parser
+%header {:
+package minijava;
+:};
+
+%terminals INTEGER, IDENTIFIER, PUBLIC, STATIC, VOID, MAIN, STRINGTYPE, SYSOUT;
+%terminals LBRACE, RBRACE, LCURLYBRACE, RCURLYBRACE, LBRACKET, RBRACKET;
+%terminals COMMA, DOT, PLUS, MINUS, TIMES, AND, BANG, LESSTHAN, SEMICOLON, EQUALS;
+%terminals IF, ELSE, WHILE, CLASS, EXTENDS, RETURN, TRUE, FALSE;
+%terminals INTTYPE, BOOLEAN, THIS, NEW, LENGTH;
+
+%typeof Goal = "Program";
+%typeof MainClass = "MainClass";
+%typeof ClassList = "List";
+%typeof ClassDecl = "ClassDecl";
+%typeof VarList = "List";
+%typeof VarDecl = "VarDecl";
+%typeof MethodList = "List";
+%typeof Method = "Method";
+%typeof Type = "Type";
+%typeof Expression = "Expression";
+%typeof ExpList = "List";
+%typeof ParamList = "List";
+%typeof StatementList = "List";
+%typeof Statement = "Statement";
+%typeof Operator = "Operator";
+%typeof Id = "Identifier";
+
+%typeof BOOLEAN = "String";
+%typeof INTTYPE = "String";
+%typeof INTEGER = "String";
+
+%goal Goal;
+
+// Productions with semantic actions building the JastAdd AST
+Goal = MainClass.main ClassList.classes {: return new Program(main, classes); :};
+
+MainClass = CLASS Id.name
+            LCURLYBRACE 
+                PUBLIC STATIC VOID MAIN LBRACE STRINGTYPE LBRACKET RBRACKET Id.arg RBRACE
+                LCURLYBRACE 
+                    VarList.vars
+                    StatementList.stmts
+                RCURLYBRACE
+            RCURLYBRACE
+            {: return new MainClass(name, arg, vars, stmts); :}
+;
+
+ClassDecl = CLASS Id.name
+            LCURLYBRACE
+                VarList.vars
+                MethodList.methods
+            RCURLYBRACE
+            {: return new ClassDecl(name, new Identifier(""), vars, methods); :}
+          | CLASS Id.name EXTENDS Id.superClass
+            LCURLYBRACE
+                VarList.vars
+                MethodList.methods
+            RCURLYBRACE
+            {: return new ClassDecl(name, superClass, vars, methods); :}
+;
+
+ClassList = /* empty list*/
+            {: return new Symbol(new List()); :}
+          | ClassDecl.c
+            {:
+                List list = new List();
+                list.add(c);
+                return new Symbol(list);
+            :}
+          | ClassList.list ClassDecl.c
+            {:
+                list.add(c);
+                return _symbol_list;
+            :}
+;
+
+VarDecl = Type.t Id.id SEMICOLON {: return new VarDecl(t, id); :}
+;
+
+VarList = /* empty list*/
+          {: return new Symbol(new List()); :}
+        | VarDecl.v
+          {:
+              List list = new List();
+              list.add(v);
+              return new Symbol(list);
+          :}
+        | VarList.list VarDecl.v
+          {:
+              list.add(v);
+              return _symbol_list;
+          :}
+;
+
+Method = PUBLIC Type.returnType Id.name LBRACE ParamList.params RBRACE
+         LCURLYBRACE
+             VarList.vars
+             StatementList.stmts
+             RETURN Expression.returnExpr SEMICOLON
+         RCURLYBRACE
+         {: return new Method(returnType, name, params, vars, stmts, returnExpr); :}
+;
+
+MethodList = /* empty list*/
+             {: return new Symbol(new List()); :}
+           | Method.m
+             {: 
+                 List list = new List();
+                 list.add(m);
+                 return new Symbol(list);
+             :}
+           | MethodList.list Method.m
+             {:
+                 list.add(m);
+                 return _symbol_list;
+             :}
+;
+
+ParamList = /* empty list*/
+            {: return new Symbol(new List()); :}
+          | Type.t Id.id
+            {:
+                List lst = new List();
+                lst.add(new Parameter(t, id));
+                return new Symbol(lst);
+            :}
+          | ParamList.lst COMMA Type.t Id.id
+            {:
+                lst.add(new Parameter(t, id));
+                return _symbol_lst;
+            :}
+;
+
+Type = INTTYPE LBRACKET RBRACKET {: return new Type(new Identifier("int[]")); :} 
+     | BOOLEAN.b {: return new Type(new Identifier(b)); :}
+     | INTTYPE.i {: return new Type(new Identifier(i)); :}
+     | Id.id  {: return new Type(id); :}
+;
+
+Statement = LCURLYBRACE StatementList.statements RCURLYBRACE {: return new Block(statements); :}
+          | IF LBRACE Expression.condition RBRACE Statement.trueBranch ELSE Statement.falseBranch {: return new IfElse(condition, trueBranch, falseBranch); :}
+          | WHILE LBRACE Expression.condition RBRACE Statement.body {: return new WhileLoop(condition, body); :}
+          | SYSOUT LBRACE Expression.expr RBRACE SEMICOLON {: return new PrintLine(expr); :}
+          | Id.var EQUALS Expression.value SEMICOLON {: return new Assignment(var, value); :}
+          | Id.var LBRACKET Expression.index RBRACKET EQUALS Expression.value SEMICOLON {: return new ArrayAssignment(var, index, value); :}
+;
+
+StatementList = /* empty list*/
+                {: return new Symbol(new List()); :} 
+              | Statement.s
+                {: List list = new List();
+                    list.add(s);
+                    return new Symbol(list);
+                :}
+              | StatementList.list Statement.s
+                {:
+                    list.add(s);
+                    return _symbol_list;
+                :}
+;
+
+Expression = Expression.lhs Operator.op Expression.rhs {: return new BinaryExpression(op, lhs, rhs); :}
+           | Expression.var LBRACKET Expression.index RBRACKET {: return new ArrayAccess(var, index); :}
+           | Expression.var DOT LENGTH {: return new LengthAccess(var); :}
+           | Expression.var DOT Id.methodname LBRACE ExpList.args RBRACE {: return new Call(var, methodname, args); :}
+           | TRUE {: return new True(); :}
+           | FALSE {: return new False(); :}
+           | Id.id {: return id; :}
+           | INTEGER.i {: return new ConstInt(Integer.parseInt(i)); :} 
+           | THIS {: return new This(); :}
+           | NEW INTTYPE LBRACKET Expression.size RBRACKET {: return new IntArrayInstantiation(size); :}
+           | NEW Id.classname LBRACE RBRACE {: return new Instantiation(classname); :}
+           | BANG Expression.expr {: return new Negation(expr); :}
+           | LBRACE Expression.expr RBRACE {: return new BracedExpression(expr); :}
+;
+
+ExpList = /* empty list*/
+          {: return new Symbol(new List()); :} 
+        | Expression.e
+          {: 
+              List list = new List();
+              list.add(e);
+              return new Symbol(list);
+          :}
+        | ExpList.list COMMA Expression.e
+          {:
+              list.add(e);
+              return _symbol_list;
+          :}
+;
+
+Operator = AND {: return new And(); :}
+         | PLUS {: return new Plus(); :}
+         | MINUS {: return new Minus(); :}
+         | TIMES {: return new Times(); :}
+         | LESSTHAN {: return new LessThan(); :}
+;
+
+Id = IDENTIFIER.id {: return new Identifier(id); :}
+;

@@ -1,0 +1,275 @@
+// Sie müssen ggf. diese Datei an ihre minijava.ast anpassen
+
+aspect PrettyPrint {
+  public class PrettyPrinter {
+    public static String INDENT = "  ";
+  	private StringBuilder sb;
+  	public PrettyPrinter(){
+  		sb = new StringBuilder();
+  	}
+  
+    public void append(String s) {
+       sb.append(s);
+    }
+    
+    public String getString() {
+       return sb.toString();
+    }
+}
+
+  //similar to JastAdd Java compiler	
+  syn String ASTNode.indent() {
+        String indent = extractIndent();
+        return indent.startsWith("\n") ? indent : ("\n" + indent);
+  }
+
+    syn String ASTNode.extractIndent() {
+  	  if(getParent() == null)
+   		   return "";
+      String indent = getParent().extractIndent();
+      if(getParent().addsIndentationLevel())
+      	indent += PrettyPrinter.INDENT;
+      return indent;
+  }
+
+  syn boolean ASTNode.addsIndentationLevel() = false;
+  eq Program.addsIndentationLevel() = true;
+  eq MainClass.addsIndentationLevel() = true;
+  eq ClassDecl.addsIndentationLevel() = true;
+  eq Method.addsIndentationLevel() = true;
+  eq Statement.addsIndentationLevel() = true;
+  eq Block.addsIndentationLevel() = true;
+
+  syn lazy PrettyPrinter Program.printer() {
+  	return new PrettyPrinter();
+  }
+  eq Program.getMain().printer() = this.printer();
+  eq Program.getClasses().printer() = this.printer();
+  
+  inh lazy PrettyPrinter MainClass.printer();
+  inh lazy PrettyPrinter ClassDecl.printer();
+  inh lazy PrettyPrinter VarDecl.printer();
+  inh lazy PrettyPrinter Method.printer();
+  inh lazy PrettyPrinter Parameter.printer();
+  inh lazy PrettyPrinter Type.printer();
+  inh lazy PrettyPrinter Statement.printer();
+  inh lazy PrettyPrinter Expression.printer();
+  inh lazy PrettyPrinter Operator.printer();
+  
+  syn PrettyPrinter Program.print() {
+    getMain().print();
+    for (ClassDecl cd : getClassess()) cd.print();
+    return printer();
+  }
+  
+  public void MainClass.print() {
+    printer().append("class ");
+    getName().print();
+    printer().append(" {");
+  	printer().append(indent() + "public static void main (String[] ");
+  	getArg().print();
+  	printer().append(") {");
+	for (VarDecl v : getVarss()) {
+	  printer().append(indent() + PrettyPrinter.INDENT);  
+      v.print();
+      printer().append(";\n");
+    }
+	for (Statement s : getStatementss()) s.print();
+  	printer().append(indent() + "}");
+  	printer().append("\n}\n");
+  }
+  
+  public void ClassDecl.print() {
+    printer().append("class ");
+    getName().print();
+    if (!getSuperClass().getName().isEmpty()) {
+    	printer().append(" extends ");
+    	getSuperClass().print();
+    }
+    printer().append(" {");
+    	for (VarDecl f : getMemberVariabless()) {
+	  printer().append(indent() + PrettyPrinter.INDENT);  
+      f.print();
+      printer().append(";\n");
+    }
+	for (Method m : getMethodss()) m.print();
+    printer().append("\n}\n");	
+  }
+
+  public void Method.print() {
+  	printer().append(indent() + "public ");
+  	getReturnType().print();
+  	printer().append(" ");
+  	getName().print();
+  	printer().append("(");
+  	if (getNumParams() > 0) {
+  	  getParams(0).print();
+  	  for (int i = 1; i < getNumParams(); i++) {
+  	    printer().append(", ");
+  	    getParams(i).print();
+  	  }
+  	} 
+  	printer().append(") {");
+  		for (VarDecl v : getVariabless()) {
+	  printer().append(indent() + PrettyPrinter.INDENT);  
+      v.print();
+      printer().append(";\n");
+    }
+    for (Statement s : getStatementss()) s.print();
+	printer().append(indent() + PrettyPrinter.INDENT + "return ");
+	getReturnExpression().print();
+	printer().append(";");
+  	printer().append(indent() + "}\n");
+  }
+
+  public void VarDecl.print() {
+	getType().print();
+  	printer().append(" ");
+  	getName().print();
+  }
+  
+  public void Parameter.print() {
+	getType().print();
+  	printer().append(" ");
+  	getName().print();
+  }
+  
+  public void Identifier.print() {
+  	printer().append(getName());
+  }
+  
+  public void Type.print() {
+  	getName().print();
+  }
+  
+  public abstract void Statement.print();
+  public void Block.print() {
+    printer().append(indent() + "{");
+    for (Statement s : getStatementss()) s.print();
+    printer().append(indent() + "}");
+  }
+  public void Assignment.print() {
+    printer().append(indent());
+    getVariable().print();
+    printer().append(" = ");
+    getValue().print();
+    printer().append(";");
+  }
+  public void ArrayAssignment.print() {
+    printer().append(indent());
+    getVariable().print();
+    printer().append("[");
+    getIndex().print();
+    printer().append("] = "); 
+    getValue().print();
+    printer().append(";");
+  }
+  public void IfElse.print() {
+    printer().append(indent() + "if (");
+    getCondition().print();
+    printer().append(")");
+    getTrueBranch().print();
+    printer().append(indent() + "else ");
+    getFalseBranch().print();
+  }
+  public void WhileLoop.print() {
+    printer().append(indent() + " while (");
+    getCondition().print();
+    printer().append(")");
+    getBody().print();
+  }
+  public void PrintLine.print() {
+    printer().append(indent() + "System.out.println(");
+    getExpr().print();
+    printer().append(");");
+  }
+  
+  abstract void Operator.print();
+  public void And.print() {
+  	printer().append("&&");
+  }
+  
+  public void Plus.print() {
+  	printer().append("+");
+  }
+  
+  public void Minus.print() {
+  	printer().append("-");
+  }
+  
+  public void Times.print() {
+  	printer().append("*");
+  }
+  
+  public void LessThan.print() {
+  	printer().append("<");
+  }
+
+  abstract void Expression.print();
+  public void BinaryExpression.print() {
+  	getLeft().print();
+  	printer().append(" ");
+  	getOp().print();
+  	printer().append(" ");
+  	getRight().print();
+  }
+  
+  public void Negation.print() {
+  	printer().append("!");
+  	getExpr().print();
+  }
+  
+  public void BracedExpression.print() {
+  	printer().append("(");
+  	getExpr().print();
+  	printer().append(")");
+  }
+  
+  public void IntArrayInstantiation.print() {
+    printer().append("new int[");
+    getSize().print();
+    printer().append("]");
+  }  
+  public void Instantiation.print() {
+    printer().append("new ");
+    getClassName().print();
+    printer().append("()");
+  }  
+  public void ArrayAccess.print() {
+    getVar().print();
+    printer().append("[");
+    getIndex().print();
+    printer().append("]");
+  }  
+  public void LengthAccess.print() {
+    getVar().print();
+    printer().append(".length");
+  }  
+  public void Call.print() {
+    getVar().print();
+    printer().append(".");
+    getMethodName().print();
+    printer().append("(");
+    if (getNumArguments() > 0) {
+  	  getArguments(0).print();
+  	  for (int i = 1; i < getNumArguments(); i++) {
+  	    printer().append(", ");
+  	    getArguments(i).print();
+  	  }
+  	} 
+    printer().append(")");
+  }  
+  public void ConstInt.print() {
+  	printer().append(getInt().toString());
+  } 
+  public void True.print() {
+  	printer().append("true");
+  }
+  public void False.print() {
+  	printer().append("false");
+  }
+  public void This.print() {
+  	printer().append("this");
+  }
+  
+}

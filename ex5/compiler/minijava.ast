@@ -1,0 +1,37 @@
+Program   ::= Main:MainClass Classes:ClassDecl*;
+MainClass ::= Name:Identifier Arg:Identifier Vars:VarDecl* Statements:Statement*;
+ClassDecl ::= Name:Identifier SuperClass:Identifier MemberVariables:VarDecl* Methods:Method*;
+VarDecl   ::= Type:Type Name:Identifier;
+Method    ::= ReturnType:Type Name:Identifier Params:Parameter* Variables:VarDecl* Statements:Statement* ReturnExpression:Expression;
+Parameter ::= Type:Type Name:Identifier;
+Type    ::= Name:Identifier;
+
+abstract Statement;
+Block:Statement ::= Statements:Statement*;
+IfElse:Statement ::= Condition:Expression TrueBranch:Statement FalseBranch:Statement;
+WhileLoop:Statement ::= Condition:Expression Body:Statement;
+PrintLine:Statement ::= Expr:Expression;
+Assignment:Statement ::= Variable:Identifier Value:Expression;
+ArrayAssignment:Statement ::= Variable:Identifier Index:Expression Value:Expression;
+
+abstract Operator;
+And:Operator;
+Plus:Operator;
+Minus:Operator;
+Times:Operator;
+LessThan:Operator;
+
+abstract Expression;
+BinaryExpression:Expression ::= Op:Operator Left:Expression Right:Expression;
+ArrayAccess:Expression ::= Var:Expression Index:Expression;
+LengthAccess:Expression ::= Var:Expression;
+Call:Expression ::= Var:Expression MethodName:Identifier Arguments:Expression*;
+IntArrayInstantiation:Expression ::= Size:Expression;
+Instantiation:Expression ::= ClassName:Identifier;
+Negation:Expression ::= Expr:Expression;
+BracedExpression:Expression ::= Expr:Expression;
+This:Expression;
+True:Expression;
+False:Expression;
+ConstInt:Expression ::= <Int:Integer>;
+Identifier:Expression ::= <Name:String>;
