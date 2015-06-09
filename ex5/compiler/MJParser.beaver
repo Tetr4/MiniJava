@@ -24,7 +24,7 @@ package minijava;
 %typeof StatementList = "List";
 %typeof Statement = "Statement";
 %typeof Operator = "Operator";
-%typeof Id = "Identifier";
+%typeof Id = "String";
 
 %typeof BOOLEAN = "String";
 %typeof INTTYPE = "String";
@@ -51,7 +51,7 @@ ClassDecl = CLASS Id.name
                 VarList.vars
                 MethodList.methods
             RCURLYBRACE
-            {: return new ClassDecl(name, new Identifier(""), vars, methods); :}
+            {: return new ClassDecl(name, "", vars, methods); :}
           | CLASS Id.name EXTENDS Id.superClass
             LCURLYBRACE
                 VarList.vars
@@ -132,9 +132,9 @@ ParamList = /* empty list*/
             :}
 ;
 
-Type = INTTYPE LBRACKET RBRACKET {: return new Type(new Identifier("int[]")); :} 
-     | BOOLEAN.b {: return new Type(new Identifier(b)); :}
-     | INTTYPE.i {: return new Type(new Identifier(i)); :}
+Type = INTTYPE LBRACKET RBRACKET {: return new Type("int[]"); :} 
+     | BOOLEAN.b {: return new Type(b); :}
+     | INTTYPE.i {: return new Type(i); :}
      | Id.id  {: return new Type(id); :}
 ;
 
@@ -166,7 +166,7 @@ Expression = Expression.lhs Operator.op Expression.rhs {: return new BinaryExpre
            | Expression.var DOT Id.methodname LBRACE ExpList.args RBRACE {: return new Call(var, methodname, args); :}
            | TRUE {: return new True(); :}
            | FALSE {: return new False(); :}
-           | Id.id {: return id; :}
+           | Id.id {: return new Identifier(id); :}
            | INTEGER.i {: return new ConstInt(Integer.parseInt(i)); :} 
            | THIS {: return new This(); :}
            | NEW INTTYPE LBRACKET Expression.size RBRACKET {: return new IntArrayInstantiation(size); :}
@@ -197,5 +197,5 @@ Operator = AND {: return new And(); :}
          | LESSTHAN {: return new LessThan(); :}
 ;
 
-Id = IDENTIFIER.id {: return new Identifier(id); :}
+Id = IDENTIFIER.id {: return id; :}
 ;

@@ -63,12 +63,8 @@ aspect PrettyPrint {
   }
   
   public void MainClass.print() {
-    printer().append("class ");
-    getName().print();
-    printer().append(" {");
-  	printer().append(indent() + "public static void main (String[] ");
-  	getArg().print();
-  	printer().append(") {");
+    printer().append("class " + getName() + " {");
+  	printer().append(indent() + "public static void main (String[] " + getArg() + ") {");
 	for (VarDecl v : getVarss()) {
 	  printer().append(indent() + PrettyPrinter.INDENT);  
       v.print();
@@ -80,28 +76,29 @@ aspect PrettyPrint {
   }
   
   public void ClassDecl.print() {
-    printer().append("class ");
-    getName().print();
-    if (!getSuperClass().getName().isEmpty()) {
-    	printer().append(" extends ");
-    	getSuperClass().print();
+    printer().append("class " + getName());
+    if (!getSuperClass().isEmpty()) {
+    	printer().append(" extends " + getSuperClass());
     }
     printer().append(" {");
-    	for (VarDecl f : getMemberVariabless()) {
-	  printer().append(indent() + PrettyPrinter.INDENT);  
-      f.print();
-      printer().append(";\n");
+	for (VarDecl v : getMemberVariabless()) {
+        printer().append(indent() + PrettyPrinter.INDENT);  
+        v.print();
+        printer().append(";\n");
     }
 	for (Method m : getMethodss()) m.print();
     printer().append("\n}\n");	
+  }
+  
+  public void VarDecl.print() {
+	getType().print();
+  	printer().append(" " + getName());
   }
 
   public void Method.print() {
   	printer().append(indent() + "public ");
   	getReturnType().print();
-  	printer().append(" ");
-  	getName().print();
-  	printer().append("(");
+  	printer().append(" " + getName() + "(");
   	if (getNumParams() > 0) {
   	  getParams(0).print();
   	  for (int i = 1; i < getNumParams(); i++) {
@@ -122,24 +119,13 @@ aspect PrettyPrint {
   	printer().append(indent() + "}\n");
   }
 
-  public void VarDecl.print() {
-	getType().print();
-  	printer().append(" ");
-  	getName().print();
-  }
-  
   public void Parameter.print() {
 	getType().print();
-  	printer().append(" ");
-  	getName().print();
-  }
-  
-  public void Identifier.print() {
-  	printer().append(getName());
+  	printer().append(" " + getName());
   }
   
   public void Type.print() {
-  	getName().print();
+  	printer().append(getName());
   }
   
   public abstract void Statement.print();
@@ -149,16 +135,12 @@ aspect PrettyPrint {
     printer().append(indent() + "}");
   }
   public void Assignment.print() {
-    printer().append(indent());
-    getVariable().print();
-    printer().append(" = ");
+    printer().append(indent() + getVariable() + " = ");
     getValue().print();
     printer().append(";");
   }
   public void ArrayAssignment.print() {
-    printer().append(indent());
-    getVariable().print();
-    printer().append("[");
+    printer().append(indent() + getVariable() + "[");
     getIndex().print();
     printer().append("] = "); 
     getValue().print();
@@ -231,9 +213,7 @@ aspect PrettyPrint {
     printer().append("]");
   }  
   public void Instantiation.print() {
-    printer().append("new ");
-    getClassName().print();
-    printer().append("()");
+    printer().append("new " + getClassName() + "()");
   }  
   public void ArrayAccess.print() {
     getVar().print();
@@ -247,9 +227,7 @@ aspect PrettyPrint {
   }  
   public void Call.print() {
     getVar().print();
-    printer().append(".");
-    getMethodName().print();
-    printer().append("(");
+    printer().append("." + getMethodName() + "(");
     if (getNumArguments() > 0) {
   	  getArguments(0).print();
   	  for (int i = 1; i < getNumArguments(); i++) {
@@ -260,7 +238,10 @@ aspect PrettyPrint {
     printer().append(")");
   }  
   public void ConstInt.print() {
-  	printer().append(getInt().toString());
+  	printer().append(getValue().toString());
+  } 
+  public void Identifier.print() {
+  	printer().append(getName());
   } 
   public void True.print() {
   	printer().append("true");
