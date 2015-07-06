@@ -64,6 +64,8 @@ MultiComment   = "/*" ( {InputCharacter} | {LineTerminator} )* "*/"
 
 "int"                 { return sym(Terminals.INTTYPE); }
 "boolean"             { return sym(Terminals.BOOLEAN); }
+"false"               { return sym(Terminals.FALSE); }
+"true"                { return sym(Terminals.TRUE); }
 "this"                { return sym(Terminals.THIS); }
 "new"                 { return sym(Terminals.NEW); }
 
