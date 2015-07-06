@@ -6,7 +6,7 @@ class MainTest{
     	moep = moep;
     	
     	ma = new MAMA();
-    	hoden = ma.bla(x, y);
+    	//hoden = ma.bla(x, y);
 	System.out.println(false);
     }
 }

@@ -43,12 +43,14 @@
      <javac srcdir="${gen.dir}"  
             destdir="${classes.dir}"
             classpath="${tools}/beaver-rt.jar"
+     	    includeantruntime="false"
             debug="true" debuglevel="lines,vars,source">
              <include name="**/*.java"/>
      </javac>
      <javac srcdir="${src.dir}" 
             destdir="${classes.dir}"
             classpath="${classes.dir}:${tools}/beaver-rt.jar"
+            includeantruntime="false"
             debug="true" debuglevel="lines,vars,source">
             <include name="**/*.java"/>
      </javac>
