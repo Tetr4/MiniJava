@@ -38,7 +38,7 @@ WhiteSpace     = {LineTerminator} | [ \t\f]
 Integer        = [1-9][0-9]* | 0
 Identifier     = [a-zA-Z][a-zA-Z0-9_]*
 LineComment    = "//" {InputCharacter}*
-MultiComment   = "/*" ( {InputCharacter} | {LineTerminator} )* "*/"
+MultiComment   = "/*" [^*] ~"*/" | "/*" "*"+ "/"
 
 %%
 
