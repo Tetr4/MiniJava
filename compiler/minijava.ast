@@ -1,37 +1,42 @@
-Program   ::= Main:MainClass Classes:ClassDecl*;
-MainClass ::= <Name:String> <Arg:String> Vars:VarDecl* Statements:Statement*;
-ClassDecl ::= <Name:String> <SuperClass:String> MemberVariables:VarDecl* Methods:Method*;
-VarDecl   ::= Type:Type <Name:String>;
-Method    ::= ReturnType:Type <Name:String> Params:Parameter* Variables:VarDecl* Statements:Statement* ReturnExpression:Expression;
-Parameter ::= Type:Type <Name:String>;
-Type      ::= <Name:String>;
+Program   ::= Main:MainClass Decls:ClassDecl*;
 
-abstract Statement;
-Block:Statement ::= Statements:Statement*;
-IfElse:Statement ::= Condition:Expression TrueBranch:Statement FalseBranch:Statement;
-WhileLoop:Statement ::= Condition:Expression Body:Statement;
-PrintLine:Statement ::= Expr:Expression;
-Assignment:Statement ::= <Variable:String> Value:Expression;
-ArrayAssignment:Statement ::= <Variable:String> Index:Expression Value:Expression;
+abstract Decl;
+MainClass:Decl ::= <Ident:String> <MainArgs:String> LocalVars:TypedVar* Stmts:Stmt*;
+ClassDecl:Decl ::= <Ident:String> [SuperClass:IdentUse] Fields:TypedVar* Methods:MethodDecl*;
+MethodDecl:Decl ::= RetType:TypeUse <Ident:String> FormalParams:TypedVar* LocalVars:TypedVar* Stmts:Stmt* RetExp:Exp;
+TypedVar:Decl ::= Type:TypeUse <Ident:String>;
 
-abstract Operator;
-And:Operator;
-Plus:Operator;
-Minus:Operator;
-Times:Operator;
-LessThan:Operator;
+abstract TypeUse;
+IntArray:TypeUse;
+Bool:TypeUse;
+Int:TypeUse;
+ClassT:TypeUse ::= <Name:String>;
 
-abstract Expression;
-BinaryExpression:Expression ::= Op:Operator Left:Expression Right:Expression;
-ArrayAccess:Expression ::= Var:Expression Index:Expression;
-LengthAccess:Expression ::= Var:Expression;
-Call:Expression ::= Var:Expression <MethodName:String> Arguments:Expression*;
-IntArrayInstantiation:Expression ::= Size:Expression;
-Instantiation:Expression ::= <ClassName:String>;
-Negation:Expression ::= Expr:Expression;
-BracedExpression:Expression ::= Expr:Expression;
-This:Expression;
-True:Expression;
-False:Expression;
-ConstInt:Expression ::= <Value:Integer>;
-Identifier:Expression ::=<Name:String>;
+abstract Stmt;
+Block:Stmt ::= Stmts:Stmt*;
+Assign:Stmt ::= Name:IdentUse Rhs:Exp;
+ArrayAssign:Stmt ::= Name:IdentUse Offset:Exp Exp:Exp;
+If:Stmt ::= Cond:Exp TStmt:Stmt FStmt:Stmt;
+While:Stmt ::= Cond:Exp Body:Stmt;
+Print:Stmt ::= Exp:Exp;
+
+abstract Exp;
+abstract BinaryExp:Exp ::= Left:Exp Right:Exp;
+And:BinaryExp;
+Cmp:BinaryExp;
+Add:BinaryExp;
+Sub:BinaryExp;
+Mult:BinaryExp;
+
+Not:Exp ::= Exp:Exp;
+IdentUse:Exp ::= <Name:String>;
+ArrayAlloc:Exp ::= Size:Exp;
+ObjAlloc:Exp ::= <Name:String>;
+ArrayLookup:Exp ::= Exp:Exp Offset:Exp;
+ArrayLength:Exp ::= Exp:Exp;
+MethodCall:Exp ::= Obj:Exp <Name:String> Args:Exp*;
+
+IntLiteral:Exp ::= <Integer:Integer>;
+True:Exp;
+False:Exp;
+This:Exp;

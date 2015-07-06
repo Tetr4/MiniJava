@@ -13,26 +13,26 @@ package minijava;
 %typeof MainClass = "MainClass";
 %typeof ClassList = "List<ClassDecl>";
 %typeof ClassDecl = "ClassDecl";
-%typeof VarList = "List<VarDecl>";
-%typeof VarDecl = "VarDecl";
-%typeof MethodList = "List<Method>";
-%typeof Method = "Method";
-%typeof Type = "Type";
-%typeof Expression = "Expression";
-%typeof ExpList = "List<Expression>";
-%typeof Conditional = "Expression";
-%typeof Relational = "Expression";
-%typeof Addition = "Expression";
-%typeof Multiplication = "Expression";
-%typeof Unary = "Expression";
-%typeof Primary = "Expression";
-%typeof Postfix = "Expression";
-%typeof Prefix = "Expression";
-%typeof Primitive = "Expression";
-%typeof ParamList = "List<Parameter>";
-%typeof StatementList = "List<Statement>";
-%typeof Statement = "Statement";
-%typeof Id = "String";
+%typeof VarList = "List<TypedVar>";
+%typeof VarDecl = "TypedVar";
+%typeof MethodList = "List<MethodDecl>";
+%typeof Method = "MethodDecl";
+%typeof Type = "TypeUse";
+%typeof Expression = "Exp";
+%typeof ExpList = "List<Exp>";
+%typeof Conditional = "Exp";
+%typeof Relational = "Exp";
+%typeof Addition = "Exp";
+%typeof Multiplication = "Exp";
+%typeof Unary = "Exp";
+%typeof Primary = "Exp";
+%typeof Postfix = "Exp";
+%typeof Prefix = "Exp";
+%typeof Primitive = "Exp";
+%typeof ParamList = "List<TypedVar>";
+%typeof StatementList = "List<Stmt>";
+%typeof Statement = "Stmt";
+%typeof Id = "IdentUse";
 
 %typeof BOOLEAN = "String";
 %typeof INTTYPE = "String";
@@ -47,57 +47,57 @@ Goal = MainClass.main ClassList.classes
 	 {: return new Program(main, new List<ClassDecl>()); :}
 ;
 
-MainClass = CLASS Id.name
+MainClass = CLASS IDENTIFIER.name
             LCURLYBRACE 
-                PUBLIC STATIC VOID MAIN LBRACE STRINGTYPE LBRACKET RBRACKET Id.arg RBRACE
+                PUBLIC STATIC VOID MAIN LBRACE STRINGTYPE LBRACKET RBRACKET IDENTIFIER.arg RBRACE
                 LCURLYBRACE 
                     VarList.vars
                     StatementList.stmts
                 RCURLYBRACE
             RCURLYBRACE
             {: return new MainClass(name, arg, vars, stmts); :}
-          | CLASS Id.name
+          | CLASS IDENTIFIER.name
             LCURLYBRACE 
-                PUBLIC STATIC VOID MAIN LBRACE STRINGTYPE LBRACKET RBRACKET Id.arg RBRACE
+                PUBLIC STATIC VOID MAIN LBRACE STRINGTYPE LBRACKET RBRACKET IDENTIFIER.arg RBRACE
                 LCURLYBRACE 
                     StatementList.stmts
                 RCURLYBRACE
             RCURLYBRACE
-            {: return new MainClass(name, arg, new List<VarDecl>(), stmts); :}
-          | CLASS Id.name
+            {: return new MainClass(name, arg, new List<TypedVar>(), stmts); :}
+          | CLASS IDENTIFIER.name
             LCURLYBRACE 
-                PUBLIC STATIC VOID MAIN LBRACE STRINGTYPE LBRACKET RBRACKET Id.arg RBRACE
+                PUBLIC STATIC VOID MAIN LBRACE STRINGTYPE LBRACKET RBRACKET IDENTIFIER.arg RBRACE
                 LCURLYBRACE 
                     VarList.vars
                 RCURLYBRACE
             RCURLYBRACE
-            {: return new MainClass(name, arg, vars, new List<Statement>()); :}
-          | CLASS Id.name
+            {: return new MainClass(name, arg, vars, new List<Stmt>()); :}
+          | CLASS IDENTIFIER.name
             LCURLYBRACE 
-                PUBLIC STATIC VOID MAIN LBRACE STRINGTYPE LBRACKET RBRACKET Id.arg RBRACE
+                PUBLIC STATIC VOID MAIN LBRACE STRINGTYPE LBRACKET RBRACKET IDENTIFIER.arg RBRACE
                 LCURLYBRACE 
                 RCURLYBRACE
             RCURLYBRACE
-            {: return new MainClass(name, arg, new List<VarDecl>(), new List<Statement>()); :}
+            {: return new MainClass(name, arg, new List<TypedVar>(), new List<Stmt>()); :}
 ;
 
-ClassDecl = CLASS Id.name
+ClassDecl = CLASS IDENTIFIER.name
             LCURLYBRACE
                 VarList.vars?
                 MethodList.methods?
             RCURLYBRACE
-            {: return new ClassDecl(name, "", vars==null?new List<VarDecl>():vars, methods==null?new List<Method>():methods); :}
-          | CLASS Id.name EXTENDS Id.superClass
+            {: return new ClassDecl(name, new Opt<IdentUse>(), vars==null?new List<TypedVar>():vars, methods==null?new List<MethodDecl>():methods); :}
+          | CLASS IDENTIFIER.name EXTENDS Id.superClass
             LCURLYBRACE
                 VarList.vars?
                 MethodList.methods?
             RCURLYBRACE
-            {: return new ClassDecl(name, superClass, vars==null?new List<VarDecl>():vars, methods==null?new List<Method>():methods); :}
+            {: return new ClassDecl(name, new Opt<IdentUse>(superClass), vars==null?new List<TypedVar>():vars, methods==null?new List<MethodDecl>():methods); :}
 ;
 
 ClassList = ClassDecl.c
             {:
-                List list = new List();
+                List<ClassDecl> list = new List<>();
                 list.add(c);
                 return new Symbol(list);
             :}
@@ -108,12 +108,12 @@ ClassList = ClassDecl.c
             :}
 ;
 
-VarDecl = Type.t Id.id SEMICOLON {: return new VarDecl(t, id); :}
+VarDecl = Type.t IDENTIFIER.id SEMICOLON {: return new TypedVar(t, id); :}
 ;
 
 VarList = VarDecl.v
           {:
-              List list = new List<VarDecl>();
+              List<TypedVar> list = new List<>();
               list.add(v);
               return new Symbol(list);
           :}
@@ -124,35 +124,35 @@ VarList = VarDecl.v
           :}
 ;
 
-Method = PUBLIC Type.returnType Id.name LBRACE ParamList.params? RBRACE
+Method = PUBLIC Type.returnType IDENTIFIER.name LBRACE ParamList.params? RBRACE
          LCURLYBRACE
              VarList.vars
              StatementList.stmts
              RETURN Expression.returnExpr SEMICOLON
          RCURLYBRACE
-         {: return new Method(returnType, name, params==null?new List<Parameter>():params, vars, stmts, returnExpr); :}
-       | PUBLIC Type.returnType Id.name LBRACE ParamList.params? RBRACE
+         {: return new MethodDecl(returnType, name, params==null?new List<TypedVar>():params, vars, stmts, returnExpr); :}
+       | PUBLIC Type.returnType IDENTIFIER.name LBRACE ParamList.params? RBRACE
          LCURLYBRACE
              VarList.vars
              RETURN Expression.returnExpr SEMICOLON
          RCURLYBRACE
-         {: return new Method(returnType, name, params==null?new List<Parameter>():params, vars, new List<Statement>(), returnExpr); :}
-       | PUBLIC Type.returnType Id.name LBRACE ParamList.params? RBRACE
+         {: return new MethodDecl(returnType, name, params==null?new List<TypedVar>():params, vars, new List<Stmt>(), returnExpr); :}
+       | PUBLIC Type.returnType IDENTIFIER.name LBRACE ParamList.params? RBRACE
          LCURLYBRACE
              StatementList.stmts
              RETURN Expression.returnExpr SEMICOLON
          RCURLYBRACE
-         {: return new Method(returnType, name, params==null?new List<Parameter>():params, new List<VarDecl>(), stmts, returnExpr); :}
-       | PUBLIC Type.returnType Id.name LBRACE ParamList.params? RBRACE
+         {: return new MethodDecl(returnType, name, params==null?new List<TypedVar>():params, new List<TypedVar>(), stmts, returnExpr); :}
+       | PUBLIC Type.returnType IDENTIFIER.name LBRACE ParamList.params? RBRACE
          LCURLYBRACE
              RETURN Expression.returnExpr SEMICOLON
          RCURLYBRACE
-         {: return new Method(returnType, name, params==null?new List<Parameter>():params, new List<VarDecl>(), new List<Statement>(), returnExpr); :}
+         {: return new MethodDecl(returnType, name, params==null?new List<TypedVar>():params, new List<TypedVar>(), new List<Stmt>(), returnExpr); :}
 ;
 
 MethodList = Method.m
              {: 
-                 List list = new List<Method>();
+                 List<MethodDecl> list = new List<>();
                  list.add(m);
                  return new Symbol(list);
              :}
@@ -163,36 +163,36 @@ MethodList = Method.m
              :}
 ;
 
-ParamList = Type.t Id.id
+ParamList = Type.t IDENTIFIER.id
             {:
-                List lst = new List<Parameter>();
-                lst.add(new Parameter(t, id));
+                List<TypedVar> lst = new List<>();
+                lst.add(new TypedVar(t, id));
                 return new Symbol(lst);
             :}
-          | ParamList.lst COMMA Type.t Id.id
+          | ParamList.lst COMMA Type.t IDENTIFIER.id
             {:
-                lst.add(new Parameter(t, id));
+                lst.add(new TypedVar(t, id));
                 return _symbol_lst;
             :}
 ;
 
-Type = INTTYPE LBRACKET RBRACKET {: return new Type("int[]"); :} 
-     | BOOLEAN.b {: return new Type(b); :}
-     | INTTYPE.i {: return new Type(i); :}
-     | Id.id  {: return new Type(id); :}
+Type = INTTYPE LBRACKET RBRACKET {: return new IntArray(); :} 
+     | BOOLEAN.b {: return new Bool(); :}
+     | INTTYPE.i {: return new Int(); :}
+     | IDENTIFIER.id  {: return new ClassT(id); :}
 ;
 
 Statement = LCURLYBRACE StatementList.stmts RCURLYBRACE {: return new Block(stmts); :}
-		  | LCURLYBRACE RCURLYBRACE {: return new Block(new List<Statement>()); :}
-          | IF LBRACE Expression.condition RBRACE Statement.trueBranch ELSE Statement.falseBranch {: return new IfElse(condition, trueBranch, falseBranch); :}
-          | WHILE LBRACE Expression.condition RBRACE Statement.body {: return new WhileLoop(condition, body); :}
-          | SYSOUT LBRACE Expression.expr RBRACE SEMICOLON {: return new PrintLine(expr); :}
-          | Id.var EQUALS Expression.value SEMICOLON {: return new Assignment(var, value); :}
-          | Id.var LBRACKET Expression.index RBRACKET EQUALS Expression.value SEMICOLON {: return new ArrayAssignment(var, index, value); :}
+		  | LCURLYBRACE RCURLYBRACE {: return new Block(new List<Stmt>()); :}
+          | IF LBRACE Expression.condition RBRACE Statement.trueBranch ELSE Statement.falseBranch {: return new If(condition, trueBranch, falseBranch); :}
+          | WHILE LBRACE Expression.condition RBRACE Statement.body {: return new While(condition, body); :}
+          | SYSOUT LBRACE Expression.expr RBRACE SEMICOLON {: return new Print(expr); :}
+          | Id.var EQUALS Expression.value SEMICOLON {: return new Assign(var, value); :}
+          | Id.var LBRACKET Expression.index RBRACKET EQUALS Expression.value SEMICOLON {: return new ArrayAssign(var, index, value); :}
 ;
 
 StatementList = Statement.s
-                {: List list = new List<Statement>();
+                {: List<Stmt> list = new List<>();
                     list.add(s);
                     return new Symbol(list);
                 :}
@@ -207,7 +207,7 @@ Expression = Conditional;
 
 ExpList = Expression.e
           {: 
-              List list = new List();
+              List<Exp> list = new List<>();
               list.add(e);
               return new Symbol(list);
           :}
@@ -220,53 +220,54 @@ ExpList = Expression.e
 
 Conditional = Relational
 			| Relational.lhs AND Conditional.rhs
-			{: return new BinaryExpression(new And(), lhs, rhs); :}
+			{: return new And(lhs, rhs); :}
 ;
 
 Relational = Addition
 		   | Addition.lhs LESSTHAN Relational.rhs
-		   {: return new BinaryExpression(new LessThan(), lhs, rhs); :}
+		   {: return new Cmp(lhs, rhs); :}
 ;
 
 Addition = Multiplication
 		 | Multiplication.lhs PLUS Addition.rhs
-		 {: return new BinaryExpression(new Plus(), lhs, rhs); :}
+		 {: return new Add(lhs, rhs); :}
 		 | Multiplication.lhs MINUS Addition.rhs
-		 {: return new BinaryExpression(new Minus(), lhs, rhs); :}
+		 {: return new Sub(lhs, rhs); :}
 ;
 
 Multiplication = Unary
 			   | Unary.lhs TIMES Multiplication.rhs
-			   {: return new BinaryExpression(new Times(), lhs, rhs); :}
+			   {: return new Mult(lhs, rhs); :}
 ;
 
-Unary = BANG Unary.expr {: return new Negation(expr); :}
-	  | NEW INTTYPE LBRACKET Expression.size RBRACKET {: return new IntArrayInstantiation(size); :}
-      | NEW Id.classname LBRACE RBRACE {: return new Instantiation(classname); :}
+Unary = BANG Unary.expr {: return new Not(expr); :}
+	  | NEW INTTYPE LBRACKET Expression.size RBRACKET {: return new ArrayAlloc(size); :}
+      | NEW IDENTIFIER.classname LBRACE RBRACE {: return new ObjAlloc(classname); :}
 	  | Postfix
 ;
 
-Postfix = Primary.var DOT LENGTH {: return new LengthAccess(var); :}
+Postfix = Primary.var DOT LENGTH {: return new ArrayLength(var); :}
         | Primary
 ;
 
-Primary = Prefix.var DOT Id.methodname LBRACE ExpList.args? RBRACE 
-		  {: return new Call(var, methodname, args==null?new List<Expression>():args); :}
-		| Prefix.var LBRACKET Expression.index RBRACKET
-		  {: return new ArrayAccess(var, index); :}
+Primary = Prefix.var DOT IDENTIFIER.methodname LBRACE ExpList.args? RBRACE 
+		  {: return new MethodCall(var, methodname, args==null?new List<Exp>():args); :}
+		| Prefix.var LBRACKET Expression.offs RBRACKET
+		  {: return new ArrayLookup(var, offs); :}
 		| Prefix
 ;
 
-Prefix = Id.id {: return new Identifier(id); :}
+Prefix = Id
 	   | THIS {: return new This(); :}
-	   | LBRACE Expression.expr RBRACE {: return new BracedExpression(expr); :}
+	   | LBRACE Expression.expr RBRACE
 	   | Primitive
 ;
 
-Primitive = INTEGER.i {: return new ConstInt(Integer.parseInt(i)); :}
+Primitive = INTEGER.i {: return new IntLiteral(Integer.parseInt(i)); :}
 		  | TRUE {: return new True(); :}
           | FALSE {: return new False(); :}
 ;
 
-Id = IDENTIFIER
+Id = IDENTIFIER.id
+   {: return new IdentUse(id); :}
 ;
