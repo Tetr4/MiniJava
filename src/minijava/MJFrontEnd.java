@@ -32,6 +32,7 @@ class MJFrontEnd {
       }
       */
       // Print the resulting AST on standard output.
+      System.out.println(ast.printAST());
       System.out.println(ast.print().getString()); 
     }
     catch (FileNotFoundException e) {
