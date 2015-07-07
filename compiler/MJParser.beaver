@@ -37,6 +37,7 @@ package minijava;
 %typeof BOOLEAN = "String";
 %typeof INTTYPE = "String";
 %typeof INTEGER = "String";
+%typeof IDENTIFIER = "String";
 
 %goal Goal;
 
@@ -108,7 +109,7 @@ ClassList = ClassDecl.c
             :}
 ;
 
-VarDecl = Type.t IDENTIFIER.id SEMICOLON {: return new TypedVar(t, id); :}
+VarDecl = Type.t IDENTIFIER.id SEMICOLON {: return new TypedVar(id, t); :}
 ;
 
 VarList = VarDecl.v
@@ -130,24 +131,24 @@ Method = PUBLIC Type.returnType IDENTIFIER.name LBRACE ParamList.params? RBRACE
              StatementList.stmts
              RETURN Expression.returnExpr SEMICOLON
          RCURLYBRACE
-         {: return new MethodDecl(returnType, name, params==null?new List<TypedVar>():params, vars, stmts, returnExpr); :}
+         {: return new MethodDecl(name, returnType, params==null?new List<TypedVar>():params, vars, stmts, returnExpr); :}
        | PUBLIC Type.returnType IDENTIFIER.name LBRACE ParamList.params? RBRACE
          LCURLYBRACE
              VarList.vars
              RETURN Expression.returnExpr SEMICOLON
          RCURLYBRACE
-         {: return new MethodDecl(returnType, name, params==null?new List<TypedVar>():params, vars, new List<Stmt>(), returnExpr); :}
+         {: return new MethodDecl(name, returnType, params==null?new List<TypedVar>():params, vars, new List<Stmt>(), returnExpr); :}
        | PUBLIC Type.returnType IDENTIFIER.name LBRACE ParamList.params? RBRACE
          LCURLYBRACE
              StatementList.stmts
              RETURN Expression.returnExpr SEMICOLON
          RCURLYBRACE
-         {: return new MethodDecl(returnType, name, params==null?new List<TypedVar>():params, new List<TypedVar>(), stmts, returnExpr); :}
+         {: return new MethodDecl(name, returnType, params==null?new List<TypedVar>():params, new List<TypedVar>(), stmts, returnExpr); :}
        | PUBLIC Type.returnType IDENTIFIER.name LBRACE ParamList.params? RBRACE
          LCURLYBRACE
              RETURN Expression.returnExpr SEMICOLON
          RCURLYBRACE
-         {: return new MethodDecl(returnType, name, params==null?new List<TypedVar>():params, new List<TypedVar>(), new List<Stmt>(), returnExpr); :}
+         {: return new MethodDecl(name, returnType, params==null?new List<TypedVar>():params, new List<TypedVar>(), new List<Stmt>(), returnExpr); :}
 ;
 
 MethodList = Method.m
@@ -166,12 +167,12 @@ MethodList = Method.m
 ParamList = Type.t IDENTIFIER.id
             {:
                 List<TypedVar> lst = new List<>();
-                lst.add(new TypedVar(t, id));
+                lst.add(new TypedVar(id, t));
                 return new Symbol(lst);
             :}
           | ParamList.lst COMMA Type.t IDENTIFIER.id
             {:
-                lst.add(new TypedVar(t, id));
+                lst.add(new TypedVar(id, t));
                 return _symbol_lst;
             :}
 ;
