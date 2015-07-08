@@ -14,9 +14,25 @@ aspect PrintAST {
 		for (int j = 0; j < t; j++) {
 			sb.append((j%2==0) ? " |" : " !");
 		}
-		sb.append(getClass().getSimpleName() + "\n");
+		
+		sb.append(getClass().getSimpleName());
+		printExtra(sb);
+		sb.append("\n");
+		
 		for (int i = 0; i < getNumChild(); i++) {
 			getChild(i).printAST(sb, t+1);
 		}
+	}
+	
+	protected void ASTNode.printExtra(StringBuilder sb) {}
+	
+	protected void IdentUse.printExtra(StringBuilder sb) {
+		sb.append("->");
+		if(decl() != null) {
+			sb.append(decl().getClass().getSimpleName());
+		} else {
+			sb.append("<NOT DECLARED>");
+		}
+		
 	}
 }

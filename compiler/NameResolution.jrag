@@ -1,0 +1,73 @@
+import java.util.HashMap;
+
+aspect decl {
+	syn lazy Decl IdentUse.decl() = findDecl(getName());
+	syn lazy Decl Assign.decl() = getName().decl();
+	syn lazy Decl ObjAlloc.decl() = findDecl(getName());
+	syn lazy Decl ClassT.decl() = findDecl(getName());
+	syn lazy Decl ArrayAssign.decl() = getName().decl();
+//	syn lazy ClassDecl ClassDecl.decl() = ...
+	
+    // traverse tree in reverse order starting at identUse -> look for matching Decl
+    syn lazy Decl ASTNode.findDecl(String ident) {
+        ASTNode parent = getParent();
+        if(parent != null)
+            return parent.findDecl(ident);
+        else
+            return null;
+    }
+    
+//    eq Decl.findDecl(String ident) {
+//        if(ident.equals(getIdent())) {
+//            return this;
+//        }
+//        return super.findDecl(ident);
+//    }
+    
+    eq Program.findDecl(String ident) {
+    	MainClass main = getMain();
+    	if(ident.equals(main.getIdent())) {
+    		return main;
+		}
+		for(ClassDecl c: getDeclss()) {
+            if(ident.equals(c.getIdent())) {
+                return c;
+            }  
+		}		
+        return null;
+    }
+    
+    eq MainClass.findDecl(String ident) {
+        // TODO MainArgs:String
+        for(TypedVar var:getLocalVarss()) {
+            if(ident.equals(var.getIdent())) {
+                return var;
+            }
+        }
+        return super.findDecl(ident);
+    }
+    
+    eq ClassDecl.findDecl(String ident) {
+        for(TypedVar field:getFieldss()) {
+            if(ident.equals(field.getIdent())) {
+                return field;
+            }
+        }
+        // TODO search in super class
+        return super.findDecl(ident);
+    }
+    eq MethodDecl.findDecl(String ident) {
+        for(TypedVar param:getFormalParamss()) {
+            if(ident.equals(param.getIdent())) {
+                return param;
+            }
+        }
+        for(TypedVar var:getLocalVarss()) {
+            if(ident.equals(var.getIdent())) {
+                return var;
+            }
+        }
+    	return super.findDecl(ident);
+    }
+    
+}
