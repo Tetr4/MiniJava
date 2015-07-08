@@ -243,7 +243,7 @@ Multiplication = Unary
 
 Unary = BANG Unary.expr {: return new Not(expr); :}
 	  | NEW INTTYPE LBRACKET Expression.size RBRACKET {: return new ArrayAlloc(size); :}
-      | NEW IDENTIFIER.classname LBRACE RBRACE {: return new ObjAlloc(classname); :}
+      | NEW IDENTIFIER.classname LBRACE RBRACE {: return new ObjAlloc(new IdentUse(classname)); :}
 	  | Postfix
 ;
 
