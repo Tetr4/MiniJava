@@ -31,7 +31,7 @@ Mult:BinaryExp;
 Not:Exp ::= Exp:Exp;
 IdentUse:Exp ::= <Name:String>;
 ArrayAlloc:Exp ::= Size:Exp;
-ObjAlloc:Exp ::= Name:IdentUse;
+ObjAlloc:Exp ::= <Name:String>;
 ArrayLookup:Exp ::= Exp:Exp Offset:Exp;
 ArrayLength:Exp ::= Exp:Exp;
 MethodCall:Exp ::= Obj:Exp <Name:String> Args:Exp*;
