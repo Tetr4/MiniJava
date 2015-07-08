@@ -1,73 +1,107 @@
-import java.util.HashMap;
+import java.util.HashSet;
 
 aspect decl {
-	syn lazy Decl IdentUse.decl() = findDecl(getName());
-	syn lazy Decl Assign.decl() = getName().decl();
-	syn lazy Decl ObjAlloc.decl() = findDecl(getName());
-	syn lazy Decl ClassT.decl() = findDecl(getName());
-	syn lazy Decl ArrayAssign.decl() = getName().decl();
-//	syn lazy ClassDecl ClassDecl.decl() = ...
-	
-    // traverse tree in reverse order starting at identUse -> look for matching Decl
-    syn lazy Decl ASTNode.findDecl(String ident) {
+    // traverse tree in reverse order starting at identUse -> look for matching Declarations
+    
+	syn lazy TypedVar IdentUse.decl() = findVarDecl(getName()); // FIXME ClassDecl.superclass has ItentUse as type -> can't search for ClassDecl, only TypedVar 
+	syn lazy TypedVar Assign.decl() = getName().decl();
+	syn lazy ClassDecl ObjAlloc.decl() = findClassDecl(getName());
+	syn lazy ClassDecl ClassT.decl() = findClassDecl(getName());
+	syn lazy TypedVar ArrayAssign.decl() = getName().decl();
+	syn lazy ClassDecl ClassDecl.decl() = findClassDecl(getIdent());
+	 
+
+    syn lazy TypedVar ASTNode.findVarDecl(String ident) {
         ASTNode parent = getParent();
         if(parent != null)
-            return parent.findDecl(ident);
+            return parent.findVarDecl(ident);
         else
             return null;
     }
     
-//    eq Decl.findDecl(String ident) {
-//        if(ident.equals(getIdent())) {
-//            return this;
-//        }
-//        return super.findDecl(ident);
-//    }
+    syn lazy MethodDecl ASTNode.findMethodDecl(String ident) {
+        ASTNode parent = getParent();
+        if(parent != null)
+            return parent.findMethodDecl(ident);
+        else
+            return null;
+    }
     
-    eq Program.findDecl(String ident) {
-    	MainClass main = getMain();
-    	if(ident.equals(main.getIdent())) {
-    		return main;
-		}
+    syn lazy ClassDecl ASTNode.findClassDecl(String ident) {
+        ASTNode parent = getParent();
+        if(parent != null)
+            return parent.findClassDecl(ident);
+        else
+            return null;
+    }
+    
+    eq Program.findClassDecl(String ident) {
+        // Check mainclass name
+//    	MainClass main = getMain();
+//    	if(ident.equals(main.getIdent())) {
+//    		return main;
+//		}
+		// Check class names
 		for(ClassDecl c: getDeclss()) {
             if(ident.equals(c.getIdent())) {
                 return c;
-            }  
+            }
 		}		
+		// Declaration not found :/
         return null;
     }
     
-    eq MainClass.findDecl(String ident) {
-        // TODO MainArgs:String
+    eq MainClass.findVarDecl(String ident) {
+        // TODO MainArgs:String ?
+        // Check variables in main method
         for(TypedVar var:getLocalVarss()) {
             if(ident.equals(var.getIdent())) {
                 return var;
             }
         }
-        return super.findDecl(ident);
+        return super.findVarDecl(ident);
     }
     
-    eq ClassDecl.findDecl(String ident) {
+    eq ClassDecl.findMethodDecl(String ident) {
+        // Check methods
+        for(MethodDecl method:getMethodss()) {
+            if(ident.equals(method.getIdent())) {
+                return method;
+            }
+        }
+        
+	    //HashSet<?> checkedSuperClasses = new HashSet<ClassDecl>();
+    	// Check in superclasses
+    	
+        return super.findMethodDecl(ident);
+    }
+    
+    eq ClassDecl.findVarDecl(String ident) {
         for(TypedVar field:getFieldss()) {
             if(ident.equals(field.getIdent())) {
                 return field;
             }
         }
-        // TODO search in super class
-        return super.findDecl(ident);
+    
+    	// Check in superclasses
+    	
+        return super.findVarDecl(ident);
     }
-    eq MethodDecl.findDecl(String ident) {
+    
+    eq MethodDecl.findVarDecl(String ident) {
+        // Check parameters
         for(TypedVar param:getFormalParamss()) {
             if(ident.equals(param.getIdent())) {
                 return param;
             }
         }
+        // Check variables
         for(TypedVar var:getLocalVarss()) {
             if(ident.equals(var.getIdent())) {
                 return var;
             }
         }
-    	return super.findDecl(ident);
+    	return super.findVarDecl(ident);
     }
     
 }
