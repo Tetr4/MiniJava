@@ -1,14 +1,13 @@
 import java.util.HashSet;
 
+// Traverse tree in reverse order starting from ast node to resolve (IdentUse, Assing, ...) -> look for matching declarations
 aspect decl {
-    // traverse tree in reverse order starting at identUse -> look for matching Declarations
-    
-	syn lazy TypedVar IdentUse.decl() = findVarDecl(getName()); // FIXME ClassDecl.superclass has ItentUse as type -> can't search for ClassDecl, only TypedVar 
+	syn lazy TypedVar IdentUse.decl() = findVarDecl(getName()); // FIXME ClassDecl.superClass has IdentUse as type -> can't search for ClassDecl, only TypedVar 
 	syn lazy TypedVar Assign.decl() = getName().decl();
 	syn lazy ClassDecl ObjAlloc.decl() = findClassDecl(getName());
 	syn lazy ClassDecl ClassT.decl() = findClassDecl(getName());
 	syn lazy TypedVar ArrayAssign.decl() = getName().decl();
-	syn lazy ClassDecl ClassDecl.decl() = findClassDecl(getIdent());
+	syn lazy ClassDecl ClassDecl.superClass() = hasSuperClass() ? findClassDecl(getSuperClass().getName()) : null;
 	 
 
     syn lazy TypedVar ASTNode.findVarDecl(String ident) {
@@ -35,12 +34,14 @@ aspect decl {
             return null;
     }
     
+    
     eq Program.findClassDecl(String ident) {
+        // FIXME MainClass is not ClassDecl
         // Check mainclass name
-//    	MainClass main = getMain();
-//    	if(ident.equals(main.getIdent())) {
-//    		return main;
-//		}
+        //MainClass main = getMain();
+        //if(ident.equals(main.getIdent())) {
+        //    return main;
+        //}
 		// Check class names
 		for(ClassDecl c: getDeclss()) {
             if(ident.equals(c.getIdent())) {
@@ -52,7 +53,7 @@ aspect decl {
     }
     
     eq MainClass.findVarDecl(String ident) {
-        // TODO MainArgs:String ?
+        // FIXME MainArgs:String[] not valid TypeUse -> not TypedVar 
         // Check variables in main method
         for(TypedVar var:getLocalVarss()) {
             if(ident.equals(var.getIdent())) {
@@ -69,22 +70,40 @@ aspect decl {
                 return method;
             }
         }
-        
+	    // TODO check for loops first 
 	    //HashSet<?> checkedSuperClasses = new HashSet<ClassDecl>();
-    	// Check in superclasses
-    	
+    	// Check methods in superclasses
+    	ClassDecl curClass = this;
+    	while(curClass.hasSuperClass()) {
+    	    curClass = curClass.superClass();
+            for(MethodDecl method:getMethodss()) {
+                if(ident.equals(method.getIdent())) {
+                    return method;
+                }
+            }
+    	}
         return super.findMethodDecl(ident);
     }
     
     eq ClassDecl.findVarDecl(String ident) {
+    	// Check fields
         for(TypedVar field:getFieldss()) {
             if(ident.equals(field.getIdent())) {
                 return field;
             }
         }
-    
-    	// Check in superclasses
-    	
+	    // TODO check for loops first 
+	    //HashSet<?> checkedSuperClasses = new HashSet<ClassDecl>();
+    	// Check fields in superclasses
+    	ClassDecl curClass = this;
+    	while(curClass.hasSuperClass()) {
+    	    curClass = curClass.superClass();
+            for(TypedVar field:getFieldss()) {
+                if(ident.equals(field.getIdent())) {
+                    return field;
+                }
+            }
+    	}
         return super.findVarDecl(ident);
     }
     
