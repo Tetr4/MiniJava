@@ -1,0 +1,40 @@
+import java.util.Collection;
+import java.util.ArrayList;
+
+aspect ErrorCheck {
+    public class SemanticError {
+        ASTNode node;
+        String message;
+        
+        public SemanticError(ASTNode node, String message) {
+            this.node = node;
+            this.message = message;
+        }
+        
+        public String getMessage() {
+            return "Line " + node.getLine(node.getStart()) + ": " + message;
+        }      
+    }
+
+    syn lazy Collection<SemanticError> Program.errors() {
+        Collection<SemanticError> c = new ArrayList<SemanticError>();
+        collectErrors(c);
+        return c;
+    }
+
+    public void ASTNode.collectErrors(Collection<SemanticError> c) {
+        for(int i = 0; i < getNumChild(); i++)
+            getChild(i).collectErrors(c);
+    }
+
+    protected void ASTNode.error(Collection<SemanticError> c, String s) {
+        c.add(new SemanticError(this, s));
+    }
+    
+    public void Exp.collectErrors(Collection<SemanticError> c) {
+        if(type() instanceof TUnknown) {
+            error(c, "Unknown Type");
+        }
+    }
+
+}

@@ -1,6 +1,9 @@
 package minijava;
 
-import java.io.*;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Collection;
 
 class MJFrontEnd {
 
@@ -22,15 +25,15 @@ class MJFrontEnd {
       // Start parsing from the nonterminal "Start".
       Program ast = (Program) parser.parse(new MJScanner(new FileReader(inputFileName)));
        
-    /*  Set<Error> typeErrors = ast.getTypeErrors();
-      if (!typeErrors.isEmpty()) {
-          System.out.println("There are " + typeErrors.size() + " type error(s) in "+ args[0]);
-          for (Error e : typeErrors) {
+      Collection<SemanticError> errors = ast.errors();
+      if (!errors.isEmpty()) {
+          System.out.println("There are " + errors.size() + " error(s) in "+ inputFileName);
+          for (SemanticError e : errors) {
              System.out.println(e.getMessage());
           }
           System.exit(1);
       }
-      */
+      
       // Print the resulting AST on standard output.
       System.out.println(ast.printAST());
       System.out.println(ast.print().getString()); 

@@ -7,6 +7,17 @@ aspect decl {
     syn lazy ClassDecl ObjAlloc.decl() = findClassDecl(getName());
     syn lazy ClassDecl ClassT.decl() = findClassDecl(getName());
     syn lazy TypedVar ArrayAssign.decl() = getName().decl();
+    syn lazy ClassDecl This.decl() {
+        ASTNode node = getParent();
+        do {
+            if(node instanceof ClassDecl) {
+                return (ClassDecl) node;
+            }
+            node = node.getParent();
+        } while(node != null);
+        return null;
+    }
+    syn lazy MethodDecl MethodCall.decl() = findMethodDecl(getName());
     syn lazy ClassDecl ClassDecl.superClass() = !getSuperClass().isEmpty() ? findClassDecl(getSuperClass()) : null;
      
 

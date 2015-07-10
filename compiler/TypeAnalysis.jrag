@@ -1,0 +1,172 @@
+aspect TypeAnalysis {
+    
+    syn lazy TBool ASTNode.booleanType() = new TBool();
+    syn lazy TInt ASTNode.intType() = new TInt();
+    syn lazy TIntArray ASTNode.intArrayType() = new TIntArray();
+    syn lazy TUnknown ASTNode.unknownType() = new TUnknown();
+    
+    public abstract class TypeInfo {
+        public abstract boolean isSubtypeOf(TypeInfo t);
+    }
+    
+    public class TUnknown extends TypeInfo {
+        public boolean isSubtypeOf(TypeInfo t) {
+            return false;
+        }
+    }
+    
+    public class TInt extends TypeInfo {
+        public boolean isSubtypeOf(TypeInfo t) {
+            return t instanceof TInt;
+        }
+    }
+    
+    public class TIntArray extends TypeInfo {
+        public boolean isSubtypeOf(TypeInfo t) {
+            return t instanceof TIntArray;
+        }
+    }
+    
+    public class TBool extends TypeInfo {
+        public boolean isSubtypeOf(TypeInfo t) {
+            return t instanceof TBool;
+        }
+    }
+    
+    public class TClass extends TypeInfo {
+        private ClassDecl classDecl;
+        
+        public TClass(ClassDecl classDecl) {
+            this.classDecl = classDecl;
+        }
+        
+        public boolean isSubtypeOf(TypeInfo t) {
+            // Class not declared
+            if (classDecl == null)
+                return false;
+            
+            // Other type not a class
+            if (!(t instanceof TClass))
+                return false;
+            
+            TClass other = (TClass)t;
+
+            // TODO: Hashset intersect?            
+            ClassDecl decl = this.classDecl;
+            do
+            {
+	            ClassDecl otherDecl = other.classDecl;
+                do
+                {
+                    if (otherDecl.getIdent().equals(decl.getIdent()))
+                        return true;
+                    
+                    otherDecl = otherDecl.superClass();
+                }
+                while(otherDecl != null);
+                
+                decl = decl.superClass();
+            }
+            while (decl != null);
+            return false;
+        }
+    }
+    
+    
+    syn lazy TypeInfo TypeUse.type();
+    
+    eq IntArray.type() = intArrayType();
+    eq Bool.type() = booleanType();
+    eq Int.type() = intType();
+    eq ClassT.type() = new TClass(decl());
+    
+    syn lazy TypeInfo Exp.type();
+    
+    eq And.type() {
+        if(getLeft().type().isSubtypeOf(booleanType())
+            && getRight().type().isSubtypeOf(booleanType())) {
+            return booleanType();
+        }
+        return unknownType();
+    }
+    
+    eq Cmp.type() {
+        if(getLeft().type().isSubtypeOf(intType())
+            && getRight().type().isSubtypeOf(intType())) {
+            return booleanType();
+        }
+        return unknownType();
+    }
+    
+    eq Add.type() {
+        if(getLeft().type().isSubtypeOf(intType())
+            && getRight().type().isSubtypeOf(intType())) {
+            return intType();
+        }
+        return unknownType();
+    }
+    
+    eq Sub.type() {
+        if(getLeft().type().isSubtypeOf(intType())
+            && getRight().type().isSubtypeOf(intType())) {
+            return intType();
+        }
+        return unknownType();
+    }
+    
+    eq Mult.type() {
+        if(getLeft().type().isSubtypeOf(intType())
+            && getRight().type().isSubtypeOf(intType())) {
+            return intType();
+        }
+        return unknownType();
+    }
+    
+    eq Not.type() {
+        if(getExp().type().isSubtypeOf(booleanType())) {
+            return booleanType();
+        }
+        return unknownType();
+    }
+    
+    syn lazy TypeInfo ClassDecl.type() = new TClass(this);
+    syn lazy TypeInfo MethodDecl.type() = getRetType().type();
+    syn lazy TypeInfo TypedVar.type() = getType().type();
+    
+    syn lazy TypeInfo IdentUse.type() {
+        if (decl() == null) {
+            return unknownType();
+        }
+        return decl().type(); 
+    }
+    
+    syn lazy TypeInfo ArrayAlloc.type() = intArrayType();
+    
+    syn lazy TypeInfo ObjAlloc.type() {
+        if(decl() == null) {
+            return unknownType();
+        }
+        return decl().type();
+    }
+    
+    syn lazy TypeInfo ArrayLookup.type() = intType();
+    
+    syn lazy TypeInfo ArrayLength.type() = intType();
+    
+    syn lazy TypeInfo MethodCall.type() {
+        if(decl() == null) {
+            return unknownType();
+        }
+        return decl().type();
+    }
+    
+    syn lazy TypeInfo IntLiteral.type() = intType();
+    syn lazy TypeInfo True.type() = booleanType();
+    syn lazy TypeInfo False.type() = booleanType();
+    syn lazy TypeInfo This.type() {
+        if(decl() == null) {
+            return unknownType();
+        }
+        return decl().type();
+    }
+}
