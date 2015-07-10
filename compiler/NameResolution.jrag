@@ -17,7 +17,18 @@ aspect decl {
         } while(node != null);
         return null;
     }
-    syn lazy MethodDecl MethodCall.decl() = findMethodDecl(getName());
+    syn lazy MethodDecl MethodCall.decl() {
+        if (!(getObj().type() instanceof TClass)) {
+            return null;
+        }
+        
+        TClass type = (TClass) getObj().type();
+        ClassDecl decl = type.getClassDecl();
+        if (decl == null) {
+            return null;
+        }
+        return decl.findMethodDecl(getName());
+    }
     syn lazy ClassDecl ClassDecl.superClass() = !getSuperClass().isEmpty() ? findClassDecl(getSuperClass()) : null;
      
 
