@@ -31,10 +31,115 @@ aspect ErrorCheck {
         c.add(new SemanticError(this, s));
     }
     
-    public void Exp.collectErrors(Collection<SemanticError> c) {
-        if(type() instanceof TUnknown) {
-            error(c, "Unknown Type");
+    public void Not.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if (type() instanceof TUnknown) {
+            error(c, "Can't negate non-boolean expression.");
         }
     }
+    
+    public void IdentUse.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(decl() == null) {
+            error(c, "Unknown Identifier \"" + getName() + "\"");
+        }
+    }
+
+    public void ArrayAlloc.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(!getSize().type().isSubtypeOf(intType())) {
+            error(c, "Array size has to be integer, got <" + getSize().type() + ">");
+        }        
+    }
+    
+    public void ObjAlloc.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(decl() == null) {
+            error(c, "Unknown Class \"" + getName() + "\"");
+        }
+    }
+    
+    public void ArrayLookup.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(!getExp().type().isSubtypeOf(intArrayType())) {
+            error(c, "Expression is not an array");
+        }
+        if(!getOffset().type().isSubtypeOf(intType())) {
+            error(c, "Array index has to be integer, got <" + getOffset().type() + ">");
+        }
+    }
+    
+    public void ArrayLength.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(!getExp().type().isSubtypeOf(intArrayType())) {
+            error(c, "Expression is not an array and has no length.");
+        }
+    }
+    
+    public void MethodCall.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(decl() == null) {
+            error(c, "Unknown Method \"" + getName() + "\"");
+            return;
+        }
+        
+        if (decl().getFormalParamsList().getNumChild() != getArgsList().getNumChild()) {
+            error(c, "Amount of arguments don't match the expected amount. (" + getArgsList().getNumChild() + " passed, " + decl().getFormalParamsList().getNumChild() + " expected)");
+            return;
+        }
+        
+        List<TypedVar> params = decl().getFormalParamsList();
+        List<Exp> args = getArgsList();
+        for(int i = 0; i < params.getNumChild(); i++) {
+            if(!args.getChild(i).type().isSubtypeOf(params.getChild(i).type())) {
+                error(c, "Mismatched Type for argument " + i + " expected <" + params.getChild(i).type() + ">, but got <" + args.getChild(i).type() + ">.");
+            }
+        }
+    }
+    
+    public void Print.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(!getExp().type().isSubtypeOf(intType())) {
+            error(c, "Can only print integers, but got <"+ getExp().type() + ">.");
+        }
+    }
+    
+    public void Assign.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(!getRhs().type().isSubtypeOf(getName().type())) {
+            error(c, "Can't assign value of type <" + getRhs().type() + "> to variable of type <" + getName().type() + ">");
+        }
+    }
+    
+    public void ArrayAssign.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(!getName().type().isSubtypeOf(intArrayType())) {
+            error(c, getName().getName() + " is not an array");
+        }
+        if(!getOffset().type().isSubtypeOf(intType())) {
+            error(c, "Array index has to be integer, got <" + getOffset().type() + ">");
+        }
+    }
+    
+    
+    public void While.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(!getCond().type().isSubtypeOf(booleanType())) {
+            error(c, "Condition of while loop has to be boolean, got <" + getCond().type() +">");
+        }
+    }
+    
+    public void If.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(!getCond().type().isSubtypeOf(booleanType())) {
+            error(c, "Condition of if statement has to be boolean, got <" + getCond().type() +">");
+        }
+    }
+    
+    
+    
+    
+    
+    
 
 }

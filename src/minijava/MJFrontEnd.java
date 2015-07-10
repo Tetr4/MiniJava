@@ -24,18 +24,18 @@ class MJFrontEnd {
 
       // Start parsing from the nonterminal "Start".
       Program ast = (Program) parser.parse(new MJScanner(new FileReader(inputFileName)));
+      System.out.println(ast.printAST());
        
       Collection<SemanticError> errors = ast.errors();
       if (!errors.isEmpty()) {
-          System.out.println("There are " + errors.size() + " error(s) in "+ inputFileName);
+          System.err.println("There are " + errors.size() + " error(s) in "+ inputFileName);
           for (SemanticError e : errors) {
-             System.out.println(e.getMessage());
+             System.err.println(e.getMessage());
           }
           System.exit(1);
       }
       
       // Print the resulting AST on standard output.
-      System.out.println(ast.printAST());
       System.out.println(ast.print().getString()); 
     }
     catch (FileNotFoundException e) {
