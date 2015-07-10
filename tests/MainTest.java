@@ -1,4 +1,4 @@
-class Bla {
+class Main {
     public static void main(String[] bla){ // bla
         // VarDecl*
     	int[] a; /* muh */
@@ -13,6 +13,8 @@ class Bla {
     	d = new Blubb();
     }
 }
+
+class Bla {}
 
 class Blubb extends Bla {
     /*a*/

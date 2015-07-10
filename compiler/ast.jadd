@@ -29,10 +29,35 @@ aspect PrintAST {
 	protected void IdentUse.printExtra(StringBuilder sb) {
 		sb.append("->");
 		if(decl() != null) {
-			sb.append(decl().getClass().getSimpleName());
+			sb.append(decl().getIdent());
 		} else {
 			sb.append("<NOT DECLARED>");
 		}
-		
 	}
+	protected void ClassT.printExtra(StringBuilder sb) {
+        sb.append("->");
+        if(decl() != null) {
+            sb.append(decl().getIdent());
+        } else {
+            sb.append("<NOT DECLARED>");
+        }
+    }
+    protected void ObjAlloc.printExtra(StringBuilder sb) {
+        sb.append("->");
+        if(decl() != null) {
+            sb.append(decl().getIdent());
+        } else {
+            sb.append("<NOT DECLARED>");
+        }
+    }
+    protected void ClassDecl.printExtra(StringBuilder sb) {
+        if (!getSuperClass().isEmpty()) {
+            sb.append("->");
+	        if(superClass() != null) {
+	            sb.append(" extends " + superClass().getIdent());
+	        } else {
+	            sb.append("<NOT DECLARED>");
+	        }
+        }
+    }
 }
