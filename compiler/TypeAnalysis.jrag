@@ -13,11 +13,19 @@ aspect TypeAnalysis {
         public boolean isSubtypeOf(TypeInfo t) {
             return false;
         }
+        @Override
+        public String toString() {
+            return "unknown";
+        }
     }
     
     public class TInt extends TypeInfo {
         public boolean isSubtypeOf(TypeInfo t) {
             return t instanceof TInt;
+        }
+        @Override
+        public String toString() {
+            return "int";
         }
     }
     
@@ -25,11 +33,19 @@ aspect TypeAnalysis {
         public boolean isSubtypeOf(TypeInfo t) {
             return t instanceof TIntArray;
         }
+        @Override
+        public String toString() {
+            return "int[]";
+        }
     }
     
     public class TBool extends TypeInfo {
         public boolean isSubtypeOf(TypeInfo t) {
             return t instanceof TBool;
+        }
+        @Override
+        public String toString() {
+            return "boolean";
         }
     }
     
@@ -38,6 +54,10 @@ aspect TypeAnalysis {
         
         public TClass(ClassDecl classDecl) {
             this.classDecl = classDecl;
+        }
+        
+        public ClassDecl getClassDecl() {
+            return classDecl;
         }
         
         public boolean isSubtypeOf(TypeInfo t) {
@@ -51,24 +71,27 @@ aspect TypeAnalysis {
             
             TClass other = (TClass)t;
 
-            // TODO: Hashset intersect?            
             ClassDecl decl = this.classDecl;
+            ClassDecl otherDecl = other.classDecl;
             do
             {
-	            ClassDecl otherDecl = other.classDecl;
-                do
-                {
-                    if (otherDecl.getIdent().equals(decl.getIdent()))
-                        return true;
-                    
-                    otherDecl = otherDecl.superClass();
-                }
-                while(otherDecl != null);
+                if (otherDecl.getIdent().equals(decl.getIdent()))
+                    return true;
                 
                 decl = decl.superClass();
             }
-            while (decl != null);
+            while(decl != null);
             return false;
+        }
+        
+        @Override
+        public String toString() {
+            if (classDecl == null) {
+                return "unknown";
+            }
+            else {
+                return classDecl.getIdent();
+            }
         }
     }
     
