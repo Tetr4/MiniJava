@@ -15,7 +15,7 @@ import minijava.MJParser.Terminals;
 %function nextToken 
 %yylexthrow beaver.Scanner.Exception
 %eofval{
-	return new beaver.Symbol(Terminals.EOF, "end-of-file");
+    return new beaver.Symbol(Terminals.EOF, "end-of-file");
 %eofval}
 
 // store line and column information in the tokens

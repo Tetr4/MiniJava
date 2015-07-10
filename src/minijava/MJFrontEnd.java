@@ -24,11 +24,11 @@ class MJFrontEnd {
        
     /*  Set<Error> typeErrors = ast.getTypeErrors();
       if (!typeErrors.isEmpty()) {
-    	  System.out.println("There are " + typeErrors.size() + " type error(s) in "+ args[0]);
-    	  for (Error e : typeErrors) {
-    		 System.out.println(e.getMessage());
-    	  }
-    	  System.exit(1);
+          System.out.println("There are " + typeErrors.size() + " type error(s) in "+ args[0]);
+          for (Error e : typeErrors) {
+             System.out.println(e.getMessage());
+          }
+          System.exit(1);
       }
       */
       // Print the resulting AST on standard output.

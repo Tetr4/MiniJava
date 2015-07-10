@@ -1,40 +1,40 @@
 aspect PrintAST {
-	/** 
-	 * Print AST
-	 */
-	public String ASTNode.printAST() {
-		StringBuilder sb = new StringBuilder();
-		printAST(sb);
-		return sb.toString();
-	}
-	public void ASTNode.printAST(StringBuilder sb) {
-		printAST(sb, 0);
-	}
-	public void ASTNode.printAST(StringBuilder sb, int t) {
-		for (int j = 0; j < t; j++) {
-			sb.append((j%2==0) ? " |" : " !");
-		}
-		
-		sb.append(getClass().getSimpleName());
-		printExtra(sb);
-		sb.append("\n");
-		
-		for (int i = 0; i < getNumChild(); i++) {
-			getChild(i).printAST(sb, t+1);
-		}
-	}
-	
-	protected void ASTNode.printExtra(StringBuilder sb) {}
-	
-	protected void IdentUse.printExtra(StringBuilder sb) {
-		sb.append("->");
-		if(decl() != null) {
-			sb.append(decl().getIdent());
-		} else {
-			sb.append("<NOT DECLARED>");
-		}
-	}
-	protected void ClassT.printExtra(StringBuilder sb) {
+    /** 
+     * Print AST
+     */
+    public String ASTNode.printAST() {
+        StringBuilder sb = new StringBuilder();
+        printAST(sb);
+        return sb.toString();
+    }
+    public void ASTNode.printAST(StringBuilder sb) {
+        printAST(sb, 0);
+    }
+    public void ASTNode.printAST(StringBuilder sb, int t) {
+        for (int j = 0; j < t; j++) {
+            sb.append((j%2==0) ? " |" : " !");
+        }
+        
+        sb.append(getClass().getSimpleName());
+        printExtra(sb);
+        sb.append("\n");
+        
+        for (int i = 0; i < getNumChild(); i++) {
+            getChild(i).printAST(sb, t+1);
+        }
+    }
+    
+    protected void ASTNode.printExtra(StringBuilder sb) {}
+    
+    protected void IdentUse.printExtra(StringBuilder sb) {
+        sb.append("->");
+        if(decl() != null) {
+            sb.append(decl().getIdent());
+        } else {
+            sb.append("<NOT DECLARED>");
+        }
+    }
+    protected void ClassT.printExtra(StringBuilder sb) {
         sb.append("->");
         if(decl() != null) {
             sb.append(decl().getIdent());
@@ -53,11 +53,11 @@ aspect PrintAST {
     protected void ClassDecl.printExtra(StringBuilder sb) {
         if (!getSuperClass().isEmpty()) {
             sb.append("->");
-	        if(superClass() != null) {
-	            sb.append(" extends " + superClass().getIdent());
-	        } else {
-	            sb.append("<NOT DECLARED>");
-	        }
+            if(superClass() != null) {
+                sb.append(" extends " + superClass().getIdent());
+            } else {
+                sb.append("<NOT DECLARED>");
+            }
         }
     }
 }

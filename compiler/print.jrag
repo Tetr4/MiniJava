@@ -3,10 +3,10 @@
 aspect PrettyPrint {
   public class PrettyPrinter {
     public static String INDENT = "  ";
-  	private StringBuilder sb;
-  	public PrettyPrinter(){
-  		sb = new StringBuilder();
-  	}
+    private StringBuilder sb;
+    public PrettyPrinter(){
+        sb = new StringBuilder();
+    }
   
     public void append(String s) {
        sb.append(s);
@@ -17,18 +17,18 @@ aspect PrettyPrint {
     }
   }
 
-  //similar to JastAdd Java compiler	
+  //similar to JastAdd Java compiler    
   syn String ASTNode.indent() {
         String indent = extractIndent();
         return indent.startsWith("\n") ? indent : ("\n" + indent);
   }
 
     syn String ASTNode.extractIndent() {
-  	  if(getParent() == null)
-   		   return "";
+      if(getParent() == null)
+           return "";
       String indent = getParent().extractIndent();
       if(getParent().addsIndentationLevel())
-      	indent += PrettyPrinter.INDENT;
+        indent += PrettyPrinter.INDENT;
       return indent;
   }
 
@@ -41,7 +41,7 @@ aspect PrettyPrint {
   eq Block.addsIndentationLevel() = true;
 
   syn lazy PrettyPrinter Program.printer() {
-  	return new PrettyPrinter();
+    return new PrettyPrinter();
   }
   eq Program.getMain().printer() = this.printer();
   eq Program.getDecls().printer() = this.printer();
@@ -59,15 +59,15 @@ aspect PrettyPrint {
   
   public void MainClass.print() {
     printer().append("class " + getIdent() + " {");
-  	printer().append(indent() + "public static void main (String[] " + getMainArgs() + ") {");
-	for (TypedVar v : getLocalVarss()) {
-	  printer().append(indent() + PrettyPrinter.INDENT);  
+    printer().append(indent() + "public static void main (String[] " + getMainArgs() + ") {");
+    for (TypedVar v : getLocalVarss()) {
+      printer().append(indent() + PrettyPrinter.INDENT);  
       v.print();
       printer().append(";\n");
     }
-	for (Stmt s : getStmtss()) s.print();
-  	printer().append(indent() + "}");
-  	printer().append("\n}\n");
+    for (Stmt s : getStmtss()) s.print();
+    printer().append(indent() + "}");
+    printer().append("\n}\n");
   }
   
   public void ClassDecl.print() {
@@ -76,43 +76,43 @@ aspect PrettyPrint {
         printer().append(" extends " + getSuperClass());
     }
     printer().append(" {");
-    	for (TypedVar f : getFieldss()) {
-	  printer().append(indent() + PrettyPrinter.INDENT);  
+        for (TypedVar f : getFieldss()) {
+      printer().append(indent() + PrettyPrinter.INDENT);  
       f.print();
       printer().append(";\n");
     }
-	for (MethodDecl m : getMethodss()) m.print();
-    printer().append("\n}\n");	
+    for (MethodDecl m : getMethodss()) m.print();
+    printer().append("\n}\n");  
   }
 
   public void MethodDecl.print() {
-  	printer().append(indent() + "public ");
-  	getRetType().print();
-  	printer().append(" " + getIdent());
-  	printer().append("(");
-  	if (getNumFormalParams() > 0) {
-  	  getFormalParams(0).print();
-  	  for (int i = 1; i < getNumFormalParams(); i++) {
-  	    printer().append(", ");
-  	    getFormalParams(i).print();
-  	  }
-  	} 
-  	printer().append(") {");
-  		for (TypedVar v : getLocalVarss()) {
-	  printer().append(indent() + PrettyPrinter.INDENT);  
+    printer().append(indent() + "public ");
+    getRetType().print();
+    printer().append(" " + getIdent());
+    printer().append("(");
+    if (getNumFormalParams() > 0) {
+      getFormalParams(0).print();
+      for (int i = 1; i < getNumFormalParams(); i++) {
+        printer().append(", ");
+        getFormalParams(i).print();
+      }
+    } 
+    printer().append(") {");
+        for (TypedVar v : getLocalVarss()) {
+      printer().append(indent() + PrettyPrinter.INDENT);  
       v.print();
       printer().append(";\n");
     }
     for (Stmt s : getStmtss()) s.print();
-	printer().append(indent() + PrettyPrinter.INDENT + "return ");
-	getRetExp().print();
-	printer().append(";");
-  	printer().append(indent() + "}\n");
+    printer().append(indent() + PrettyPrinter.INDENT + "return ");
+    getRetExp().print();
+    printer().append(";");
+    printer().append(indent() + "}\n");
   }
 
   public void TypedVar.print() {
-	getType().print();
-  	printer().append(" " + getIdent());
+    getType().print();
+    printer().append(" " + getIdent());
   }
   
   public abstract void TypeUse.print();
@@ -237,25 +237,25 @@ aspect PrettyPrint {
     getObj().print();
     printer().append("." + getName() + "(");
     if (getNumArgs() > 0) {
-  	  getArgs(0).print();
-  	  for (int i = 1; i < getNumArgs(); i++) {
-  	    printer().append(", ");
-  	    getArgs(i).print();
-  	  }
-  	} 
+      getArgs(0).print();
+      for (int i = 1; i < getNumArgs(); i++) {
+        printer().append(", ");
+        getArgs(i).print();
+      }
+    } 
     printer().append(")");
   }  
   public void IntLiteral.print() {
-  	printer().append(getInteger().toString());
+    printer().append(getInteger().toString());
   } 
   public void True.print() {
-  	printer().append("true");
+    printer().append("true");
   }
   public void False.print() {
-  	printer().append("false");
+    printer().append("false");
   }
   public void This.print() {
-  	printer().append("this");
+    printer().append("this");
   }
   
 }

@@ -43,9 +43,9 @@ package minijava;
 
 // Productions with semantic actions building the JastAdd AST
 Goal = MainClass.main ClassList.classes
-	 {: return new Program(main, classes); :}
-	 | MainClass.main
-	 {: return new Program(main, new List<ClassDecl>()); :}
+     {: return new Program(main, classes); :}
+     | MainClass.main
+     {: return new Program(main, new List<ClassDecl>()); :}
 ;
 
 MainClass = CLASS IDENTIFIER.name
@@ -184,7 +184,7 @@ Type = INTTYPE LBRACKET RBRACKET {: return new IntArray(); :}
 ;
 
 Statement = LCURLYBRACE StatementList.stmts RCURLYBRACE {: return new Block(stmts); :}
-		  | LCURLYBRACE RCURLYBRACE {: return new Block(new List<Stmt>()); :}
+          | LCURLYBRACE RCURLYBRACE {: return new Block(new List<Stmt>()); :}
           | IF LBRACE Expression.condition RBRACE Statement.trueBranch ELSE Statement.falseBranch {: return new If(condition, trueBranch, falseBranch); :}
           | WHILE LBRACE Expression.condition RBRACE Statement.body {: return new While(condition, body); :}
           | SYSOUT LBRACE Expression.expr RBRACE SEMICOLON {: return new Print(expr); :}
@@ -220,31 +220,31 @@ ExpList = Expression.e
 ;
 
 Conditional = Relational
-			| Relational.lhs AND Conditional.rhs
-			{: return new And(lhs, rhs); :}
+            | Relational.lhs AND Conditional.rhs
+            {: return new And(lhs, rhs); :}
 ;
 
 Relational = Addition
-		   | Addition.lhs LESSTHAN Relational.rhs
-		   {: return new Cmp(lhs, rhs); :}
+           | Addition.lhs LESSTHAN Relational.rhs
+           {: return new Cmp(lhs, rhs); :}
 ;
 
 Addition = Multiplication
-		 | Multiplication.lhs PLUS Addition.rhs
-		 {: return new Add(lhs, rhs); :}
-		 | Multiplication.lhs MINUS Addition.rhs
-		 {: return new Sub(lhs, rhs); :}
+         | Multiplication.lhs PLUS Addition.rhs
+         {: return new Add(lhs, rhs); :}
+         | Multiplication.lhs MINUS Addition.rhs
+         {: return new Sub(lhs, rhs); :}
 ;
 
 Multiplication = Unary
-			   | Unary.lhs TIMES Multiplication.rhs
-			   {: return new Mult(lhs, rhs); :}
+               | Unary.lhs TIMES Multiplication.rhs
+               {: return new Mult(lhs, rhs); :}
 ;
 
 Unary = BANG Unary.expr {: return new Not(expr); :}
-	  | NEW INTTYPE LBRACKET Expression.size RBRACKET {: return new ArrayAlloc(size); :}
+      | NEW INTTYPE LBRACKET Expression.size RBRACKET {: return new ArrayAlloc(size); :}
       | NEW IDENTIFIER.classname LBRACE RBRACE {: return new ObjAlloc(classname); :}
-	  | Postfix
+      | Postfix
 ;
 
 Postfix = Primary.var DOT LENGTH {: return new ArrayLength(var); :}
@@ -252,20 +252,20 @@ Postfix = Primary.var DOT LENGTH {: return new ArrayLength(var); :}
 ;
 
 Primary = Prefix.var DOT IDENTIFIER.methodname LBRACE ExpList.args? RBRACE 
-		  {: return new MethodCall(var, methodname, args==null?new List<Exp>():args); :}
-		| Prefix.var LBRACKET Expression.offs RBRACKET
-		  {: return new ArrayLookup(var, offs); :}
-		| Prefix
+          {: return new MethodCall(var, methodname, args==null?new List<Exp>():args); :}
+        | Prefix.var LBRACKET Expression.offs RBRACKET
+          {: return new ArrayLookup(var, offs); :}
+        | Prefix
 ;
 
 Prefix = Id
-	   | THIS {: return new This(); :}
-	   | LBRACE Expression.expr RBRACE
-	   | Primitive
+       | THIS {: return new This(); :}
+       | LBRACE Expression.expr RBRACE
+       | Primitive
 ;
 
 Primitive = INTEGER.i {: return new IntLiteral(Integer.parseInt(i)); :}
-		  | TRUE {: return new True(); :}
+          | TRUE {: return new True(); :}
           | FALSE {: return new False(); :}
 ;
 

@@ -2,13 +2,13 @@ import java.util.HashSet;
 
 // Traverse tree in reverse order starting from ast node to resolve (IdentUse, Assing, ...) -> look for matching declarations
 aspect decl {
-	syn lazy TypedVar IdentUse.decl() = findVarDecl(getName()); // FIXME ClassDecl.superClass has IdentUse as type -> can't search for ClassDecl, only TypedVar 
-	syn lazy TypedVar Assign.decl() = getName().decl();
-	syn lazy ClassDecl ObjAlloc.decl() = findClassDecl(getName());
-	syn lazy ClassDecl ClassT.decl() = findClassDecl(getName());
-	syn lazy TypedVar ArrayAssign.decl() = getName().decl();
-	syn lazy ClassDecl ClassDecl.superClass() = !getSuperClass().isEmpty() ? findClassDecl(getSuperClass()) : null;
-	 
+    syn lazy TypedVar IdentUse.decl() = findVarDecl(getName()); // FIXME ClassDecl.superClass has IdentUse as type -> can't search for ClassDecl, only TypedVar 
+    syn lazy TypedVar Assign.decl() = getName().decl();
+    syn lazy ClassDecl ObjAlloc.decl() = findClassDecl(getName());
+    syn lazy ClassDecl ClassT.decl() = findClassDecl(getName());
+    syn lazy TypedVar ArrayAssign.decl() = getName().decl();
+    syn lazy ClassDecl ClassDecl.superClass() = !getSuperClass().isEmpty() ? findClassDecl(getSuperClass()) : null;
+     
 
     syn lazy TypedVar ASTNode.findVarDecl(String ident) {
         ASTNode parent = getParent();
@@ -42,13 +42,13 @@ aspect decl {
         //if(ident.equals(main.getIdent())) {
         //    return main;
         //}
-		// Check class names
-		for(ClassDecl c: getDeclss()) {
+        // Check class names
+        for(ClassDecl c: getDeclss()) {
             if(ident.equals(c.getIdent())) {
                 return c;
             }
-		}		
-		// Declaration not found :/
+        }       
+        // Declaration not found :/
         return null;
     }
     
@@ -67,33 +67,33 @@ aspect decl {
         ClassDecl curClass = this;
         do
         {
-	        // Check methods
-	        for(MethodDecl method: curClass.getMethodss()) {
-	            if(ident.equals(method.getIdent())) {
-	                return method;
-	            }
-	        }
-	        curClass = curClass.superClass();
-	    }
-	    while (curClass != null);
-	    // TODO check for loops first 
-	    
+            // Check methods
+            for(MethodDecl method: curClass.getMethodss()) {
+                if(ident.equals(method.getIdent())) {
+                    return method;
+                }
+            }
+            curClass = curClass.superClass();
+        }
+        while (curClass != null);
+        // TODO check for loops first 
+        
         return super.findMethodDecl(ident);
     }
     
     eq ClassDecl.findVarDecl(String ident) {
-	    // TODO check for loops first 
-    	ClassDecl curClass = this;
-    	do
-    	{
+        // TODO check for loops first 
+        ClassDecl curClass = this;
+        do
+        {
             for(TypedVar field: curClass.getFieldss()) {
                 if(ident.equals(field.getIdent())) {
                     return field;
                 }
             }
-    	    curClass = curClass.superClass();
-    	}
-    	while (curClass != null);
+            curClass = curClass.superClass();
+        }
+        while (curClass != null);
         return super.findVarDecl(ident);
     }
     
@@ -110,7 +110,7 @@ aspect decl {
                 return var;
             }
         }
-    	return super.findVarDecl(ident);
+        return super.findVarDecl(ident);
     }
     
 }
