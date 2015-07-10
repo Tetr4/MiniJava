@@ -7,7 +7,7 @@ aspect decl {
 	syn lazy ClassDecl ObjAlloc.decl() = findClassDecl(getName());
 	syn lazy ClassDecl ClassT.decl() = findClassDecl(getName());
 	syn lazy TypedVar ArrayAssign.decl() = getName().decl();
-	syn lazy ClassDecl ClassDecl.superClass() = hasSuperClass() ? findClassDecl(getSuperClass().getName()) : null;
+	syn lazy ClassDecl ClassDecl.superClass() = !getSuperClass().isEmpty() ? findClassDecl(getSuperClass()) : null;
 	 
 
     syn lazy TypedVar ASTNode.findVarDecl(String ident) {
@@ -64,46 +64,36 @@ aspect decl {
     }
     
     eq ClassDecl.findMethodDecl(String ident) {
-        // Check methods
-        for(MethodDecl method:getMethodss()) {
-            if(ident.equals(method.getIdent())) {
-                return method;
-            }
-        }
+        ClassDecl curClass = this;
+        do
+        {
+	        // Check methods
+	        for(MethodDecl method: curClass.getMethodss()) {
+	            if(ident.equals(method.getIdent())) {
+	                return method;
+	            }
+	        }
+	        curClass = curClass.superClass();
+	    }
+	    while (curClass != null);
 	    // TODO check for loops first 
-	    //HashSet<?> checkedSuperClasses = new HashSet<ClassDecl>();
-    	// Check methods in superclasses
-    	ClassDecl curClass = this;
-    	while(curClass.hasSuperClass()) {
-    	    curClass = curClass.superClass();
-            for(MethodDecl method:getMethodss()) {
-                if(ident.equals(method.getIdent())) {
-                    return method;
-                }
-            }
-    	}
+	    
         return super.findMethodDecl(ident);
     }
     
     eq ClassDecl.findVarDecl(String ident) {
-    	// Check fields
-        for(TypedVar field:getFieldss()) {
-            if(ident.equals(field.getIdent())) {
-                return field;
-            }
-        }
 	    // TODO check for loops first 
-	    //HashSet<?> checkedSuperClasses = new HashSet<ClassDecl>();
-    	// Check fields in superclasses
     	ClassDecl curClass = this;
-    	while(curClass.hasSuperClass()) {
-    	    curClass = curClass.superClass();
-            for(TypedVar field:getFieldss()) {
+    	do
+    	{
+            for(TypedVar field: curClass.getFieldss()) {
                 if(ident.equals(field.getIdent())) {
                     return field;
                 }
             }
+    	    curClass = curClass.superClass();
     	}
+    	while (curClass != null);
         return super.findVarDecl(ident);
     }
     

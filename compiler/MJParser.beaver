@@ -87,13 +87,13 @@ ClassDecl = CLASS IDENTIFIER.name
                 VarList.vars?
                 MethodList.methods?
             RCURLYBRACE
-            {: return new ClassDecl(name, new Opt<IdentUse>(), vars==null?new List<TypedVar>():vars, methods==null?new List<MethodDecl>():methods); :}
-          | CLASS IDENTIFIER.name EXTENDS Id.superClass
+            {: return new ClassDecl(name, "", vars==null?new List<TypedVar>():vars, methods==null?new List<MethodDecl>():methods); :}
+          | CLASS IDENTIFIER.name EXTENDS IDENTIFIER.superClass
             LCURLYBRACE
                 VarList.vars?
                 MethodList.methods?
             RCURLYBRACE
-            {: return new ClassDecl(name, new Opt<IdentUse>(superClass), vars==null?new List<TypedVar>():vars, methods==null?new List<MethodDecl>():methods); :}
+            {: return new ClassDecl(name, superClass, vars==null?new List<TypedVar>():vars, methods==null?new List<MethodDecl>():methods); :}
 ;
 
 ClassList = ClassDecl.c

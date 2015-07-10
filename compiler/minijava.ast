@@ -2,7 +2,7 @@ Program   ::= Main:MainClass Decls:ClassDecl*;
 
 abstract Decl ::= <Ident:String>;
 MainClass:Decl ::= <MainArgs:String> LocalVars:TypedVar* Stmts:Stmt*;
-ClassDecl:Decl ::= [SuperClass:IdentUse] Fields:TypedVar* Methods:MethodDecl*;
+ClassDecl:Decl ::= <SuperClass:String> Fields:TypedVar* Methods:MethodDecl*;
 MethodDecl:Decl ::= RetType:TypeUse FormalParams:TypedVar* LocalVars:TypedVar* Stmts:Stmt* RetExp:Exp;
 TypedVar:Decl ::= Type:TypeUse;
 
