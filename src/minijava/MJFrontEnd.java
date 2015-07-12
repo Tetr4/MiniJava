@@ -1,3 +1,4 @@
+
 package minijava;
 
 import java.io.FileNotFoundException;
@@ -7,47 +8,48 @@ import java.util.Collection;
 
 class MJFrontEnd {
 
-  public static void main(String args[]) {
-   String inputFileName;
-   if(args.length != 1) {
-      System.out.println("MJFrontEnd: missing file command line argument");
-      //System.exit(1);
-      inputFileName = "tests/MainTest.java";
-    }
-   else {
-      System.out.println("MJFrontEnd: starting on file " + args[0]);
-      System.out.flush();
-      inputFileName = args[0];
-    }
-   try {
-      MJParser parser = new MJParser();
+    public static void main(String args[]) {
+        String inputFileName;
+        if (args.length != 1) {
+            inputFileName = "tests/Sum.java";
+        } else {
+            inputFileName = args[0];
+        }
 
-      // Start parsing from the nonterminal "Start".
-      Program ast = (Program) parser.parse(new MJScanner(new FileReader(inputFileName)));
-      System.out.println(ast.printAST());
-       
-      Collection<SemanticError> errors = ast.errors();
-      if (!errors.isEmpty()) {
-          System.err.println("There are " + errors.size() + " error(s) in "+ inputFileName);
-          for (SemanticError e : errors) {
-             System.err.println(e.getMessage());
-          }
-          System.exit(1);
-      }
-      
-      // Print the resulting AST on standard output.
-      System.out.println(ast.print().getString()); 
+        try {
+            MJParser parser = new MJParser();
+            MJScanner scanner = new MJScanner(new FileReader(inputFileName));
+
+            // Start parsing from the nonterminal "Start".
+            Program program = (Program) parser.parse(scanner);
+
+            // Print the resulting AST on standard output.
+            System.out.println(program.printAST());
+
+            // Prettyprint the program
+            System.out.println(program.print().getString());
+            
+            // Print errors
+            Collection<SemanticError> errors = program.errors();
+            if (!errors.isEmpty()) {
+                System.err.println("There are " + errors.size() + " error(s) in " + inputFileName);
+                for (SemanticError e : errors) {
+                    System.err.println(e.getMessage());
+                }
+                System.exit(1);
+            }
+
+            // Generate and print piglet
+            System.out.println(program.toPiglet());
+
+        } catch (FileNotFoundException e) {
+            System.err.println("MJFrontEnd: file " + inputFileName + " not found");
+        } catch (beaver.Parser.Exception e) {
+            System.out.println("Error when parsing: " + inputFileName);
+            System.out.println(e.getMessage());
+        } catch (IOException e) {
+            System.out.println("MJFrontEnd: " + e.getMessage());
+        }
     }
-    catch (FileNotFoundException e) {
-      System.err.println("MJFrontEnd: file " + inputFileName + " not found");
-    }
-    catch (beaver.Parser.Exception e) {
-      System.out.println("Error when parsing: " + inputFileName);      
-      System.out.println(e.getMessage());      
-    }
-    catch (IOException e) {
-      System.out.println("MJFrontEnd: " + e.getMessage());
-    }
-  }
 
 }
