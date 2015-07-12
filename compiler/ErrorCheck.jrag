@@ -42,6 +42,13 @@ aspect ErrorCheck {
         }
     }
     
+    public void Cmp.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(type() instanceof TUnknown) {
+            error(c, "Comparison requires integer");
+        }
+    }
+    
     public void IdentUse.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
         if(decl() == null) {
