@@ -11,6 +11,10 @@ aspect ErrorCheck {
             this.message = message;
         }
         
+        public ASTNode getNode() {
+        	return node;
+    	}
+        
         public String getMessage() {
             return "Line " + node.getLine(node.getStart()) + ": " + message;
         }      
