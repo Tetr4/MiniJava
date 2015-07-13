@@ -27,6 +27,8 @@ aspect PrettyPrint {
       if(getParent() == null)
            return "";
       String indent = getParent().extractIndent();
+      if (this instanceof Block)
+        return indent;
       if(getParent().addsIndentationLevel())
         indent += PrettyPrinter.INDENT;
       return indent;
@@ -160,7 +162,7 @@ aspect PrettyPrint {
     getFStmt().print();
   }
   public void While.print() {
-    printer().append(indent() + " while (");
+    printer().append(indent() + "while (");
     getCond().print();
     printer().append(")");
     getBody().print();
