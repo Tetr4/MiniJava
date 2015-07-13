@@ -35,10 +35,20 @@ aspect ErrorCheck {
         c.add(new SemanticError(this, s));
     }
     
+    // Don't error, if one of the types is unknown.
+    // We already errored, when the unknown type was generated
+    // Unknown identifier or unknown class/method.
+    protected boolean ASTNode.isSubtypeOfIgnoreUnknown(TypeInfo t1, TypeInfo t2) {
+        if (t1 instanceof TUnknown || t2 instanceof TUnknown)
+            return true;
+        
+        return t1.isSubtypeOf(t2);
+    }
+    
     public void MethodDecl.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
-        if (!getRetExp().type().isSubtypeOf(getRetType().type())) {
-            error(c, "Invalid return type. Expected <" + getRetType().type() + ">, but got <" + getRetExp().type() + ">.");
+        if (!isSubtypeOfIgnoreUnknown(getRetExp().type(), getRetType().type())) {
+            getRetExp().error(c, "Invalid return type. Expected <" + getRetType().type() + ">, but got <" + getRetExp().type() + ">.");
         }
     }
     
@@ -65,7 +75,7 @@ aspect ErrorCheck {
 
     public void ArrayAlloc.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
-        if(!getSize().type().isSubtypeOf(intType())) {
+        if(!isSubtypeOfIgnoreUnknown(getSize().type(), intType())) {
             error(c, "Array size has to be integer, got <" + getSize().type() + ">");
         }        
     }
@@ -79,17 +89,17 @@ aspect ErrorCheck {
     
     public void ArrayLookup.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
-        if(!getExp().type().isSubtypeOf(intArrayType())) {
+        if(!isSubtypeOfIgnoreUnknown(getExp().type(), intArrayType())) {
             error(c, "Expression is not an array");
         }
-        if(!getOffset().type().isSubtypeOf(intType())) {
+        if(!isSubtypeOfIgnoreUnknown(getOffset().type(), intType())) {
             error(c, "Array index has to be integer, got <" + getOffset().type() + ">");
         }
     }
     
     public void ArrayLength.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
-        if(!getExp().type().isSubtypeOf(intArrayType())) {
+        if(!isSubtypeOfIgnoreUnknown(getExp().type(), intArrayType())) {
             error(c, "Expression is not an array and has no length.");
         }
     }
@@ -109,7 +119,7 @@ aspect ErrorCheck {
         List<TypedVar> params = decl().getFormalParamsList();
         List<Exp> args = getArgsList();
         for(int i = 0; i < params.getNumChild(); i++) {
-            if(!args.getChild(i).type().isSubtypeOf(params.getChild(i).type())) {
+            if(!isSubtypeOfIgnoreUnknown(args.getChild(i).type(), params.getChild(i).type())) {
                 error(c, "Mismatched Type for argument " + i + " expected <" + params.getChild(i).type() + ">, but got <" + args.getChild(i).type() + ">.");
             }
         }
@@ -117,24 +127,24 @@ aspect ErrorCheck {
     
     public void Print.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
-        if(!getExp().type().isSubtypeOf(intType())) {
+        if(!isSubtypeOfIgnoreUnknown(getExp().type(), intType())) {
             error(c, "Can only print integers, but got <"+ getExp().type() + ">.");
         }
     }
     
     public void Assign.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
-        if(!getRhs().type().isSubtypeOf(getName().type())) {
+        if(!isSubtypeOfIgnoreUnknown(getRhs().type(), getName().type())) {
             error(c, "Can't assign value of type <" + getRhs().type() + "> to variable of type <" + getName().type() + ">");
         }
     }
     
     public void ArrayAssign.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
-        if(!getName().type().isSubtypeOf(intArrayType())) {
+        if(!isSubtypeOfIgnoreUnknown(getName().type(), intArrayType())) {
             error(c, getName().getName() + " is not an array");
         }
-        if(!getOffset().type().isSubtypeOf(intType())) {
+        if(!isSubtypeOfIgnoreUnknown(getOffset().type(), intType())) {
             error(c, "Array index has to be integer, got <" + getOffset().type() + ">");
         }
     }
@@ -142,21 +152,24 @@ aspect ErrorCheck {
     
     public void While.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
-        if(!getCond().type().isSubtypeOf(booleanType())) {
+        if(!isSubtypeOfIgnoreUnknown(getCond().type(), booleanType())) {
             error(c, "Condition of while loop has to be boolean, got <" + getCond().type() +">");
         }
     }
     
     public void If.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
-        if(!getCond().type().isSubtypeOf(booleanType())) {
+        if(!isSubtypeOfIgnoreUnknown(getCond().type(), booleanType())) {
             error(c, "Condition of if statement has to be boolean, got <" + getCond().type() +">");
         }
     }
     
-    
-    
-    
+    public void ClassT.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if (type() instanceof TUnknown) {
+            error(c, "Class \"" + getName() + "\" not declared.");
+        }
+    }
     
     
 
