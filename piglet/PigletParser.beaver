@@ -1,0 +1,157 @@
+%header {:
+ // this code is inlined before the generated parser
+package piglet;
+:};
+
+%terminals LPAREN, RPAREN, LSQPAREN, RSQPAREN;
+%terminals LT, PLUS, MINUS, TIMES;
+%terminals MAIN, END, NOOP, ERROR, CJUMP, JUMP, HSTORE, HLOAD;
+%terminals MOVE, PRINT, BEGIN, RETURN, CALL, HALLOCATE, TEMP;
+%terminals IDENTIFIER, INTEGER_LITERAL;
+
+%typeof Goal = "Program";
+%typeof Procedure = "Procedure";
+%typeof ProcedureList = "List<Procedure>";
+%typeof LabeledStmt = "LabeledStmt";
+%typeof StmtList = "List<LabeledStmt>";
+%typeof Statement = "Stmt";
+%typeof StatementExp = "StmtExp";
+%typeof NoopStatement = "Noop";
+%typeof ErrorStatement = "Err";
+%typeof CJumpStatement = "CJump";
+%typeof JumpStatement = "Jump";
+%typeof Exp = "Exp";
+%typeof CallExp = "Call";
+%typeof HAllocExp = "HAlloc";
+%typeof CompareExp = "Lt";
+%typeof PlusExp = "Plus";
+%typeof MinusExp = "Minus";
+%typeof TimesExp = "Times";
+%typeof ExpList = "List<Exp>";
+%typeof TempExp = "TempExp";
+%typeof IntegerLiteral = "IntLiteral";
+%typeof Temp = "Temp";
+%typeof Label = "Label";
+
+
+%goal Goal;
+
+// Productions with semantic actions building the JastAdd AST
+
+Goal =
+   MAIN StmtList.lsl END ProcedureList.procl  
+   											{: return new Program(lsl,procl); :}
+;
+ProcedureList =
+                                            {: return new List<Procedure>(); :}
+| ProcedureList.procl Procedure.proc        {: return procl.add(proc); :}
+;
+Procedure =
+   Label.l LSQPAREN INTEGER_LITERAL.ilt RSQPAREN StatementExp.s 
+   			{: return new Procedure(l,Integer.parseInt((String)ilt.value),s); :}
+;
+LabeledStmt = 
+   Label.l? Statement.s   {: if (l == null) 
+                                return new LabeledStmt(new Opt<Label>(),s); 
+                             else 
+                                return new LabeledStmt(new Opt<Label>(l),s); :}
+;
+StmtList =
+                                            {: return new List<LabeledStmt>(); :}
+| StmtList.sl LabeledStmt.s                 {: return sl.add(s); :}
+;
+   
+   
+ExpList =
+                                            {: return new List<Exp>(); :}
+| ExpList.el Exp.e                          {: return el.add(e); :}
+;
+
+Statement =
+   NoopStatement.st                         {: return st; :}
+|  ErrorStatement.st  			            {: return st; :}
+|  CJumpStatement.st                        {: return st; :}
+|  JumpStatement.st                         {: return st; :}
+|  HStoreStatement.st                       {: return st; :}
+|  HLoadStatement.st                        {: return st; :}
+|  MoveStatement.st                         {: return st; :}
+|  PrintStatement.st                        {: return st; :}
+;
+
+NoopStatement =
+  NOOP  {: return new Noop(); :}
+;
+ErrorStatement =
+  ERROR {: return new Err(); :}
+;
+CJumpStatement =
+  CJUMP Exp.e Label.l	{: return new CJump(e,l); :}
+;
+JumpStatement =
+  JUMP Label.l	{: return new Jump(l); :}
+;
+HStoreStatement = 
+  HSTORE Exp.e1 INTEGER_LITERAL.ilt Exp.e2      {: return new HStore(e1,Integer.parseInt((String)ilt.value),e2); :}
+;
+HLoadStatement = 
+  HLOAD Temp.t Exp.e INTEGER_LITERAL.ilt       {: return new HLoad(t,e,Integer.parseInt((String)ilt.value)); :}
+;
+MoveStatement = 
+  MOVE Temp.t Exp.e        {: return new Move(t,e); :}
+;
+PrintStatement = 
+  PRINT Exp.e        {: return new Print(e); :}
+;
+
+StatementExp =
+  BEGIN StmtList.sl RETURN Exp.e END  {: return new StmtExp(sl,e); :}
+;
+ 
+ Exp =
+   StatementExp.e	{: return e; :}
+|  CallExp.e        {: return e; :}
+|  HAllocExp.e      {: return e; :}
+|  CompareExp.e     {: return e; :}
+|  PlusExp.e        {: return e; :}
+|  MinusExp.e       {: return e; :}
+|  TimesExp.e       {: return e; :}
+|  TempExp.e 		{: return e; :}
+|  IntegerLiteral.e {: return e; :}
+|  LabelExp.e 		{: return e; :}
+;
+CompareExp =
+   LT Exp.le Exp.re 	{: return new Lt(le,re); :}
+;
+PlusExp =
+   PLUS Exp.le Exp.re  	{: return new Plus(le,re); :} 
+;
+MinusExp =
+   MINUS Exp.le Exp.re  {: return new Minus(le,re); :}
+;
+TimesExp =
+   TIMES Exp.le Exp.re  {: return new Times(le,re); :}
+;
+CallExp =
+   CALL Exp.name LPAREN ExpList.params RPAREN 
+   					  	{: return new Call(name,params); :}
+;
+HAllocExp =
+   HALLOCATE Exp.e 		{: return new HAlloc(e); :}
+;
+TempExp = 
+   Temp.t				{: return new TempExp(t); :}
+;
+LabelExp = 
+   Label.l				{: return new LabelExp(l); :}
+;
+
+
+Temp = 
+   TEMP INTEGER_LITERAL.ilt		{: return new Temp(Integer.parseInt((String) ilt.value)); :}
+;
+IntegerLiteral =
+   INTEGER_LITERAL.ilt          {: return new IntLiteral(Integer.parseInt((String)ilt.value)); :}
+;
+Label =
+  IDENTIFIER.id                 {: return new Label(id); :}
+;
