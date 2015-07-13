@@ -12,8 +12,8 @@ aspect ErrorCheck {
         }
         
         public ASTNode getNode() {
-        	return node;
-    	}
+            return node;
+        }
         
         public String getMessage() {
             return "Line " + node.getLine(node.getStart()) + ": " + message;
@@ -33,6 +33,13 @@ aspect ErrorCheck {
 
     protected void ASTNode.error(Collection<SemanticError> c, String s) {
         c.add(new SemanticError(this, s));
+    }
+    
+    public void MethodDecl.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if (!getRetExp().type().isSubtypeOf(getRetType().type())) {
+            error(c, "Invalid return type. Expected <" + getRetType().type() + ">, but got <" + getRetExp().type() + ">.");
+        }
     }
     
     public void Not.collectErrors(Collection<SemanticError> c) {
