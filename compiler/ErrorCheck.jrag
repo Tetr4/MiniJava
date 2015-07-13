@@ -107,7 +107,7 @@ aspect ErrorCheck {
     public void MethodCall.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
         if(decl() == null) {
-            error(c, "Unknown Method \"" + getName() + "\"");
+            error(c, "Unknown Method \"" + getName() + "\" on class \"" + getObj().type() + "\".");
             return;
         }
         
