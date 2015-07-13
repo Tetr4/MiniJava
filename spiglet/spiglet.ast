@@ -1,0 +1,33 @@
+Program		::= Stmts:LabeledStmt* Procs:Procedure*;
+
+LabeledStmt	::= [Label] Stmt:Stmt;
+Procedure	::= Label <Params:Integer> StmtsRet:StmtExp;
+abstract Stmt;
+Noop:Stmt;
+Err:Stmt;
+CJump:Stmt	::= Cond:Temp Label:Label;
+Jump:Stmt	::= Label:Label;
+HStore:Stmt	::=	Addr:Temp <Offset:Integer> Value:Temp;
+HLoad:Stmt	::=	Dest:Temp Addr:Temp <Offset:Integer>;
+Move:Stmt	::= Dest:Temp Source:Exp;
+Print:Stmt	::= Value:SExp;
+
+StmtExp     ::= Stmts:LabeledStmt* RetExp:SExp;
+
+abstract Exp;
+Call:Exp	     ::= Name:SExp Param:Temp*;
+HAlloc:Exp	 ::= Size:SExp;
+         
+abstract SExp:Exp;
+TempExp:SExp	 ::= Temp:Temp;
+LabelExp:SExp ::= Label:Label;
+IntLiteral:SExp ::= <Integer:Integer>;
+
+abstract Binop:Exp  ::=	Left:Temp Right:SExp;
+Lt:Binop;
+Plus:Binop;
+Minus:Binop;
+Times:Binop;
+
+Temp   ::= <Number:Integer>;
+Label  ::= <Label>;
