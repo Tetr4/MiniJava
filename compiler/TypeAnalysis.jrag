@@ -61,9 +61,6 @@ aspect TypeAnalysis {
         }
         
         public boolean isSubtypeOf(TypeInfo t) {
-            // Class not declared
-            if (classDecl == null)
-                return false;
             
             // Other type not a class
             if (!(t instanceof TClass))
@@ -71,8 +68,9 @@ aspect TypeAnalysis {
             
             TClass other = (TClass)t;
 
-            ClassDecl decl = this.classDecl;
+            ClassDecl decl = classDecl;
             ClassDecl otherDecl = other.classDecl;
+            
             do
             {
                 if (otherDecl.getIdent().equals(decl.getIdent()))
@@ -86,12 +84,7 @@ aspect TypeAnalysis {
         
         @Override
         public String toString() {
-            if (classDecl == null) {
-                return "unknown";
-            }
-            else {
-                return classDecl.getIdent();
-            }
+            return classDecl.getIdent();
         }
     }
     
@@ -101,7 +94,12 @@ aspect TypeAnalysis {
     eq IntArray.type() = intArrayType();
     eq Bool.type() = booleanType();
     eq Int.type() = intType();
-    eq ClassT.type() = new TClass(decl());
+    eq ClassT.type() {
+        if (decl() == null) {
+            return unknownType();
+        }
+        return new TClass(decl());
+    }
     
     syn lazy TypeInfo Exp.type();
     
