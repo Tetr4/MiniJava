@@ -242,8 +242,6 @@ Multiplication = Unary
 ;
 
 Unary = BANG Unary.expr {: return new Not(expr); :}
-      | NEW INTTYPE LBRACKET Expression.size RBRACKET {: return new ArrayAlloc(size); :}
-      | NEW IDENTIFIER.classname LBRACE RBRACE {: return new ObjAlloc(classname); :}
       | Postfix
 ;
 
@@ -251,7 +249,7 @@ Postfix = Primary.var DOT LENGTH {: return new ArrayLength(var); :}
         | Primary
 ;
 
-Primary = Prefix.var DOT IDENTIFIER.methodname LBRACE ExpList.args? RBRACE 
+Primary = Primary.var DOT IDENTIFIER.methodname LBRACE ExpList.args? RBRACE 
           {: return new MethodCall(var, methodname, args==null?new List<Exp>():args); :}
         | Prefix.var LBRACKET Expression.offs RBRACKET
           {: return new ArrayLookup(var, offs); :}
@@ -260,6 +258,8 @@ Primary = Prefix.var DOT IDENTIFIER.methodname LBRACE ExpList.args? RBRACE
 
 Prefix = Id
        | THIS {: return new This(); :}
+       | NEW INTTYPE LBRACKET Expression.size RBRACKET {: return new ArrayAlloc(size); :}
+       | NEW IDENTIFIER.classname LBRACE RBRACE {: return new ObjAlloc(classname); :}
        | LBRACE Expression.expr RBRACE
        | Primitive
 ;
