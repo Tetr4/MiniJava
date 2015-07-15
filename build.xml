@@ -57,7 +57,7 @@
   </target>
 
   <target name="clean">
-     <delete dir="${gen.dir}"/>
+     <delete dir="${gen.dir}/${package}"/>
   </target>
 
   <!--<target name="test" depends="compile">
