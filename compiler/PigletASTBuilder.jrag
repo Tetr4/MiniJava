@@ -1,0 +1,193 @@
+import piglet.*;
+
+aspect PigletASTBuilder {
+    // TODO boolean encoding
+    // TODO arrays and objects (virtual tables, fields)
+
+    //syn lazy piglet.ASTNode ASTNode.toPiglet();
+
+    syn piglet.Program Program.toPiglet() {
+        piglet.List<piglet.Procedure> l = new piglet.List<piglet.Procedure>();
+        // TODO: Translate classes
+        //for (ClassDecl decl: getDeclsList()) {
+        //    l.add((piglet.Procs) decl.toPiglet());
+        //}
+        return new piglet.Program(getMain().getPigletStmts(), l);
+    }
+    
+    public int TypedVar.tempId = -1;
+    
+    // TODO throw exception if tempid is still -1!
+    syn lazy piglet.Temp TypedVar.temp() = new piglet.Temp(tempId);
+    
+    /*
+     * DECLARATIONS
+     */
+    
+    syn lazy piglet.List<piglet.LabeledStmt> MainClass.getPigletStmts() {
+        piglet.List<piglet.LabeledStmt> l = new piglet.List<piglet.LabeledStmt>();
+        
+        // Assign local vars a temporary identifier
+        int i = 0;
+        for (TypedVar local: getLocalVarsList()) {
+            local.tempId = i++;
+        }
+        
+        // Translate statments
+        for (Stmt stmt: getStmtsList()) {
+            for (piglet.LabeledStmt pigStmt: stmt.toPiglet()) {
+                l.add(pigStmt);
+            }
+        }
+        
+        return l;
+    }
+    
+    /*
+     * STATEMENTS
+     */
+    
+    eq Block.toPiglet() {
+        piglet.List<piglet.LabeledStmt> l = new piglet.List<piglet.LabeledStmt>();
+        
+        // Translate statments
+        for (Stmt stmt: getStmtsList()) {
+            for (piglet.LabeledStmt pigStmt: stmt.toPiglet()) {
+                l.add(pigStmt);
+            }
+        }
+        return l;
+    }
+    
+    public static int If.pigletIndex = 0;
+    
+    eq If.toPiglet() {
+        piglet.List<piglet.LabeledStmt> stmts = new piglet.List<piglet.LabeledStmt>();
+        // else label
+        piglet.Label elseLabel = new piglet.Label("else_" + pigletIndex++);
+        
+        // Condition
+        piglet.Exp condition = getCond().toPiglet();
+        piglet.CJump jump = new piglet.CJump(condition, elseLabel);
+        stmts.add(convertToLabeledStmt(jump));
+        
+        // True branch
+        piglet.List<piglet.LabeledStmt> trueArm = getTStmt().toPiglet();
+        for (piglet.LabeledStmt lstmt: trueArm) {
+            stmts.add(lstmt);
+        }
+        
+        // Else label
+        stmts.add(new piglet.LabeledStmt(new piglet.Opt<piglet.Label>(elseLabel), new piglet.Noop()));
+        
+        // False branch
+        piglet.List<piglet.LabeledStmt> falseArm = getFStmt().toPiglet();
+        for (piglet.LabeledStmt lstmt: falseArm) {
+            stmts.add(lstmt);
+        }
+        
+        return stmts;
+    }
+    
+    public static int While.pigletIndex = 0;
+    
+    eq While.toPiglet() {
+        piglet.List<piglet.LabeledStmt> stmts = new piglet.List<piglet.LabeledStmt>();
+        int index = pigletIndex++;
+        // entry and exit label
+        piglet.Label entryLabel = new piglet.Label("loop_" + index);
+        piglet.Label exitLabel = new piglet.Label("loopexit_" + index);
+        
+        // condition
+        piglet.Exp condition = getCond().toPiglet();
+        piglet.CJump jump = new piglet.CJump(condition, exitLabel);
+        stmts.add(new piglet.LabeledStmt(new piglet.Opt<piglet.Label>(entryLabel), jump));
+        
+        // body
+        piglet.List<piglet.LabeledStmt> body = getBody().toPiglet();
+        for (piglet.LabeledStmt lstmt: body) {
+            stmts.add(lstmt);
+        }
+        
+        // backedge
+        piglet.Jump back = new piglet.Jump(entryLabel);
+        stmts.add(convertToLabeledStmt(back));
+        // exit label
+        stmts.add(new piglet.LabeledStmt(new piglet.Opt<piglet.Label>(exitLabel), new piglet.Noop()));
+        
+        return stmts;
+    }
+    
+    eq Assign.toPiglet() {
+        piglet.Temp lhs = getName().decl().temp();
+        piglet.Move move = new piglet.Move(lhs, getRhs().toPiglet());
+        
+        return convertToLabeledStmts(move);
+    }
+    
+    eq Print.toPiglet() {
+        return convertToLabeledStmts(new piglet.Print(getExp().toPiglet()));
+    }
+
+    /*
+     * EXPRESSIONS
+     */
+    syn lazy piglet.Exp Exp.toPiglet() {
+        return new piglet.IntLiteral(1337);
+    }
+    
+    eq Cmp.toPiglet() {
+        return new piglet.Lt(getLeft().toPiglet(), getRight().toPiglet());
+    }
+    
+    eq Add.toPiglet() {
+        return new piglet.Plus(getLeft().toPiglet(), getRight().toPiglet());
+    }
+    eq Sub.toPiglet() {
+        return new piglet.Minus(getLeft().toPiglet(), getRight().toPiglet());
+    }
+    eq Mult.toPiglet() {
+        return new piglet.Times(getLeft().toPiglet(), getRight().toPiglet());
+    }
+
+    eq IdentUse.toPiglet() {
+        return new TempExp(decl().temp());
+    }
+
+    eq IntLiteral.toPiglet() {
+        return new piglet.IntLiteral(getInteger());
+    }
+    
+    eq True.toPiglet() {
+        return new piglet.IntLiteral(1);
+    }
+    
+    eq False.toPiglet() {
+        return new piglet.IntLiteral(0);
+    }
+    
+    /*
+     * HELPERS
+     */
+    syn piglet.List<piglet.LabeledStmt> ASTNode.convertToLabeledStmts(piglet.List<piglet.Stmt> stmts) {
+        piglet.List<piglet.LabeledStmt> list = new piglet.List<piglet.LabeledStmt>();
+        for (piglet.Stmt stmt: stmts) {
+            list.add(new piglet.LabeledStmt(new piglet.Opt<piglet.Label>(), stmt));
+        }
+        return list;
+    }
+    
+    syn piglet.List<piglet.LabeledStmt> ASTNode.convertToLabeledStmts(piglet.Stmt stmt) {
+        piglet.List<piglet.LabeledStmt> list = new piglet.List<piglet.LabeledStmt>();
+        list.add(new piglet.LabeledStmt(new piglet.Opt<piglet.Label>(), stmt));
+        return list;
+    }
+    
+    syn piglet.LabeledStmt ASTNode.convertToLabeledStmt(piglet.Stmt stmt) {
+        return new piglet.LabeledStmt(new piglet.Opt<piglet.Label>(), stmt);
+    }
+
+    syn lazy piglet.List<piglet.LabeledStmt> Stmt.toPiglet() {
+        return convertToLabeledStmts(new piglet.Noop());
+    }
+}
