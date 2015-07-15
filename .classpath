@@ -7,6 +7,7 @@
 	<classpathentry kind="lib" path="tools/beaver.jar"/>
 	<classpathentry kind="lib" path="tools/jastadd2.jar"/>
 	<classpathentry kind="lib" path="tools/JFlex.jar"/>
+	<classpathentry kind="lib" path="support/pgi.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

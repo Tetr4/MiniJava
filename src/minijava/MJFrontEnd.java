@@ -1,10 +1,17 @@
 
 package minijava;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.Collection;
+
+import syntaxtree.Node;
+import visitor.GJPigletInterpreter;
 
 class MJFrontEnd {
 
@@ -21,7 +28,7 @@ class MJFrontEnd {
             MJScanner scanner = new MJScanner(new FileReader(inputFileName));
 
             // Start parsing from the nonterminal "Start".
-            Program program = (Program) parser.parse(scanner);
+            minijava.Program program = (Program) parser.parse(scanner);
 
             // Print the resulting AST on standard output.
             System.out.println(program.printAST());
@@ -39,8 +46,31 @@ class MJFrontEnd {
                 System.exit(1);
             }
 
-            // Generate and print piglet
-            System.out.println(program.toPiglet());
+            // Transform minijava AST to piglet AST
+            piglet.Program piglet = program.toPiglet();
+            
+            // Prettyprint piglet
+            String pigletCode = piglet.print().getString();
+            System.out.println(pigletCode);
+            
+            System.out.println("Interpreting piglet program:");
+            // Interpret piglet program
+            try {
+                // You can't import types from default package :/
+                // Screw pgi.jar >:(
+                Class<?> pigletInterpreterClass = Class.forName("PigletParser");
+                Constructor<?> pigletInterpreterConstructor = pigletInterpreterClass.getConstructor(InputStream.class);
+                Method pigletInterpreterGoalMethod = pigletInterpreterClass.getMethod("Goal");
+                
+                // Create piglet code input reader from pretty printer output
+                InputStream pigletInput = new ByteArrayInputStream(pigletCode.getBytes());
+                
+                Node root = (Node) pigletInterpreterGoalMethod.invoke(pigletInterpreterConstructor.newInstance(pigletInput));
+                root.accept(new GJPigletInterpreter("MAIN", null, root), root);
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
 
         } catch (FileNotFoundException e) {
             System.err.println("MJFrontEnd: file " + inputFileName + " not found");
