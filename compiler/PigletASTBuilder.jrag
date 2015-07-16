@@ -150,6 +150,13 @@ aspect PigletASTBuilder {
         return new piglet.Times(getLeft().toPiglet(), getRight().toPiglet());
     }
 
+    eq Not.toPiglet() {
+        // !boolean == boolean < 1
+        // 1 < 1 => 0
+        // 0 < 1 => 1
+        return new piglet.Lt(getExp().toPiglet(), new piglet.IntLiteral(1));
+    }
+
     eq IdentUse.toPiglet() {
         return new TempExp(decl().temp());
     }
