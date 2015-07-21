@@ -2,17 +2,19 @@ import piglet.*;
 
 aspect PigletASTBuilder {
     // TODO boolean encoding
-    // TODO arrays and objects (virtual tables, fields)
+    // TODO objects (virtual tables, fields)
     // TODO Translate classes
     
     syn lazy piglet.Program Program.toPiglet() {
         piglet.List<piglet.Procedure> procedures = new piglet.List<piglet.Procedure>();
+        procedures.add(createArrayAllocProcedure());
+        procedures.add(createArrayLookupProcedure());
         for (ClassDecl classDecl: getDeclsList()) {
         //    procedures.add((piglet.Procs) classDecl.toPiglet());
         }
         return new piglet.Program(getMain().getPigletStmts(), procedures);
     }
-
+    
     
     
     /*
@@ -20,7 +22,7 @@ aspect PigletASTBuilder {
      */
     
     public piglet.Temp TypedVar.temp = null;
-    // TODO throw exception if tempid is still null!
+    // TODO throw exception if temp is still null!
     syn piglet.Temp TypedVar.temp() = temp;
      
     syn lazy piglet.List<piglet.LabeledStmt> MainClass.getPigletStmts() {
@@ -43,7 +45,7 @@ aspect PigletASTBuilder {
     }
     
     syn lazy piglet.List<piglet.LabeledStmt> ClassDecl.getPigletStmts() {
-        // TODO
+        // TODO initialize newly allocated fields with zero.
         return null;
     }
     
@@ -157,8 +159,19 @@ aspect PigletASTBuilder {
     }
     
     eq ArrayAssign.toPiglet() {
-        // TODO
-        return convertToLabeledStmts(new piglet.Noop());
+        piglet.Exp lhs = getName().toPiglet();
+        piglet.Exp rhs = getExp().toPiglet();
+        piglet.Exp offset = getOffset().toPiglet();
+        
+        // TODO check at run-time for „index out of bounds “
+        // offset > length --> new piglet.Err();
+        
+        //address = lhs + (offset*4)
+        piglet.Exp offsetInBytes = new piglet.Times(offset, new piglet.IntLiteral(4));
+        piglet.Exp address = new piglet.Plus(lhs, offsetInBytes);
+        
+        // length in first 4 bytes -> <Offset:Integer> = 4
+        return convertToLabeledStmts(new piglet.HStore(address, 4, rhs));
     }
 
 
@@ -166,6 +179,7 @@ aspect PigletASTBuilder {
     /*
      * EXPRESSIONS
      */
+     
     syn lazy piglet.Exp Exp.toPiglet();
     
     eq Cmp.toPiglet() {
@@ -190,7 +204,7 @@ aspect PigletASTBuilder {
     }
 
     eq IdentUse.toPiglet() {
-        return new TempExp(decl().temp());
+        return new piglet.TempExp(decl().temp());
     }
 
     eq IntLiteral.toPiglet() {
@@ -206,18 +220,29 @@ aspect PigletASTBuilder {
     }
     
     eq ArrayAlloc.toPiglet() {
-        // TODO
-        return new piglet.IntLiteral(1337);
+        // Call ARRAYALLOC procedure
+        piglet.Exp name = new LabelExp(new Label("ARRAYALLOC"));
+        
+        piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
+        params.add(getSize().toPiglet());
+        
+        return new piglet.Call(name, params);
     }
     
     eq ObjAlloc.toPiglet() {
-        // TODO
+        // TODO 
         return new piglet.IntLiteral(1337);
     }
     
     eq ArrayLookup.toPiglet() {
-        // TODO
-        return new piglet.IntLiteral(1337);    
+        // Call ARRAYLOOKUP procedure
+        piglet.Exp name = new LabelExp(new Label("ARRAYLOOKUP"));
+        
+        piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
+        params.add(getExp().toPiglet());
+        params.add(getOffset().toPiglet());
+        
+        return new piglet.Call(name, params);
     }
     
     eq ArrayLength.toPiglet() {
@@ -226,7 +251,7 @@ aspect PigletASTBuilder {
     }
     
     eq MethodCall.toPiglet() {
-        // TODO
+        // TODO 
         return new piglet.IntLiteral(1337);    
     }
     
@@ -241,9 +266,11 @@ aspect PigletASTBuilder {
     }
     
     
+    
     /*
      * HELPERS
      */
+     
     syn piglet.List<piglet.LabeledStmt> ASTNode.convertToLabeledStmts(piglet.List<piglet.Stmt> stmts) {
         piglet.List<piglet.LabeledStmt> list = new piglet.List<piglet.LabeledStmt>();
         for (piglet.Stmt stmt: stmts) {
@@ -265,4 +292,59 @@ aspect PigletASTBuilder {
     syn piglet.LabeledStmt ASTNode.convertToLabeledStmt(piglet.Label label, piglet.Stmt stmt) {
         return new piglet.LabeledStmt(new piglet.Opt<piglet.Label>(label), stmt);
     }
+    
+    syn lazy piglet.Procedure ASTNode.createArrayAllocProcedure() {
+        // Create a procedure 
+        piglet.Label label = new piglet.Label("ARRAYALLOC");
+        int paramCount = 1;
+        
+        // params
+        piglet.Exp size = new TempExp(new piglet.Temp(0)); // first param
+        
+        // calculate size in byte. first 4 bytes are reserved for length
+        // sizeInBytes = size*4 + 4
+        piglet.Exp sizeInBytes = new piglet.Times(size, new piglet.IntLiteral(4));
+        piglet.Exp sizeInByteWithLength = new piglet.Plus(sizeInBytes, new piglet.IntLiteral(4));
+        
+        // Statements
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        // TODO store length as first 4 bytes
+        // TODO initialize rest with zeros  
+        
+        // return address of allocated memory block
+        piglet.Exp retExp = new piglet.HAlloc(sizeInByteWithLength);
+        
+        piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, retExp);
+        return new piglet.Procedure(label, paramCount, stmtsRet);
+    }
+    
+    syn lazy piglet.Procedure ASTNode.createArrayLookupProcedure() {
+        piglet.Label label = new piglet.Label("ARRAYLOOKUP");
+        int paramCount = 2;
+        
+        // params
+        piglet.Exp arrayAdress = new TempExp(new piglet.Temp(0)); // first param
+        piglet.Exp offset = new TempExp(new piglet.Temp(1)); // second param
+        
+        // TODO check at run-time for „index out of bounds “
+        // offset > length --> new piglet.Err();
+        
+        // address = arrayAdress + 4 + (offset*4)
+        piglet.Exp offsetInBytes = new piglet.Times(offset, new piglet.IntLiteral(4));
+        piglet.Exp address = new piglet.Plus(arrayAdress, offsetInBytes);
+        
+        // Statements  
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();  
+        // load result into temp, which will be returned
+        piglet.Temp temp = new piglet.Temp(2);
+        piglet.HLoad hload = new piglet.HLoad(temp, address, 4); // length offset = 4 bytes
+        labeledStmts.add(convertToLabeledStmt(hload));
+        
+        // return temp with value at adress
+        piglet.Exp retExp = new TempExp(temp);
+        
+        piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, retExp);
+        return new piglet.Procedure(label, paramCount, stmtsRet);
+    }
+    
 }
