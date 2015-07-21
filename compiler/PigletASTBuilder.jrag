@@ -63,10 +63,7 @@ aspect PigletASTBuilder {
      * STATEMENTS
      */
 
-    syn lazy piglet.List<piglet.LabeledStmt> Stmt.toPiglet() {
-        // TODO remove once all statements are implemented
-        return convertToLabeledStmts(new piglet.Noop());
-    }
+    syn lazy piglet.List<piglet.LabeledStmt> Stmt.toPiglet();
     
     eq Block.toPiglet() {
         piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
@@ -158,16 +155,18 @@ aspect PigletASTBuilder {
     eq Print.toPiglet() {
         return convertToLabeledStmts(new piglet.Print(getExp().toPiglet()));
     }
+    
+    eq ArrayAssign.toPiglet() {
+        // TODO
+        return convertToLabeledStmts(new piglet.Noop());
+    }
 
 
 
     /*
      * EXPRESSIONS
      */
-    syn lazy piglet.Exp Exp.toPiglet() {
-        // TODO remove once all expressions are implemented
-        return new piglet.IntLiteral(1337);
-    }
+    syn lazy piglet.Exp Exp.toPiglet();
     
     eq Cmp.toPiglet() {
         return new piglet.Lt(getLeft().toPiglet(), getRight().toPiglet());
@@ -205,6 +204,42 @@ aspect PigletASTBuilder {
     eq False.toPiglet() {
         return new piglet.IntLiteral(0);
     }
+    
+    eq ArrayAlloc.toPiglet() {
+        // TODO
+        return new piglet.IntLiteral(1337);
+    }
+    
+    eq ObjAlloc.toPiglet() {
+        // TODO
+        return new piglet.IntLiteral(1337);
+    }
+    
+    eq ArrayLookup.toPiglet() {
+        // TODO
+        return new piglet.IntLiteral(1337);    
+    }
+    
+    eq ArrayLength.toPiglet() {
+        // TODO
+        return new piglet.IntLiteral(1337);    
+    }
+    
+    eq MethodCall.toPiglet() {
+        // TODO
+        return new piglet.IntLiteral(1337);    
+    }
+    
+    eq This.toPiglet() {
+        // TODO
+        return new piglet.IntLiteral(1337);    
+    }
+    
+    eq And.toPiglet() {
+        // TODO
+        return new piglet.IntLiteral(1337);     
+    }
+    
     
     /*
      * HELPERS
