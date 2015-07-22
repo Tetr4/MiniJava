@@ -6,11 +6,16 @@ aspect PigletASTBuilder {
     
     syn lazy piglet.Program Program.toPiglet() {
         piglet.List<piglet.Procedure> procedures = new piglet.List<piglet.Procedure>();
+        
+        // helper procedures
         procedures.add(createArrayAllocProcedure());
         procedures.add(createArrayLookupProcedure());
+        procedures.add(createArrayLengthProcedure());
+        
         for (ClassDecl classDecl: getDeclsList()) {
         //    procedures.add((piglet.Procs) classDecl.toPiglet());
         }
+        
         return new piglet.Program(getMain().getPigletStmts(), procedures);
     }
     
@@ -268,8 +273,13 @@ aspect PigletASTBuilder {
     }
     
     eq ArrayLength.toPiglet() {
-        // TODO
-        return new piglet.IntLiteral(1337);    
+        // Call ARRAYLENGTH procedure
+        piglet.Exp name = new LabelExp(new Label("ARRAYLENGTH"));
+        
+        piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
+        params.add(getExp().toPiglet());
+        
+        return new piglet.Call(name, params); 
     }
     
     eq MethodCall.toPiglet() {
@@ -468,5 +478,27 @@ aspect PigletASTBuilder {
         piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, retExp);
         return new piglet.Procedure(label, paramCount, stmtsRet);
     }
+    
+    syn lazy piglet.Procedure ASTNode.createArrayLengthProcedure() {
+        piglet.Label label = new piglet.Label("ARRAYLENGTH");
+        int paramCount = 1;
+        
+        // params
+        piglet.Exp address = new TempExp(new piglet.Temp(0)); // first param
+        
+        // Statements  
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();  
+        // load length into temp, which will be returned
+        piglet.Temp length = new piglet.Temp(1);
+        piglet.HLoad hload = new piglet.HLoad(length, address, 0);
+        labeledStmts.add(convertToLabeledStmt(hload));
+        
+        // return length
+        piglet.Exp retExp = new TempExp(length);
+        
+        piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, retExp);
+        return new piglet.Procedure(label, paramCount, stmtsRet);
+    }
+    
     
 }
