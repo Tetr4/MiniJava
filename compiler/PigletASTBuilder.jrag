@@ -11,6 +11,7 @@ aspect PigletASTBuilder {
         procedures.add(createArrayAllocProcedure());
         procedures.add(createArrayLookupProcedure());
         procedures.add(createArrayLengthProcedure());
+        procedures.add(createObjNullCheckProcedure());
         
         for (ClassDecl classDecl: getDeclsList()) {
             for(piglet.Procedure procedure: classDecl.getProcedures()) {
@@ -273,12 +274,7 @@ aspect PigletASTBuilder {
     
     eq ArrayAlloc.toPiglet() {
         // Call ARRAYALLOC procedure
-        piglet.Exp name = new LabelExp(new Label("ARRAYALLOC"));
-        
-        piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
-        params.add(getSize().toPiglet());
-        
-        return new piglet.Call(name, params);
+        return createCall("ARRAYALLOC", getSize().toPiglet());
     }
     
     eq ObjAlloc.toPiglet() {
@@ -288,23 +284,12 @@ aspect PigletASTBuilder {
     
     eq ArrayLookup.toPiglet() {
         // Call ARRAYLOOKUP procedure
-        piglet.Exp name = new LabelExp(new Label("ARRAYLOOKUP"));
-        
-        piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
-        params.add(getExp().toPiglet());
-        params.add(getOffset().toPiglet());
-        
-        return new piglet.Call(name, params);
+        return createCall("ARRAYLOOKUP", getExp().toPiglet(), getOffset().toPiglet());
     }
     
     eq ArrayLength.toPiglet() {
         // Call ARRAYLENGTH procedure
-        piglet.Exp name = new LabelExp(new Label("ARRAYLENGTH"));
-        
-        piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
-        params.add(getExp().toPiglet());
-        
-        return new piglet.Call(name, params); 
+        return createCall("ARRAYLENGTH", getExp().toPiglet());
     }
     
     eq MethodCall.toPiglet() {
@@ -312,7 +297,8 @@ aspect PigletASTBuilder {
         piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
         
         // first param is reference to object ("this" in procedure)
-        params.add(getObj().toPiglet());
+        piglet.Call nullCheck = createCall("CHECKNULLADDRESS", getObj().toPiglet());
+        params.add(nullCheck); 
         
         // params
         for(Exp arg: getArgsList()) {
@@ -413,13 +399,38 @@ aspect PigletASTBuilder {
         }
     }
     
+    syn lazy piglet.Procedure ASTNode.createObjNullCheckProcedure() {
+        // Create a procedure 
+        piglet.Label label = new piglet.Label("CHECKNULLADDRESS");
+        int paramCount = 1;
+        
+        // params
+        piglet.Exp obj = new piglet.TempExp(new piglet.Temp(0));
+        
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        piglet.Label returnLabel = new piglet.Label("nullcheck_ok");
+        
+        // if (obj < 1)
+        piglet.Exp condition = new piglet.Lt(obj, new piglet.IntLiteral(1));
+        piglet.CJump okJump = new piglet.CJump(condition, returnLabel);
+        labeledStmts.add(convertToLabeledStmt(okJump));
+        
+        // Null pointer!!
+        labeledStmts.add(convertToLabeledStmt(new piglet.Err()));
+        
+        labeledStmts.add(convertToLabeledStmt(returnLabel, new piglet.Noop()));
+        
+        piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, obj);
+        return new piglet.Procedure(label, paramCount, stmtsRet);
+    }
+    
     syn lazy piglet.Procedure ASTNode.createArrayAllocProcedure() {
         // Create a procedure 
         piglet.Label label = new piglet.Label("ARRAYALLOC");
         int paramCount = 1;
         
         // params
-        piglet.Exp size = new TempExp(new piglet.Temp(0)); // first param
+        piglet.Exp size = new piglet.TempExp(new piglet.Temp(0)); // first param
         
         // calculate size in byte. first 4 bytes are reserved for length
         // sizeInBytes = size*4 + 4
@@ -569,5 +580,16 @@ aspect PigletASTBuilder {
     
     syn lazy piglet.Label MethodDecl.getPigletLabel() {
         return new piglet.Label(containingClass().getIdent() + "_" + getIdent());
+    }
+    
+    public piglet.Call ASTNode.createCall(String name, piglet.Exp... params) {
+        piglet.Exp procedureLabel = new LabelExp(new Label(name));
+        
+        piglet.List<piglet.Exp> paramsList = new piglet.List<piglet.Exp>();
+        for(piglet.Exp param: params) {
+	        paramsList.add(param);
+        }
+        
+        return new piglet.Call(procedureLabel, paramsList); 
     }
 }
