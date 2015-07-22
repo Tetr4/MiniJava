@@ -150,6 +150,17 @@ aspect TypeAnalysis {
         return unknownType();
     }
     
+    // True if there is a cycle in the superclass chain.
+    syn lazy boolean ClassDecl.hasCycleOnSuperclassChain() circular [true];
+    eq ClassDecl.hasCycleOnSuperclassChain() {
+        if (superClass() != null) {
+            return superClass().hasCycleOnSuperclassChain();
+        }
+        else {
+            return false;
+        }
+    }
+    
     syn lazy TypeInfo ClassDecl.type() = new TClass(this);
     syn lazy TypeInfo MethodDecl.type() = getRetType().type();
     syn lazy TypeInfo TypedVar.type() = getType().type();

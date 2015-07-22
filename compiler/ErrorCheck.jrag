@@ -45,6 +45,12 @@ aspect ErrorCheck {
         return t1.isSubtypeOf(t2);
     }
     
+    public void ClassDecl.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(hasCycleOnSuperclassChain())
+            error(c, "Cyclic inheritance chain for class " + getIdent());
+    }
+    
     public void MethodDecl.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
         if (!isSubtypeOfIgnoreUnknown(getRetExp().type(), getRetType().type())) {
