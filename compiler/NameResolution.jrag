@@ -17,6 +17,19 @@ aspect decl {
         } while(node != null);
         return null;
     }
+    
+    // TODO: Don't duplicate code from This.decl()
+    syn lazy ClassDecl MethodDecl.containingClass() {
+        ASTNode node = getParent();
+        do {
+            if(node instanceof ClassDecl) {
+                return (ClassDecl) node;
+            }
+            node = node.getParent();
+        } while(node != null);
+        return null;
+    }
+    
     syn lazy MethodDecl MethodCall.decl() {
         if (!(getObj().type() instanceof TClass)) {
             return null;

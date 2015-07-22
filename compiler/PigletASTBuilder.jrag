@@ -13,7 +13,9 @@ aspect PigletASTBuilder {
         procedures.add(createArrayLengthProcedure());
         
         for (ClassDecl classDecl: getDeclsList()) {
-        //    procedures.add((piglet.Procs) classDecl.toPiglet());
+            for(piglet.Procedure procedure: classDecl.getProcedures()) {
+                procedures.add(procedure);
+            }
         }
         
         return new piglet.Program(getMain().getPigletStmts(), procedures);
@@ -54,13 +56,46 @@ aspect PigletASTBuilder {
     }
     
     syn lazy piglet.List<piglet.Procedure> ClassDecl.getProcedures() {
-        // TODO
-        return null;
+        piglet.List<piglet.Procedure> procedures = new piglet.List<piglet.Procedure>();
+        
+        for (MethodDecl method: getMethodsList()) {
+            procedures.add(method.toPiglet());
+        }
+        
+        return procedures;
+    }
+    
+    syn lazy piglet.Label MethodDecl.getPigletLabel() {
+        return new piglet.Label(containingClass().getIdent() + "_" + getIdent());
     }
     
     syn lazy piglet.Procedure MethodDecl.toPiglet() {
-        // TODO
-        return null;
+        
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        
+        // Assign local vars and parameters a temporary identifier
+        int i = 0;
+        for (TypedVar parameter: getFormalParamsList()) {
+            parameter.temp = new piglet.Temp(i++);
+        }
+        
+        for (TypedVar localVar: getLocalVarsList()) {
+            localVar.temp = new piglet.Temp(i++);
+        }
+        
+        // Translate statments
+        for (Stmt stmt: getStmtsList()) {
+            for (piglet.LabeledStmt pigletStmt: stmt.toPiglet()) {
+                labeledStmts.add(pigletStmt);
+            }
+        }
+        
+        // Create procedure with
+        piglet.StmtExp body = new piglet.StmtExp(labeledStmts, getRetExp().toPiglet());
+        
+        // Name the method Class.Method
+        piglet.Label methodName = getPigletLabel();
+        return new piglet.Procedure(methodName, getFormalParamsList().getNumChild(), body);
     }
     
     
