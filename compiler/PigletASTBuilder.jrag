@@ -88,10 +88,8 @@ aspect PigletASTBuilder {
         piglet.Label exitLabel = new piglet.Label("skipelse_" + labelIndex);
         labelIndex++;
         
-        // Condition
-        piglet.Exp condition = getCond().toPiglet();
-        piglet.CJump elseJump = new piglet.CJump(condition, elseLabel);
-        labeledStmts.add(convertToLabeledStmt(elseJump));
+        // condition including |&&| logic chains
+        handleCondition(labeledStmts, elseLabel, getCond(), null);
         
         // True branch
         piglet.List<piglet.LabeledStmt> trueBranchStmts = getTStmt().toPiglet();
@@ -127,10 +125,8 @@ aspect PigletASTBuilder {
         piglet.Label exitLabel = new piglet.Label("loopexit_" + labelIndex);
         labelIndex++;
         
-        // condition
-        piglet.Exp condition = getCond().toPiglet();
-        piglet.CJump jump = new piglet.CJump(condition, exitLabel);
-        labeledStmts.add(convertToLabeledStmt(entryLabel, jump));
+        // condition including |&&| logic chains
+        handleCondition(labeledStmts, exitLabel, getCond(), entryLabel);
         
         // body
         piglet.List<piglet.LabeledStmt> bodyStmts = getBody().toPiglet();
@@ -148,8 +144,35 @@ aspect PigletASTBuilder {
         return labeledStmts;
     }
     
+    public static int Assign.labelIndex = 0;
     eq Assign.toPiglet() {
         piglet.Temp lhs = getName().decl().temp();
+
+        // We're having a boolean assignment with a logic chain
+        if (getName().type().isSubtypeOf(booleanType()) && getRhs() instanceof And) {
+            // Handle logic chains
+            piglet.Label falseLabel = new piglet.Label("boolassign_" + labelIndex);
+            piglet.Label skipFalseLabel = new piglet.Label("boolassignskip_" + labelIndex);
+            labelIndex++;
+            
+            piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+            handleCondition(labeledStmts, falseLabel, getRhs(), null);
+            
+            // Assign 1 to the lhs if all conditions were true.
+            piglet.Move trueMove = new piglet.Move(lhs, new piglet.IntLiteral(1));
+            labeledStmts.add(convertToLabeledStmt(trueMove));
+            // Skip setting lhs to 0.
+            piglet.Jump skipFalse = new piglet.Jump(skipFalseLabel);
+            labeledStmts.add(convertToLabeledStmt(skipFalse));
+            
+            // Assign 0 to the rhs, if one of the conditions were false.
+            piglet.Move falseMove = new piglet.Move(lhs, new piglet.IntLiteral(0));
+            labeledStmts.add(convertToLabeledStmt(falseLabel, falseMove));
+            labeledStmts.add(convertToLabeledStmt(skipFalseLabel, new piglet.Noop()));
+            return labeledStmts;
+        }
+    
+        // Just an ordinary assignment.
         piglet.Exp rhs = getRhs().toPiglet();
         return convertToLabeledStmts(new piglet.Move(lhs, rhs));
     }
@@ -260,9 +283,39 @@ aspect PigletASTBuilder {
         return new piglet.IntLiteral(1337);    
     }
     
+    // Don't add the LHS of the |And| to the collectedStmts list, if it's the first condition in a logic chain.
+    public static boolean And.firstCondition = true;
+    // Jump to this label, if one of the conditions is false.
+    public static piglet.Label And.exitLabel = null;
+    // Collect all CJumps and conditions.
+    public static piglet.List<piglet.LabeledStmt> And.collectedStmts = null;
+    
     eq And.toPiglet() {
-        // TODO
-        return new piglet.IntLiteral(1337);     
+        piglet.Exp lhs = getLeft().toPiglet();
+        // The first condition in the logic chain is returned right away to add optional labels.
+        if (!firstCondition) {
+            // If we have a chain of |&&| like if (a && b && c)
+            // add the conditions in the right order:
+            // Return |a| to the |if| handler, add |b| and add |c|
+            // Jump to exit label, if one of the conditions in the chain is false.
+	        piglet.CJump shortCircuit = new piglet.CJump(lhs, exitLabel);
+	        collectedStmts.add(convertToLabeledStmt(shortCircuit));
+        }
+        // If there is another |And| following on the right hand side, add the lhs now (see above).
+        firstCondition = false;
+        
+        // Evaluate the right expression
+        piglet.Exp rhs = getRight().toPiglet();
+        // We already added both sides of the rhs to the collectedStmts List if it's a chained condition.
+        if (getRight() instanceof And)
+            return lhs;
+        
+        // Jump to exit label, if one of the conditions in the chain is false.
+        piglet.CJump shortCircuit = new piglet.CJump(rhs, exitLabel);
+        collectedStmts.add(convertToLabeledStmt(shortCircuit));
+        
+        // Always return the left condition. It gets handled in the caller.
+        return lhs;
     }
     
     
@@ -291,6 +344,29 @@ aspect PigletASTBuilder {
     
     syn piglet.LabeledStmt ASTNode.convertToLabeledStmt(piglet.Label label, piglet.Stmt stmt) {
         return new piglet.LabeledStmt(new piglet.Opt<piglet.Label>(label), stmt);
+    }
+    
+    public void ASTNode.handleCondition(piglet.List<piglet.LabeledStmt> labeledStmts, piglet.Label exitLabel, Exp expression, piglet.Label entryLabel) {
+        // Setup |&&| decomposition
+        And.firstCondition = true;
+        And.exitLabel = exitLabel;
+        And.collectedStmts = new piglet.List<piglet.LabeledStmt>();
+        // Get condition and collect additional chained conditions in And.collectedStmts
+        piglet.Exp condition = expression.toPiglet();
+        // Add the first condition
+        piglet.CJump jump = new piglet.CJump(condition, exitLabel);
+        if (entryLabel == null) {
+            labeledStmts.add(convertToLabeledStmt(jump));
+        }
+        else {
+            labeledStmts.add(convertToLabeledStmt(entryLabel, jump));
+        }
+        // See if there were any |&&|s in the logic chain. Add the jumps as well.
+        // Prepare jastadd List..
+        And.collectedStmts.getNumChild();
+        for (piglet.LabeledStmt labeledStmt: And.collectedStmts) {
+            labeledStmts.add(labeledStmt);
+        }
     }
     
     syn lazy piglet.Procedure ASTNode.createArrayAllocProcedure() {
