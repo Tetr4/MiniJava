@@ -53,7 +53,7 @@ aspect PrettyPrint {
   syn PrettyPrinter Program.print() {
     printer().append("MAIN\n");
     for (LabeledStmt s : getStmtss()) s.print();
-    printer().append("\nEND\n");
+    printer().append("\nEND\n\n");
     for (Procedure p : getProcss()) p.print();
     return printer();
   }
@@ -73,6 +73,7 @@ aspect PrettyPrint {
   	getLabel().print();
   	printer().append(" [" + getInteger().toString() +"] ");
   	getStmtsRet().print();
+  	printer().append("\n\n");
   }
   
   public abstract void Stmt.print();
@@ -122,7 +123,7 @@ aspect PrettyPrint {
     for (LabeledStmt s : getStmtss()) s.print();
     printer().append("\n" + indent() + PrettyPrinter.LABEL_INDENT + "RETURN ");
     getRetExp().print();    
-    printer().append(" END ");
+    printer().append("\nEND");
   }	 
   public void Call.print() {
     printer().append("CALL ");
