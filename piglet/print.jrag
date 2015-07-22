@@ -51,7 +51,7 @@ aspect PrettyPrint {
   inh lazy PrettyPrinter Temp.printer();
   
   syn PrettyPrinter Program.print() {
-    printer().append("MAIN\n");
+    printer().append("MAIN");
     for (LabeledStmt s : getStmtss()) s.print();
     printer().append("\nEND\n\n");
     for (Procedure p : getProcss()) p.print();
@@ -119,9 +119,9 @@ aspect PrettyPrint {
 
   public abstract void Exp.print();
   public void StmtExp.print() {
-    printer().append("BEGIN\n");
+    printer().append("BEGIN");
     for (LabeledStmt s : getStmtss()) s.print();
-    printer().append("\n" + indent() + PrettyPrinter.LABEL_INDENT + "RETURN ");
+    printer().append(indent() + PrettyPrinter.LABEL_INDENT + "RETURN ");
     getRetExp().print();    
     printer().append("\nEND");
   }	 
