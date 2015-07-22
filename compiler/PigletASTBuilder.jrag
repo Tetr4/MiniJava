@@ -490,18 +490,19 @@ aspect PigletASTBuilder {
         int paramCount = 2;
         
         // params
-        piglet.Exp arrayAdress = new TempExp(new piglet.Temp(0)); // first param
+        piglet.Exp arrayAddress = new TempExp(new piglet.Temp(0)); // first param
         piglet.Exp offset = new TempExp(new piglet.Temp(1)); // second param
         
-        // TODO check at run-time for „index out of bounds “
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+          
+        // check at run-time for „index out of bounds “
         // offset > length --> new piglet.Err();
+        insertArrayBoundsCheck(labeledStmts, arrayAddress, offset);
         
         // address = arrayAdress + 4 + (offset*4)
         piglet.Exp offsetInBytes = new piglet.Times(offset, new piglet.IntLiteral(4));
-        piglet.Exp address = new piglet.Plus(arrayAdress, offsetInBytes);
+        piglet.Exp address = new piglet.Plus(arrayAddress, offsetInBytes);
         
-        // Statements  
-        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();  
         // load result into temp, which will be returned
         piglet.Temp temp = new piglet.Temp(2);
         piglet.HLoad hload = new piglet.HLoad(temp, address, 4); // length offset = 4 bytes
@@ -522,7 +523,7 @@ aspect PigletASTBuilder {
         piglet.Exp address = new TempExp(new piglet.Temp(0)); // first param
         
         // Statements  
-        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();  
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
         // load length into temp, which will be returned
         piglet.Temp length = new piglet.Temp(1);
         piglet.HLoad hload = new piglet.HLoad(length, address, 0);
@@ -535,5 +536,34 @@ aspect PigletASTBuilder {
         return new piglet.Procedure(label, paramCount, stmtsRet);
     }
     
-    
+    public void ASTNode.insertArrayBoundsCheck(piglet.List<piglet.LabeledStmt> labeledStmts, piglet.Exp arrayBase, piglet.Exp index) {
+        piglet.Label errorLabel = new piglet.Label("arraybounds_error");
+        piglet.Label returnLabel = new piglet.Label("arraybounds_ok");
+        
+        // Get array size
+        piglet.Temp arraySize = new piglet.Temp(2);
+        piglet.HLoad loadSize = new piglet.HLoad(arraySize, arrayBase, 0);
+        labeledStmts.add(convertToLabeledStmt(loadSize));
+        
+        // if (index < arraySize)
+        piglet.Exp condition = new piglet.Lt(index, new piglet.TempExp(arraySize)); 
+        piglet.CJump sizeCheck = new piglet.CJump(condition, errorLabel);
+        labeledStmts.add(convertToLabeledStmt(sizeCheck));
+        
+        // if (-1 < index)
+        piglet.Minus minusOne = new piglet.Minus(new piglet.IntLiteral(0), new piglet.IntLiteral(1));
+        condition = new piglet.Lt(minusOne, index);
+        sizeCheck = new piglet.CJump(condition, errorLabel);
+        labeledStmts.add(convertToLabeledStmt(sizeCheck));
+        
+        // DON'T ERROR. All fine.
+        piglet.Jump okJump = new piglet.Jump(returnLabel);
+        labeledStmts.add(convertToLabeledStmt(okJump));
+        
+        // Array out of bounds!
+        piglet.Err error = new piglet.Err();
+        labeledStmts.add(convertToLabeledStmt(errorLabel, error));
+        
+        labeledStmts.add(convertToLabeledStmt(returnLabel, new piglet.Noop()));
+    }
 }
