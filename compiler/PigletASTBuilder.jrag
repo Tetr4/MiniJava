@@ -270,15 +270,19 @@ aspect PigletASTBuilder {
         piglet.Exp rhs = getExp().toPiglet();
         piglet.Exp offset = getOffset().toPiglet();
         
-        // TODO check at run-time for „index out of bounds “
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        
+        // check at run-time for „index out of bounds “
         // offset > length --> new piglet.Err();
+        insertArrayBoundsCheck(labeledStmts, lhs, offset);
         
         //address = lhs + (offset*4)
         piglet.Exp offsetInBytes = new piglet.Times(offset, new piglet.IntLiteral(4));
         piglet.Exp address = new piglet.Plus(lhs, offsetInBytes);
         
         // length in first 4 bytes -> <Offset:Integer> = 4
-        return convertToLabeledStmts(new piglet.HStore(address, 4, rhs));
+        labeledStmts.add(convertToLabeledStmt(new piglet.HStore(address, 4, rhs)));
+        return labeledStmts;
     }
 
 
