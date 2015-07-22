@@ -12,6 +12,7 @@ aspect PigletASTBuilder {
         procedures.add(createArrayLookupProcedure());
         procedures.add(createArrayLengthProcedure());
         procedures.add(createObjNullCheckProcedure());
+        procedures.add(createObjectAllocProcedure());
         
         for (ClassDecl classDecl: getDeclsList()) {
             // Assign proper field offsets to TypedVars
@@ -26,6 +27,12 @@ aspect PigletASTBuilder {
         return new piglet.Program(getMain().getPigletStmts(), procedures);
     }
     
+    syn lazy Integer ClassDecl.getTotalNumberOfFields() {
+        int numFieldsOfSuperclass = 0;
+        if (superClass() != null)
+            numFieldsOfSuperclass = superClass().getTotalNumberOfFields();
+        return getFieldsList().getNumChild() + numFieldsOfSuperclass;
+    }
     
     
     /*
@@ -334,8 +341,9 @@ aspect PigletASTBuilder {
     }
     
     eq ObjAlloc.toPiglet() {
-        // TODO 
-        return new piglet.IntLiteral(1337);
+        // Call OBJECTALLOC procedure
+        // 4 bytes for virtual function table
+        return createCall("OBJECTALLOC", new piglet.IntLiteral(decl().getTotalNumberOfFields()*4 + 4));
     }
     
     eq ArrayLookup.toPiglet() {
@@ -527,46 +535,9 @@ aspect PigletASTBuilder {
         piglet.HStore storeSize = new piglet.HStore(addressExp, 0, size);
         labeledStmts.add(convertToLabeledStmt(storeSize));
         
-        // initialize rest with zeros  
-        // create labels
-        piglet.Label entryLabel = new piglet.Label("arrayalloc_init_condition");
-        piglet.Label exitLabel = new piglet.Label("arrayalloc_init_exit");
-
-        
-        // currentAddress = address;
-        piglet.Temp currentAddress = new piglet.Temp(2);
-        piglet.Move setStartAddress = new piglet.Move(currentAddress, addressExp);
-        labeledStmts.add(convertToLabeledStmt(setStartAddress));
-        
-        piglet.Temp endAddress = new piglet.Temp(3);
-        // address + size * 4
-        piglet.Plus calcEndAddress = new piglet.Plus(addressExp, sizeInBytes);
-        // endAddress = address + size * 4;
-        piglet.Move storeEndAddress = new piglet.Move(endAddress, calcEndAddress);
-        labeledStmts.add(convertToLabeledStmt(storeEndAddress));
-        
-        // for (; currentAddress < endAddress; currentAddress += 4)
-        piglet.CJump condition = new piglet.CJump(new piglet.Lt(new piglet.TempExp(currentAddress), new piglet.TempExp(endAddress)), exitLabel);
-        labeledStmts.add(convertToLabeledStmt(entryLabel, condition));
-        
-        // currentAddress = 0;
         // Offset of 4 because of the array size as first element.
-        piglet.HStore initCell = new piglet.HStore(new piglet.TempExp(currentAddress), 4, new piglet.IntLiteral(0));
-        labeledStmts.add(convertToLabeledStmt(initCell));
-        
-        // currentAddress += 4;
-        piglet.Plus calcNextAddress = new piglet.Plus(new piglet.TempExp(currentAddress), new piglet.IntLiteral(4));
-        piglet.Move storeNextAddress = new piglet.Move(currentAddress, calcNextAddress);
-        labeledStmts.add(convertToLabeledStmt(storeNextAddress));
-        
-        // backedge
-        piglet.Jump backJump = new piglet.Jump(entryLabel);
-        labeledStmts.add(convertToLabeledStmt(backJump));
-        
-        // exit label
-        labeledStmts.add(convertToLabeledStmt(exitLabel, new piglet.Noop()));
-        
-        
+        insertInitializeWithZero(labeledStmts, address, sizeInBytes, 4, 2);
+       
         // return address of allocated memory block
         piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, addressExp);
         return new piglet.Procedure(label, paramCount, stmtsRet);
@@ -623,6 +594,31 @@ aspect PigletASTBuilder {
         return new piglet.Procedure(label, paramCount, stmtsRet);
     }
     
+    syn lazy piglet.Procedure ASTNode.createObjectAllocProcedure() {
+        piglet.Label label = new piglet.Label("OBJECTALLOC");
+        int paramCount = 1;
+        
+        // params
+        piglet.Exp size = new TempExp(new piglet.Temp(0)); // first param
+        
+        // Statements  
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        piglet.Temp address = new piglet.Temp(1);
+        piglet.Move saveAddress = new Move(address, new piglet.HAlloc(size));
+        labeledStmts.add(convertToLabeledStmt(saveAddress));
+        
+        insertInitializeWithZero(labeledStmts, address, size, 0, 2);
+        
+        // add virtual function table address
+        piglet.TempExp addressExp = new piglet.TempExp(address);
+        piglet.HStore addVTableAddress = new piglet.HStore(addressExp, 0, new piglet.IntLiteral(1337)); // FIXME
+        labeledStmts.add(convertToLabeledStmt(addVTableAddress));
+        
+        // return address of allocated block
+        piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, addressExp);
+        return new piglet.Procedure(label, paramCount, stmtsRet);
+    }
+    
     public void ASTNode.insertArrayBoundsCheck(piglet.List<piglet.LabeledStmt> labeledStmts, piglet.Exp arrayBase, piglet.Exp index) {
         piglet.Label errorLabel = new piglet.Label("arraybounds_error");
         piglet.Label returnLabel = new piglet.Label("arraybounds_ok");
@@ -667,5 +663,45 @@ aspect PigletASTBuilder {
         }
         
         return new piglet.Call(procedureLabel, paramsList); 
+    }
+    
+    public void ASTNode.insertInitializeWithZero(piglet.List<piglet.LabeledStmt> labeledStmts, piglet.Temp baseAddress, piglet.Exp sizeInBytes, int offset, int firstTempNr) {
+        // create labels
+        piglet.Label entryLabel = new piglet.Label("insert_zero_condition");
+        piglet.Label exitLabel = new piglet.Label("insert_zero_exit");
+        
+        piglet.TempExp baseAddressExp = new piglet.TempExp(baseAddress);
+ 
+        // currentAddress = address;
+        piglet.Temp currentAddress = new piglet.Temp(firstTempNr++);
+        piglet.Move setStartAddress = new piglet.Move(currentAddress, baseAddressExp);
+        labeledStmts.add(convertToLabeledStmt(setStartAddress));
+        
+        piglet.Temp endAddress = new piglet.Temp(firstTempNr++);
+        // address + size * 4
+        piglet.Plus calcEndAddress = new piglet.Plus(baseAddressExp, sizeInBytes);
+        // endAddress = address + size * 4;
+        piglet.Move storeEndAddress = new piglet.Move(endAddress, calcEndAddress);
+        labeledStmts.add(convertToLabeledStmt(storeEndAddress));
+        
+        // for (; currentAddress < endAddress; currentAddress += 4)
+        piglet.CJump condition = new piglet.CJump(new piglet.Lt(new piglet.TempExp(currentAddress), new piglet.TempExp(endAddress)), exitLabel);
+        labeledStmts.add(convertToLabeledStmt(entryLabel, condition));
+        
+        // currentAddress = 0;
+        piglet.HStore initBlock = new piglet.HStore(new piglet.TempExp(currentAddress), offset, new piglet.IntLiteral(0));
+        labeledStmts.add(convertToLabeledStmt(initBlock));
+
+        // currentAddress += 4;
+        piglet.Plus calcNextAddress = new piglet.Plus(new piglet.TempExp(currentAddress), new piglet.IntLiteral(4));
+        piglet.Move storeNextAddress = new piglet.Move(currentAddress, calcNextAddress);
+        labeledStmts.add(convertToLabeledStmt(storeNextAddress));
+        
+        // backedge
+        piglet.Jump backJump = new piglet.Jump(entryLabel);
+        labeledStmts.add(convertToLabeledStmt(backJump));
+        
+        // exit label
+        labeledStmts.add(convertToLabeledStmt(exitLabel, new piglet.Noop()));
     }
 }
