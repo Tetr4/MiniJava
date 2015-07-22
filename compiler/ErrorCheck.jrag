@@ -87,6 +87,13 @@ aspect ErrorCheck {
         }
     }
     
+    public void This.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if(decl() == null) {
+            error(c, "Can't use \"this\" in MainClass");
+        }
+    }
+    
     public void ArrayLookup.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
         if(!isSubtypeOfIgnoreUnknown(getExp().type(), intArrayType())) {
