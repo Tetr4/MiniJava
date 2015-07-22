@@ -14,6 +14,10 @@ aspect PigletASTBuilder {
         procedures.add(createObjNullCheckProcedure());
         
         for (ClassDecl classDecl: getDeclsList()) {
+            // Assign proper field offsets to TypedVars
+            // Start at offset 4, because of vtable pointer as first element.
+            classDecl.setupClassFields(4);
+        
             for(piglet.Procedure procedure: classDecl.getProcedures()) {
                 procedures.add(procedure);
             }
@@ -49,6 +53,21 @@ aspect PigletASTBuilder {
         }
         
         return labeledStmts;
+    }
+    
+    public int TypedVar.fieldOffset = 0;
+    public int ClassDecl.setupClassFields(int offset) {
+        // First setup fields of superclass before my own.
+        if (superClass() != null)
+            offset = superClass().setupClassFields(offset);
+        
+        // Assign proper offsets to my own fields.    
+        for (TypedVar field: getFieldsList()) {
+            field.fieldOffset = offset;
+            offset += 4;
+        }
+        
+        return offset;
     }
     
     syn lazy piglet.List<piglet.LabeledStmt> ClassDecl.getPigletStmts() {
@@ -176,6 +195,12 @@ aspect PigletASTBuilder {
     
     public static int Assign.labelIndex = 0;
     eq Assign.toPiglet() {
+        
+        // Maybe this is a field of this class.
+        int fieldOffset = getName().decl().fieldOffset;
+        piglet.Exp thisAddress = new piglet.TempExp(new piglet.Temp(0));
+        
+        // Get the temporary of the lhs. Might be null, if it's a class field (fieldOffset > 0).
         piglet.Temp lhs = getName().decl().temp();
 
         // We're having a boolean assignment with a logic chain
@@ -189,14 +214,29 @@ aspect PigletASTBuilder {
             handleCondition(labeledStmts, falseLabel, getRhs(), null);
             
             // Assign 1 to the lhs if all conditions were true.
-            piglet.Move trueMove = new piglet.Move(lhs, new piglet.IntLiteral(1));
+            piglet.Stmt trueMove;
+            // This is a class field.
+            if (fieldOffset > 0) {
+                trueMove = new piglet.HStore(thisAddress, fieldOffset, new piglet.IntLiteral(1));
+            // This is a normal local variable.
+            } else {
+                trueMove = new piglet.Move(lhs, new piglet.IntLiteral(1));
+            }
             labeledStmts.add(convertToLabeledStmt(trueMove));
             // Skip setting lhs to 0.
             piglet.Jump skipFalse = new piglet.Jump(skipFalseLabel);
             labeledStmts.add(convertToLabeledStmt(skipFalse));
             
             // Assign 0 to the rhs, if one of the conditions were false.
-            piglet.Move falseMove = new piglet.Move(lhs, new piglet.IntLiteral(0));
+            piglet.Stmt falseMove;
+            // This is a class field.
+            if (fieldOffset > 0) {
+                falseMove = new piglet.HStore(thisAddress, fieldOffset, new piglet.IntLiteral(0));
+            // This is a normal local variable.
+            } else {
+                falseMove = new piglet.Move(lhs, new piglet.IntLiteral(0));
+            }
+                            
             labeledStmts.add(convertToLabeledStmt(falseLabel, falseMove));
             labeledStmts.add(convertToLabeledStmt(skipFalseLabel, new piglet.Noop()));
             return labeledStmts;
@@ -204,6 +244,13 @@ aspect PigletASTBuilder {
     
         // Just an ordinary assignment.
         piglet.Exp rhs = getRhs().toPiglet();
+        
+        // This is a class field. Save the value properly in the instance memory on the heap.
+        if (fieldOffset > 0) {
+            return convertToLabeledStmts(new piglet.HStore(thisAddress, fieldOffset, rhs));
+        }
+        
+        // This is a normal local variable.
         return convertToLabeledStmts(new piglet.Move(lhs, rhs));
     }
     
@@ -257,7 +304,16 @@ aspect PigletASTBuilder {
     }
 
     eq IdentUse.toPiglet() {
-        return new piglet.TempExp(decl().temp());
+        int fieldOffset = decl().fieldOffset;
+        // Class field!
+        if (fieldOffset > 0) {
+            piglet.Exp thisAddress = new piglet.TempExp(new piglet.Temp(0));
+            return createCall("GETOBJECTFIELD", thisAddress, new piglet.IntLiteral(fieldOffset));
+        }
+        // Normal variable.
+        else {
+            return new piglet.TempExp(decl().temp());
+        }
     }
 
     eq IntLiteral.toPiglet() {
@@ -397,6 +453,26 @@ aspect PigletASTBuilder {
         for (piglet.LabeledStmt labeledStmt: And.collectedStmts) {
             labeledStmts.add(labeledStmt);
         }
+    }
+    
+    syn lazy piglet.Procedure ASTNode.createObjectFieldAccessProcedure() {
+        // Create a procedure 
+        piglet.Label label = new piglet.Label("GETOBJECTFIELD");
+        int paramCount = 2;
+        
+        // params
+        piglet.Exp obj = new piglet.TempExp(new piglet.Temp(0));
+        piglet.Exp offset = new piglet.TempExp(new piglet.Temp(1));
+        
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        
+        piglet.Temp fieldValue = new piglet.Temp(2);
+        piglet.Plus calcFieldAddress = new piglet.Plus(obj, offset);
+        piglet.HLoad loadFieldValue = new piglet.HLoad(fieldValue, calcFieldAddress, 0);
+        labeledStmts.add(convertToLabeledStmt(loadFieldValue));
+        
+        piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, new piglet.TempExp(fieldValue));
+        return new piglet.Procedure(label, paramCount, stmtsRet);
     }
     
     syn lazy piglet.Procedure ASTNode.createObjNullCheckProcedure() {
