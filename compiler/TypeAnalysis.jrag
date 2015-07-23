@@ -7,6 +7,9 @@ aspect TypeAnalysis {
     
     public abstract class TypeInfo {
         public abstract boolean isSubtypeOf(TypeInfo t);
+        public boolean isSameType(TypeInfo t) {
+            return isSubtypeOf(t);
+        }
     }
     
     public class TUnknown extends TypeInfo {
@@ -80,6 +83,16 @@ aspect TypeAnalysis {
             }
             while(decl != null);
             return false;
+        }
+        
+        public boolean isSameType(TypeInfo t) {
+            // Other type not a class
+            if (!(t instanceof TClass))
+                return false;
+            
+            // Check if names match.
+            TClass other = (TClass)t;
+            return other.classDecl.getIdent().equals(classDecl.getIdent());
         }
         
         @Override

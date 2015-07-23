@@ -1,0 +1,32 @@
+aspect ClassAnalysis {
+    syn lazy MethodDecl MethodDecl.overriddenMethod() {
+        int numParams = getFormalParamsList().getNumChild();
+        // Check if there is another Method in the class hierachy with this params
+        for (ClassDecl superClass = containingClass().superClass(); superClass != null; superClass = superClass.superClass()) {
+            // Find matching method in superclass
+            methodLoop:
+            for (MethodDecl method: superClass.getMethodsList()) {
+                // Have to have the same amount of parameters.
+                if (method.getFormalParamsList().getNumChild() != numParams)
+                    continue;
+                
+                // Methods have to be called the same!
+                if (!method.getIdent().equals(getIdent()))
+                    continue;
+                
+                // Check type for every parameter.
+                for (int i=0; i<numParams; i++) {
+                    // One of the param types doesn't match our types?
+                    if (!getFormalParams(i).type().isSameType(method.getFormalParams(i).type()))
+                        continue methodLoop;
+                }
+                
+                // Found a matching method in the super class!
+                return method;
+            }
+        }
+        
+        // No super class? This method can't override something :)
+        return null;
+    }
+}

@@ -56,6 +56,14 @@ aspect ErrorCheck {
         if (!isSubtypeOfIgnoreUnknown(getRetExp().type(), getRetType().type())) {
             getRetExp().error(c, "Invalid return type. Expected <" + getRetType().type() + ">, but got <" + getRetExp().type() + ">.");
         }
+        
+        if (overriddenMethod() != null) {
+            TypeInfo superclassType = overriddenMethod().getRetType().type();
+            TypeInfo myType = getRetType().type();
+            if (overriddenMethod().getRetType().type().isSameType(getRetType().type())) {
+                error(c, "Overridden method \"" + getIdent() + "\" has return type <" + superclassType + "> in super class " + overriddenMethod().containingClass().getIdent() + ", but <" + myType + "> here. They must match.");
+            }
+        }
     }
     
     public void Not.collectErrors(Collection<SemanticError> c) {
