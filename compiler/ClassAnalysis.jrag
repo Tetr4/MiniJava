@@ -1,4 +1,24 @@
 aspect ClassAnalysis {
+    syn lazy Integer ClassDecl.getTotalNumberOfFields() {
+        int numFieldsOfSuperclass = 0;
+        if (superClass() != null)
+            numFieldsOfSuperclass = superClass().getTotalNumberOfFields();
+        return getFieldsList().getNumChild() + numFieldsOfSuperclass;
+    }
+    
+    syn lazy Integer ClassDecl.getMethodCountInClassChain() {
+        int numMethods = 0;
+        if (superClass() != null)
+            numMethods = superClass().getMethodCountInClassChain();
+        
+        // Count our own methods but don't count overridden methods twice.
+        for (MethodDecl method: getMethodsList()) {
+            if (method.overriddenMethod() == null)
+                numMethods++;
+        }
+        return numMethods;
+    }
+    
     syn lazy MethodDecl MethodDecl.overriddenMethod() {
         int numParams = getFormalParamsList().getNumChild();
         // Check if there is another Method in the class hierachy with this params

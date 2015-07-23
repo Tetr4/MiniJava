@@ -1,8 +1,7 @@
 import piglet.*;
+import java.util.ArrayList;
 
 aspect PigletASTBuilder {
-    // TODO objects (virtual tables, fields)
-    // TODO Translate classes
     
     syn lazy piglet.Program Program.toPiglet() {
         piglet.List<piglet.Procedure> procedures = new piglet.List<piglet.Procedure>();
@@ -13,27 +12,99 @@ aspect PigletASTBuilder {
         procedures.add(createArrayLengthProcedure());
         procedures.add(createObjNullCheckProcedure());
         procedures.add(createObjectAllocProcedure());
+        procedures.add(createObjectFieldAccessProcedure());
+
+        // Assign index to classes in order of declaration
+        // Ignore classes that don't need a virtual table (no methods or no changed methods regarding superclass)
+        int numClassesWithMethods = setupClassIndices();
         
+        // Prepare classes and translate all methods of all classes to procedures.
         for (ClassDecl classDecl: getDeclsList()) {
             // Assign proper field offsets to TypedVars
-            // Start at offset 4, because of vtable pointer as first element.
-            classDecl.setupClassFields(4);
+            // Start at offset 8, because of vtable list as first and vtable pointer as second element.
+            classDecl.setupClassFields(8);
+        
+            // Assign indices to methods starting at the superclass with 0.
+            classDecl.setupMethods(0);
+            
         
             for(piglet.Procedure procedure: classDecl.getProcedures()) {
                 procedures.add(procedure);
             }
         }
         
-        return new piglet.Program(getMain().getPigletStmts(), procedures);
+        // Generate virtual method tables for all classes
+        // Generate a vtable_list with all the vtables of the classes.
+        // This vtable list is passed around in method calls next to the this pointer.
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        piglet.HAlloc vtableListBase = new piglet.HAlloc(new piglet.IntLiteral(numClassesWithMethods * 4));
+        
+        // Save address of vtable list in TEMP 0.
+        piglet.Temp vtableList = new piglet.Temp(0);
+        piglet.Move saveVtableListAddress = new piglet.Move(vtableList, vtableListBase);
+        labeledStmts.add(convertToLabeledStmt(saveVtableListAddress));
+        
+        // Start at 1 - TEMP 0 is reserved for vtable_list
+        int tempIndex = 1;
+        
+        for (ClassDecl classDecl: getDeclsList()) {
+            
+            // This class has no methods at all? Don't bother generating a vtable.
+            if (classDecl.getMethodCountInClassChain() == 0) {
+                continue;
+            }
+            
+            // Allocate enough space for all the procedure addresses
+            piglet.HAlloc vtableBase = new piglet.HAlloc(new piglet.IntLiteral(classDecl.getMethodCountInClassChain() * 4));
+            piglet.Temp vtableAddress = new piglet.Temp(tempIndex);
+            tempIndex++;
+            
+            // Save the address in a temporary variable
+            piglet.Move saveVtableAddress = new piglet.Move(vtableAddress, vtableBase);
+            labeledStmts.add(convertToLabeledStmt(saveVtableAddress));
+            
+            // add all procedure addresses to the vtable.
+            classDecl.generateVirtualTable(labeledStmts, new piglet.TempExp(vtableAddress));
+            
+            // Add the vtable address to the vtable_list
+            piglet.HStore saveAddressToList = new piglet.HStore(new piglet.TempExp(vtableList), classDecl.classIndex * 4, new piglet.TempExp(vtableAddress));
+            labeledStmts.add(convertToLabeledStmt(saveAddressToList));
+        }
+        
+        // Add MainClass.main() code now
+        for (LabeledStmt labeledStmt: getMain().getPigletStmts(tempIndex)) {
+            labeledStmts.add(labeledStmt);
+        }
+        
+        return new piglet.Program(labeledStmts, procedures);
     }
     
-    syn lazy Integer ClassDecl.getTotalNumberOfFields() {
-        int numFieldsOfSuperclass = 0;
-        if (superClass() != null)
-            numFieldsOfSuperclass = superClass().getTotalNumberOfFields();
-        return getFieldsList().getNumChild() + numFieldsOfSuperclass;
-    }
+    public Integer ClassDecl.classIndex = -1;
     
+    // Assign index to classes which have a method declared in their inheritance chain.
+    syn lazy Integer Program.setupClassIndices() {
+        int classCount = 0;
+        for (ClassDecl classDecl: getDeclsList()) {
+            
+            // This class has no methods at all? Don't bother generating a vtable.
+            if (classDecl.getMethodCountInClassChain() == 0) {
+                continue;
+            }
+            
+            // TODO: ignore classes which don't override or add new methods.
+            // No need to waste more memory, if we won't change or add an entry in the table.
+            //if (classDecl.hasSuperClass() && classDecl.getMethodsList().getNumChild() == 0 /* || classDecl.hasNoOverriddenMethods()*/) {
+                // TODO: Use the vtable of the parent class
+                // classDecl.vtable = superClass().vtable;
+                // continue;
+            //}
+            
+            classDecl.classIndex = classCount;
+            classCount++;
+        }
+        
+        return classCount;
+    }
     
     /*
      * DECLARATIONS
@@ -43,13 +114,12 @@ aspect PigletASTBuilder {
     // TODO throw exception if temp is still null!
     syn piglet.Temp TypedVar.temp() = temp;
      
-    syn lazy piglet.List<piglet.LabeledStmt> MainClass.getPigletStmts() {
+    syn lazy piglet.List<piglet.LabeledStmt> MainClass.getPigletStmts(int tempIndex) {
         piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
         
         // Assign local vars a temporary identifier
-        int i = 0;
         for (TypedVar localVar: getLocalVarsList()) {
-            localVar.temp = new piglet.Temp(i++);
+            localVar.temp = new piglet.Temp(tempIndex++);
         }
         
         // Translate statments
@@ -63,7 +133,7 @@ aspect PigletASTBuilder {
     }
     
     public int TypedVar.fieldOffset = 0;
-    public int ClassDecl.setupClassFields(int offset) {
+    syn Integer ClassDecl.setupClassFields(int offset) {
         // First setup fields of superclass before my own.
         if (superClass() != null)
             offset = superClass().setupClassFields(offset);
@@ -77,9 +147,65 @@ aspect PigletASTBuilder {
         return offset;
     }
     
-    syn lazy piglet.List<piglet.LabeledStmt> ClassDecl.getPigletStmts() {
-        // TODO initialize newly allocated fields with zero.
-        return null;
+    // Index into vtable of the class.
+    public int MethodDecl.methodIndex = -1;
+    syn Integer ClassDecl.setupMethods(int index) {
+        // First set indices of methods of super class.
+        if (superClass() != null)
+            index = superClass().setupMethods(index);
+        
+        // Walk through my methods and set the index
+        for (MethodDecl method: getMethodsList()) {
+            // If we're overriding a method, set it to the index of the superclass' method.
+            if (method.overriddenMethod() != null) {
+                method.methodIndex = method.overriddenMethod().methodIndex;
+                continue;
+            }
+            
+            // This is the |index|th method in the class hierachy.
+            method.methodIndex = index;
+            index++;
+        }
+        return index;
+    }
+    
+    // Add all methods to the methods list.
+    // Replace methods in the list which get overridden.
+    syn lazy ArrayList<MethodDecl> ClassDecl.collectMethods(ArrayList<MethodDecl> methods) {
+        // Add methods of superclass first.
+        if (superClass() != null)
+            superClass().collectMethods(methods);
+        
+        for (MethodDecl method: getMethodsList()) {
+            // This method overrides some other method.
+            if (method.overriddenMethod() != null) {
+                // Replace method on that index with our overridden one!
+                methods.set(method.overriddenMethod().methodIndex, method);
+            }
+            // Add this method to the list at the corresponding methodIndex position
+            else {
+                methods.add(method);
+            }
+        }
+        
+        return methods;
+    }
+    
+    // Store addresses of methods to vtable
+    syn lazy piglet.List<piglet.LabeledStmt> ClassDecl.generateVirtualTable(piglet.List<piglet.LabeledStmt> labeledStmts, piglet.Exp vtableBase) {
+        ArrayList<MethodDecl> methods = new ArrayList<MethodDecl>();
+        
+        // Add all methods to the list.
+        // This inserts the overriding methods at the index of the overridden method of the super class. 
+        collectMethods(methods);
+        
+        // Run through all methods and add the address of the procedure to the vtable
+        for (MethodDecl method: methods) {
+            piglet.LabelExp methodLabel = new piglet.LabelExp(method.getPigletLabel());
+            piglet.HStore storeMethodAddress = new piglet.HStore(vtableBase, method.methodIndex * 4, methodLabel);
+            labeledStmts.add(convertToLabeledStmt(storeMethodAddress));
+        }
+        return labeledStmts;
     }
     
     syn lazy piglet.List<piglet.Procedure> ClassDecl.getProcedures() {
@@ -94,8 +220,9 @@ aspect PigletASTBuilder {
     
     syn lazy piglet.Procedure MethodDecl.toPiglet() {
         // Assign local vars and parameters a temporary identifier
-        // skip param 0 (object reference)
-        int i = 1;
+        // skip param 0 (vtable list)
+        // skip param 1 (object reference)
+        int i = 2;
         for (TypedVar parameter: getFormalParamsList()) {
             parameter.temp = new piglet.Temp(i++);
         }
@@ -112,7 +239,7 @@ aspect PigletASTBuilder {
         }
         
         piglet.StmtExp body = new piglet.StmtExp(labeledStmts, getRetExp().toPiglet());
-        return new piglet.Procedure(getPigletLabel(), getFormalParamsList().getNumChild() + 1, body);
+        return new piglet.Procedure(getPigletLabel(), getFormalParamsList().getNumChild() + 2, body);
     }
     
     
@@ -205,7 +332,7 @@ aspect PigletASTBuilder {
         
         // Maybe this is a field of this class.
         int fieldOffset = getName().decl().fieldOffset;
-        piglet.Exp thisAddress = new piglet.TempExp(new piglet.Temp(0));
+        piglet.Exp thisAddress = new piglet.TempExp(new piglet.Temp(1));
         
         // Get the temporary of the lhs. Might be null, if it's a class field (fieldOffset > 0).
         piglet.Temp lhs = getName().decl().temp();
@@ -318,7 +445,7 @@ aspect PigletASTBuilder {
         int fieldOffset = decl().fieldOffset;
         // Class field!
         if (fieldOffset > 0) {
-            piglet.Exp thisAddress = new piglet.TempExp(new piglet.Temp(0));
+            piglet.Exp thisAddress = new piglet.TempExp(new piglet.Temp(1));
             return createCall("GETOBJECTFIELD", thisAddress, new piglet.IntLiteral(fieldOffset));
         }
         // Normal variable.
@@ -345,9 +472,10 @@ aspect PigletASTBuilder {
     }
     
     eq ObjAlloc.toPiglet() {
-        // Call OBJECTALLOC procedure
+        // Call OBJECTALLOC(vtable_list, classoffset, size) procedure
+        // 4 bytes for vtable list
         // 4 bytes for virtual function table
-        return createCall("OBJECTALLOC", new piglet.IntLiteral(decl().getTotalNumberOfFields()*4 + 4));
+        return createCall("OBJECTALLOC", new piglet.TempExp(new piglet.Temp(0)), new piglet.IntLiteral(decl().classIndex * 4), new piglet.IntLiteral(decl().getTotalNumberOfFields()*4 + 8));
     }
     
     eq ArrayLookup.toPiglet() {
@@ -364,7 +492,10 @@ aspect PigletASTBuilder {
         piglet.Exp procedureName = new LabelExp(decl().getPigletLabel());
         piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
         
-        // first param is reference to object ("this" in procedure)
+        // first param is reference to vtable list
+        params.add(new piglet.TempExp(new piglet.Temp(0)));
+        
+        // second param is reference to object ("this" in procedure)
         piglet.Call nullCheck = createCall("CHECKNULLADDRESS", getObj().toPiglet());
         params.add(nullCheck); 
         
@@ -378,7 +509,7 @@ aspect PigletASTBuilder {
     
     eq This.toPiglet() {
         // first param of procedure is reference to object
-        return new piglet.TempExp(new piglet.Temp(0));
+        return new piglet.TempExp(new piglet.Temp(1));
     }
     
     // Don't add the LHS of the |And| to the collectedStmts list, if it's the first condition in a logic chain.
@@ -603,19 +734,27 @@ aspect PigletASTBuilder {
         int paramCount = 1;
         
         // params
-        piglet.Exp size = new TempExp(new piglet.Temp(0)); // first param
+        piglet.Exp vtableList = new piglet.TempExp(new piglet.Temp(0));
+        piglet.Exp classOffset = new piglet.TempExp(new piglet.Temp(1));
+        piglet.Exp size = new piglet.TempExp(new piglet.Temp(2));
         
         // Statements  
         piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
-        piglet.Temp address = new piglet.Temp(1);
+        piglet.Temp address = new piglet.Temp(3);
         piglet.Move saveAddress = new Move(address, new piglet.HAlloc(size));
         labeledStmts.add(convertToLabeledStmt(saveAddress));
         
         insertInitializeWithZero(labeledStmts, address, size, 0, 2);
         
-        // add virtual function table address
+        // Get virtual function table address
+        // vtableList[classIndex]
+        piglet.Temp vtable = new piglet.Temp(4);
+        piglet.Exp calcListOffset = new piglet.Plus(vtableList, classOffset);
+        piglet.HLoad vtableAddress = new piglet.HLoad(vtable, calcListOffset, 0); 
+        
+        // save virtual function table address
         piglet.TempExp addressExp = new piglet.TempExp(address);
-        piglet.HStore addVTableAddress = new piglet.HStore(addressExp, 0, new piglet.IntLiteral(1337)); // FIXME
+        piglet.HStore addVTableAddress = new piglet.HStore(addressExp, 0, new piglet.TempExp(vtable));
         labeledStmts.add(convertToLabeledStmt(addVTableAddress));
         
         // return address of allocated block
