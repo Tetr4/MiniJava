@@ -751,6 +751,7 @@ aspect PigletASTBuilder {
         piglet.Temp vtable = new piglet.Temp(4);
         piglet.Exp calcListOffset = new piglet.Plus(vtableList, classOffset);
         piglet.HLoad vtableAddress = new piglet.HLoad(vtable, calcListOffset, 0); 
+        labeledStmts.add(convertToLabeledStmt(vtableAddress));
         
         // save virtual function table address
         piglet.TempExp addressExp = new piglet.TempExp(address);
