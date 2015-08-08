@@ -731,7 +731,7 @@ aspect PigletASTBuilder {
     
     syn lazy piglet.Procedure ASTNode.createObjectAllocProcedure() {
         piglet.Label label = new piglet.Label("OBJECTALLOC");
-        int paramCount = 1;
+        int paramCount = 3;
         
         // params
         piglet.Exp vtableList = new piglet.TempExp(new piglet.Temp(0));
