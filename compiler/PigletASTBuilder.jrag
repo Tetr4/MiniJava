@@ -82,7 +82,7 @@ aspect PigletASTBuilder {
         return new piglet.Program(labeledStmts, procedures);
     }
     
-    public Integer ClassDecl.classIndex = -1;
+    public Integer ClassDecl.classIndex = 0;
     
     // Assign index to classes which have a method declared in their inheritance chain.
     syn lazy Integer Program.setupClassIndices() {
