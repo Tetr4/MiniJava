@@ -85,6 +85,20 @@ aspect PigletASTBuilder {
     syn lazy Integer Program.setupClassIndices() {
         int classCount = 0;
         for (ClassDecl classDecl: getDeclsList()) {
+            
+            // This class has no methods at all? Don't bother generating a vtable.
+            if (classDecl.getMethodCountInClassChain() == 0) {
+                continue;
+            }
+            
+            // TODO: ignore classes which don't override or add new methods.
+            // No need to waste more memory, if we won't change or add an entry in the table.
+            //if (classDecl.hasSuperClass() && classDecl.getMethodsList().getNumChild() == 0 /* || classDecl.hasNoOverriddenMethods()*/) {
+                // TODO: Use the vtable of the parent class
+                // classDecl.vtable = superClass().vtable;
+                // continue;
+            //}
+            
             classDecl.classIndex = classCount;
             classCount++;
         }
