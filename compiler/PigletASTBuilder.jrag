@@ -54,6 +54,9 @@ aspect PigletASTBuilder {
                 continue;
             }
             
+            // label with classname as a comment
+            piglet.Label commentLabel = new piglet.Label(classDecl.getIdent() + "_vtable");
+            
             // Allocate enough space for all the procedure addresses
             piglet.HAlloc vtableBase = new piglet.HAlloc(new piglet.IntLiteral(classDecl.getMethodCountInClassChain() * 4));
             piglet.Temp vtableAddress = new piglet.Temp(tempIndex);
@@ -61,7 +64,7 @@ aspect PigletASTBuilder {
             
             // Save the address in a temporary variable
             piglet.Move saveVtableAddress = new piglet.Move(vtableAddress, vtableBase);
-            labeledStmts.add(convertToLabeledStmt(saveVtableAddress));
+            labeledStmts.add(convertToLabeledStmt(commentLabel, saveVtableAddress));
             
             // add all procedure addresses to the vtable.
             classDecl.generateVirtualTable(labeledStmts, new piglet.TempExp(vtableAddress));
