@@ -18,7 +18,7 @@ class MJFrontEnd {
     public static void main(String args[]) {
         String inputFileName;
         if (args.length != 1) {
-            inputFileName = "tests/ArrayTest.java";
+            inputFileName = "tests/InheritanceTest.java";
         } else {
             inputFileName = args[0];
         }
