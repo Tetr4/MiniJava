@@ -736,19 +736,22 @@ aspect PigletASTBuilder {
     syn lazy piglet.Procedure ASTNode.createObjectAllocProcedure() {
         piglet.Label label = new piglet.Label("OBJECTALLOC");
         int paramCount = 3;
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
         
         // params
         piglet.Exp vtableList = new piglet.TempExp(new piglet.Temp(0));
         piglet.Exp classOffset = new piglet.TempExp(new piglet.Temp(1));
-        piglet.Exp size = new piglet.TempExp(new piglet.Temp(2));
+        piglet.Exp size = new piglet.TempExp(new piglet.Temp(2)); // space for vtable + fields
         
-        // Statements  
-        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        // allocate block
         piglet.Temp address = new piglet.Temp(3);
         piglet.Move saveAddress = new Move(address, new piglet.HAlloc(size));
         labeledStmts.add(convertToLabeledStmt(saveAddress));
         
-        insertInitializeWithZero(labeledStmts, address, size, 0, 2);
+         // fill with zeros
+         // skip first 4 bytes (vtable address is saved there, see below)
+         // don't use temp 0-4
+        insertInitializeWithZero(labeledStmts, address, size, 4, 5);
         
         // Get virtual function table address
         // vtableList[classIndex]
@@ -757,7 +760,7 @@ aspect PigletASTBuilder {
         piglet.HLoad vtableAddress = new piglet.HLoad(vtable, calcListOffset, 0); 
         labeledStmts.add(convertToLabeledStmt(vtableAddress));
         
-        // save virtual function table address
+        // save virtual function table address at beginning of block 
         piglet.TempExp addressExp = new piglet.TempExp(address);
         piglet.HStore addVTableAddress = new piglet.HStore(addressExp, 0, new piglet.TempExp(vtable));
         labeledStmts.add(convertToLabeledStmt(addVTableAddress));
@@ -836,7 +839,7 @@ aspect PigletASTBuilder {
         piglet.CJump condition = new piglet.CJump(new piglet.Lt(new piglet.TempExp(currentAddress), new piglet.TempExp(endAddress)), exitLabel);
         labeledStmts.add(convertToLabeledStmt(entryLabel, condition));
         
-        // currentAddress = 0;
+        // block[currentAddress] = 0;
         piglet.HStore initBlock = new piglet.HStore(new piglet.TempExp(currentAddress), offset, new piglet.IntLiteral(0));
         labeledStmts.add(convertToLabeledStmt(initBlock));
 
