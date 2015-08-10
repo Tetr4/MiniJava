@@ -44,16 +44,18 @@ class Battle {
     }
 
     public Person setRightContestant(Person contestant) {
-        leftContestant = contestant;
+        rightContestant = contestant;
         return rightContestant;
     }
 
     public boolean isDraw() {
         boolean smaller;
         boolean greater;
+        boolean equal;
         smaller = leftContestant.getStrength() < rightContestant.getStrength();
         greater = rightContestant.getStrength() < leftContestant.getStrength();
-        return !greater && !smaller;
+        equal =  !greater && !smaller;
+        return equal; // FIXME return and chain directly
     }
 
     public Person getWinner() {
@@ -67,6 +69,10 @@ class Battle {
     }
 }
 
+class SpecialAttack {}
+class SpiderWeb extends SpecialAttack {}
+class MagnetPower extends SpecialAttack {}
+class FireBall extends SpecialAttack {}
 
 class Person {
     int strength;
@@ -91,9 +97,3 @@ class SuperPerson extends Person {
 }
 class SuperHero extends SuperPerson {}
 class SuperVillain extends SuperPerson {}
-
-
-class SpecialAttack {}
-class SpiderWeb extends SpecialAttack {}
-class MagnetPower extends SpecialAttack {}
-class FireBall extends SpecialAttack {}
