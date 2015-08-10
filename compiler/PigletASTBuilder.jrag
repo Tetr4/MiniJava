@@ -21,8 +21,8 @@ aspect PigletASTBuilder {
         // Prepare classes and translate all methods of all classes to procedures.
         for (ClassDecl classDecl: getDeclsList()) {
             // Assign proper field offsets to TypedVars
-            // Start at offset 8, because of vtable list as first and vtable pointer as second element.
-            classDecl.setupClassFields(8);
+            // Start at offset 4, vtable pointer as first element.
+            classDecl.setupClassFields(4);
         
             // Assign indices to methods starting at the superclass with 0.
             classDecl.setupMethods(0);
@@ -476,9 +476,10 @@ aspect PigletASTBuilder {
     
     eq ObjAlloc.toPiglet() {
         // Call OBJECTALLOC(vtable_list, classoffset, size) procedure
-        // 4 bytes for vtable list
-        // 4 bytes for virtual function table
-        return createCall("OBJECTALLOC", new piglet.TempExp(new piglet.Temp(0)), new piglet.IntLiteral(decl().classIndex * 4), new piglet.IntLiteral(decl().getTotalNumberOfFields()*4 + 8));
+        piglet.TempExp vtableList = new piglet.TempExp(new piglet.Temp(0));
+        piglet.IntLiteral classoffset = new piglet.IntLiteral(decl().classIndex * 4);
+        piglet.IntLiteral size = new piglet.IntLiteral( (decl().getTotalNumberOfFields() + 1) * 4); // 1 word for virtual function table address
+        return createCall("OBJECTALLOC", vtableList, classoffset, size);
     }
     
     eq ArrayLookup.toPiglet() {
