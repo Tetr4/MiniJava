@@ -57,7 +57,7 @@ aspect SpigletASTBuilder {
         return labeledStmts;
     }
     
-    syn lazy spiglet.Procedure Procedure.toSpiglet() {  // Label <Integer:Integer> StmtsRet:StmtExp
+    syn lazy spiglet.Procedure Procedure.toSpiglet() { // Label <Integer:Integer> StmtsRet:StmtExp
         // reset temp helpers for each procedure
         Program.currentTemp = getInteger(); // skip temps reserved for args
         Program.pigletToSpigletTemps.clear();
@@ -108,9 +108,8 @@ aspect SpigletASTBuilder {
     
     eq Call.toSpiglet() = null; // Name:Exp Param:Exp*
     eq HAlloc.toSpiglet() = null; // Size:Exp
-    eq TempExp.toSpiglet() = null; // Temp:Temp
-    eq LabelExp.toSpiglet() = null; // Label:Label
-
+    eq TempExp.toSpiglet() = new spiglet.TempExp(getTemp().toSpiglet()); // Temp:Temp
+    eq LabelExp.toSpiglet() = new spiglet.LabelExp(getLabel().toSpiglet()); // Label:Label
     eq Binop.toSpiglet() = null; // Left:Exp Right:Exp
     
     //abstract Literal:Exp;
@@ -129,7 +128,7 @@ aspect SpigletASTBuilder {
         return list;
     }
     
-     syn spiglet.List<spiglet.Exp> Stmt.convertToExpList(spiglet.Exp exp) {
+     syn spiglet.List<spiglet.Exp> Exp.convertToExpList(spiglet.Exp exp) {
         spiglet.List<spiglet.Exp> list = new spiglet.List<spiglet.Exp>();
         list.add(exp);
         return list;

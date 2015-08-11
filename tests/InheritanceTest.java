@@ -27,6 +27,13 @@ class Main {
         if (!showdown.isDraw()) {
             winner = showdown.getWinner();
             System.out.println(winner.getStrength()); // 7
+            
+            // print if winner has cape
+            if(winner.hasCape()) { // 1
+                System.out.println(1);
+            } else {
+                System.out.println(0);
+            }
         } else {
             System.out.println(0);
         }
@@ -85,6 +92,10 @@ class Person {
         strength = newStrength;
         return strength;
     }
+    
+    public boolean hasCape() {
+        return false;
+    }
 }
 class NormalPerson extends Person {}
 class SuperPerson extends Person {
@@ -95,5 +106,10 @@ class SuperPerson extends Person {
         return attack;
     }
 }
-class SuperHero extends SuperPerson {}
+class SuperHero extends SuperPerson {
+    // @Override
+    public boolean hasCape() {
+        return true;
+    }
+}
 class SuperVillain extends SuperPerson {}
