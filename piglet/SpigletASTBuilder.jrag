@@ -1,8 +1,18 @@
 import spiglet.*;
+import java.util.HashMap;
+import java.util.Map;
 
 aspect SpigletASTBuilder {
 
-    syn lazy spiglet.Program Program.toSpiglet() {
+    // counter for temps
+    public static int Program.currentTemp;
+    // spiglet uses more temps -> remember which piglet temp belongs to which spiglet temp and reuse
+    public static Map<Integer, Integer> Program.pigletToSpigletTemps;
+    
+    syn lazy spiglet.Program Program.toSpiglet() { // Stmts:LabeledStmt* Procs:Procedure*
+        currentTemp = 0;
+        pigletToSpigletTemps = new HashMap<Integer, Integer>(); 
+        
         // statements
         spiglet.List<spiglet.LabeledStmt> statements = new spiglet.List<spiglet.LabeledStmt>();
         for (LabeledStmt labeledStmt: getStmtsList()) {
@@ -47,20 +57,55 @@ aspect SpigletASTBuilder {
         return labeledStmts;
     }
     
-    syn lazy spiglet.Procedure Procedure.toSpiglet() = null;  // Label <Integer:Integer> StmtsRet:StmtExp
+    syn lazy spiglet.Procedure Procedure.toSpiglet() {  // Label <Integer:Integer> StmtsRet:StmtExp
+        // reset temp helpers for each procedure
+        Program.currentTemp = getInteger(); // skip temps reserved for args
+        Program.pigletToSpigletTemps.clear();
+        
+        return new spiglet.Procedure(getLabel().toSpiglet(), getInteger(), getStmtsRet().toSpigletStmtExp()); 
+    }
     
+    
+    /*
+     * STATEMENTS
+     */
     syn lazy spiglet.List<spiglet.Stmt> Stmt.toSpiglet();
     eq Noop.toSpiglet() = convertToStmtList(new spiglet.Noop());
     eq Err.toSpiglet() = convertToStmtList(new spiglet.Err());
-    eq CJump.toSpiglet() = null; // Cond:Temp Label:Label
+    eq CJump.toSpiglet() = null; // Cond:Exp Label:Label
     eq Jump.toSpiglet() = convertToStmtList(new spiglet.Jump(getLabel().toSpiglet())); // Label:Label
-    eq HStore.toSpiglet() = null; // Addr:Temp <Offset:Integer> Value:Temp
-    eq HLoad.toSpiglet() = null; // Dest:Temp Addr:Temp <Offset:Integer>
+    eq HStore.toSpiglet() = null; // Addr:Exp <Offset:Integer> Value:Exp
+    eq HLoad.toSpiglet() = null; // Dest:Temp Addr:Exp <Offset:Integer>
     eq Move.toSpiglet() = null; // Dest:Temp Source:Exp
-    eq Print.toSpiglet() = null; // Value:SExp
+    eq Print.toSpiglet() = convertToStmtList(new spiglet.Print( (spiglet.SExp) getValue().toSpiglet() )); // Value:Exp
     
-    syn lazy spiglet.List<spiglet.Exp> Exp.toSpiglet();
-    eq StmtExp.toSpiglet() = null; // Stmts:LabeledStmt* RetExp:Exp
+    
+        
+    /*
+     * EXPRESSIONS
+     */
+    syn lazy spiglet.Exp Exp.toSpiglet();
+    
+    // special case for StmtExp (spiglets StmtExp is not an Exp)
+    syn lazy spiglet.StmtExp StmtExp.toSpigletStmtExp() { // Stmts:LabeledStmt* RetExp:Exp
+    
+        // statements
+        spiglet.List<spiglet.LabeledStmt> statements = new spiglet.List<spiglet.LabeledStmt>();
+        for (LabeledStmt labeledStmt: getStmtsList()) {
+            // add all
+            for (spiglet.LabeledStmt stmt : labeledStmt.toSpiglet()) {
+                statements.add(stmt);
+            }
+        }
+        
+        // ret exp
+        // TODO check if cast is alway successful
+        spiglet.SExp retExp = (spiglet.SExp) getRetExp().toSpiglet();
+        
+        return new spiglet.StmtExp(statements, retExp);
+    }
+    eq StmtExp.toSpiglet() = null;
+    
     eq Call.toSpiglet() = null; // Name:Exp Param:Exp*
     eq HAlloc.toSpiglet() = null; // Size:Exp
     eq TempExp.toSpiglet() = null; // Temp:Temp
@@ -69,16 +114,15 @@ aspect SpigletASTBuilder {
     eq Binop.toSpiglet() = null; // Left:Exp Right:Exp
     
     //abstract Literal:Exp;
-    eq IntLiteral.toSpiglet() = null; // <Integer:Integer>
+    eq IntLiteral.toSpiglet() = new spiglet.IntLiteral(getInteger()); // <Integer:Integer>
 
-    syn lazy spiglet.Temp Temp.toSpiglet() = new spiglet.Temp(getNumber());
-    syn lazy spiglet.Label Label.toSpiglet() = new spiglet.Label(getLabel());
+    syn lazy spiglet.Temp Temp.toSpiglet() = new spiglet.Temp(getNumber()); // <Number:Integer>
+    syn lazy spiglet.Label Label.toSpiglet() = new spiglet.Label(getLabel()); // <Label>
     
     
     /*
      * HELPERS
      */
-     
      syn spiglet.List<spiglet.Stmt> Stmt.convertToStmtList(spiglet.Stmt stmt) {
         spiglet.List<spiglet.Stmt> list = new spiglet.List<spiglet.Stmt>();
         list.add(stmt);
