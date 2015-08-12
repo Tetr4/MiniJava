@@ -218,7 +218,8 @@ aspect SpigletASTBuilder {
     
 
     // TODO generate temps
-    syn lazy spiglet.Temp Exp.toSpigletTemp();
+    syn lazy spiglet.Temp Exp.toSpigletTemp() = new spiglet.Temp(Program.currentTemp++);
+/*
     eq StmtExp.toSpigletTemp() = null;
     eq Call.toSpigletTemp() = null;
     eq HAlloc.toSpigletTemp() = null;
@@ -226,6 +227,7 @@ aspect SpigletASTBuilder {
     eq LabelExp.toSpigletTemp() = null;
     eq Binop.toSpigletTemp() = null;
     eq IntLiteral.toSpigletTemp() = null;
+*/
 
     syn lazy spiglet.Exp Exp.toSpigletExp() = toSpigletSExp();  // don't need to set both every time
     eq StmtExp.toSpigletExp() = null;
@@ -245,7 +247,9 @@ aspect SpigletASTBuilder {
     eq Times.toSpigletExp() = new spiglet.Times(getLeft().toSpigletTemp(), getRight().toSpigletSExp() );
 
     syn lazy spiglet.SExp Exp.toSpigletSExp() {
-        throw new UnsupportedOperationException();
+        //throw new UnsupportedOperationException();
+        // FIXME
+        return new spiglet.TempExp(new spiglet.Temp(12345));
     }    
     eq TempExp.toSpigletSExp() = new spiglet.TempExp(getTemp().toSpiglet());
     eq LabelExp.toSpigletSExp() = new spiglet.LabelExp(getLabel().toSpiglet());
