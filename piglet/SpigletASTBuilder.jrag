@@ -176,8 +176,10 @@ aspect SpigletASTBuilder {
     // 1 piglet expression may generate multiple spiglet statements
     syn lazy spiglet.List<spiglet.Stmt> Exp.toSpigletStmts() = new spiglet.List<spiglet.Stmt>(); // no statements as default
     
-    // TODO throw exception
-    eq StmtExp.toSpigletStmts() = null; // special case, see StmtExp.toSpigletStmtExp()
+    eq StmtExp.toSpigletStmts() {
+        // special case, see StmtExp.toSpigletStmtExp()
+        throw new UnsupportedOperationException();
+    } 
     
     eq Call.toSpigletStmts() {
         spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
@@ -242,8 +244,9 @@ aspect SpigletASTBuilder {
     eq Minus.toSpigletExp() = new spiglet.Minus(getLeft().toSpigletTemp(), getRight().toSpigletSExp() );
     eq Times.toSpigletExp() = new spiglet.Times(getLeft().toSpigletTemp(), getRight().toSpigletSExp() );
 
-    // TODO throw exception as default
-    syn lazy spiglet.SExp Exp.toSpigletSExp();    
+    syn lazy spiglet.SExp Exp.toSpigletSExp() {
+        throw new UnsupportedOperationException();
+    }    
     eq TempExp.toSpigletSExp() = new spiglet.TempExp(getTemp().toSpiglet());
     eq LabelExp.toSpigletSExp() = new spiglet.LabelExp(getLabel().toSpiglet());
     eq IntLiteral.toSpigletSExp() = new spiglet.IntLiteral(getInteger());
