@@ -7,7 +7,6 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-import beaver.Parser.Exception;
 import minijava.Program;
 
 public class PigletTest extends MJTest {
@@ -26,7 +25,7 @@ public class PigletTest extends MJTest {
     }
 
     @Test
-    public void testInstantiation() throws IOException, Exception, ReflectiveOperationException {
+    public void testInstantiation() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
@@ -141,7 +140,7 @@ public class PigletTest extends MJTest {
     }
 
     @Test
-    public void testAndChain() throws IOException, Exception, ReflectiveOperationException {
+    public void testAndChain() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
         Program program = parse("class Main {\n" + 
                 "    public static void main(String[] args) {\n" + 
                 "        TestClass c;\n" + 

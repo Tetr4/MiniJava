@@ -28,7 +28,7 @@ public abstract class MJTest {
     public static Object interpreter;
 
     @BeforeClass
-    public static void setupInterpreter() throws ReflectiveOperationException, ClassNotFoundException {
+    public static void setupInterpreter() throws ReflectiveOperationException {
         // Reflection Magic !
         Class<?> interpreterClass = Class.forName("PigletParser");
         interpreterConstructor = interpreterClass.getConstructor(InputStream.class);
@@ -37,7 +37,7 @@ public abstract class MJTest {
     }
 
     protected ByteArrayOutputStream interpret(piglet.Program program)
-            throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+            throws IOException, ReflectiveOperationException {
         // Create piglet code input reader from pretty printer output
         String pigletCode = program.print().getString();
         InputStream pigletInput = new ByteArrayInputStream(pigletCode.getBytes());
