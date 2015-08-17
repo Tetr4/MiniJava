@@ -13,6 +13,7 @@ aspect PigletASTBuilder {
         procedures.add(createObjNullCheckProcedure());
         procedures.add(createObjectAllocProcedure());
         procedures.add(createObjectFieldAccessProcedure());
+        procedures.add(createMethodAddressProcedure());
 
         // Assign index to classes in order of declaration
         // Ignore classes that don't need a virtual table (no methods or no changed methods regarding superclass)
@@ -503,22 +504,22 @@ aspect PigletASTBuilder {
     }
     
     eq MethodCall.toPiglet() {
-        piglet.Exp procedureName = new LabelExp(decl().getPigletLabel());
+        piglet.Call nullCheck = createCall("CHECKNULLADDRESS", getObj().toPiglet());
+        piglet.Exp procedureAddress = createCall("GETMETHODADDRESS", nullCheck, new piglet.IntLiteral(decl().methodIndex));
         piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
         
         // first param is reference to vtable list
         params.add(new piglet.TempExp(new piglet.Temp(0)));
         
         // second param is reference to object ("this" in procedure)
-        piglet.Call nullCheck = createCall("CHECKNULLADDRESS", getObj().toPiglet());
-        params.add(nullCheck); 
+        params.add(getObj().toPiglet());
         
         // params
         for(Exp arg: getArgsList()) {
             params.add(arg.toPiglet());
         }
         
-        return new piglet.Call(procedureName, params); 
+        return new piglet.Call(procedureAddress, params);
     }
     
     eq This.toPiglet() {
@@ -610,6 +611,35 @@ aspect PigletASTBuilder {
         for (piglet.LabeledStmt labeledStmt: And.collectedStmts) {
             labeledStmts.add(labeledStmt);
         }
+    }
+    
+    syn lazy piglet.Procedure ASTNode.createMethodAddressProcedure() {
+        // Create a procedure 
+        piglet.Label label = new piglet.Label("GETMETHODADDRESS");
+        int paramCount = 2;
+        
+        // params
+        piglet.Exp obj = new piglet.TempExp(new piglet.Temp(0));
+        piglet.Exp vtable_index = new piglet.TempExp(new piglet.Temp(1));
+        
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        
+        // Get vtable
+        piglet.Temp vtable = new piglet.Temp(2);
+        piglet.HLoad loadVtable = new piglet.HLoad(vtable, obj, 0);
+        labeledStmts.add(convertToLabeledStmt(loadVtable));
+        
+        // Get offset of method in vtable
+        piglet.Times methodOffset = new piglet.Times(vtable_index, new piglet.IntLiteral(4));
+        piglet.Plus methodPointer = new piglet.Plus(new piglet.TempExp(vtable), methodOffset);
+        
+        // Load address of method from vtable
+        piglet.Temp methodAddress = new piglet.Temp(3);
+        piglet.HLoad loadMethodAddress = new piglet.HLoad(methodAddress, methodPointer, 0);
+        labeledStmts.add(convertToLabeledStmt(loadMethodAddress));
+        
+        piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, new piglet.TempExp(methodAddress));
+        return new piglet.Procedure(label, paramCount, stmtsRet);
     }
     
     syn lazy piglet.Procedure ASTNode.createObjectFieldAccessProcedure() {
