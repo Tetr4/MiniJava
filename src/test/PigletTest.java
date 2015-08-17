@@ -1,15 +1,18 @@
 package test;
-
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
 import minijava.Program;
 
 public class PigletTest extends MJTest {
+    @Rule
+    public final ExpectedSystemExit exit = ExpectedSystemExit.none();
     
     @Test
     public void testPrint() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
@@ -187,7 +190,7 @@ public class PigletTest extends MJTest {
     }
 
     @Test
-    public void testNullReference() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testVariableNullReference() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
@@ -200,10 +203,14 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "\n" + 
                 "}");
-        ByteArrayOutputStream stream = interpret(program.toPiglet());
-        assertEquals("ERROR", removeNewlines(stream.toString()));
-        
-        program = parse("class Main {\n" +
+        // Interpreter calls System.exit(1) after Error
+        exit.expectSystemExit();
+        interpret(program.toPiglet());  
+    }
+    
+    @Test
+    public void testFieldNullReference() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+        Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass a;\n" +
                 "        TestClass b;\n" +
@@ -222,8 +229,9 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "\n" + 
                 "}");
-        stream = interpret(program.toPiglet());
-        assertEquals("ERROR", removeNewlines(stream.toString()));
+        // Interpreter calls System.exit(1) after Error
+        exit.expectSystemExit();
+        interpret(program.toPiglet()); 
     }
     
     private String removeNewlines(String string) {
