@@ -42,7 +42,7 @@ aspect PigletASTBuilder {
         // Save address of vtable list in TEMP 0.
         piglet.Temp vtableList = new piglet.Temp(0);
         piglet.Move saveVtableListAddress = new piglet.Move(vtableList, vtableListBase);
-        labeledStmts.add(convertToLabeledStmt(saveVtableListAddress));
+        labeledStmts.add(convertToLabeledStmt(new piglet.Label("vtable_list"), saveVtableListAddress));
         
         // Start at 1 - TEMP 0 is reserved for vtable_list
         int tempIndex = 1;
@@ -123,6 +123,10 @@ aspect PigletASTBuilder {
         // Assign local vars a temporary identifier
         for (TypedVar localVar: getLocalVarsList()) {
             localVar.temp = new piglet.Temp(tempIndex++);
+            
+            // Init with zero
+            piglet.Move nullInit = new piglet.Move(localVar.temp, new piglet.IntLiteral(0));
+            labeledStmts.add(convertToLabeledStmt(nullInit));
         }
         
         // Translate statments
@@ -229,12 +233,18 @@ aspect PigletASTBuilder {
         for (TypedVar parameter: getFormalParamsList()) {
             parameter.temp = new piglet.Temp(i++);
         }
+        
+        // Initialize local variables to zero as well.
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
         for (TypedVar localVar: getLocalVarsList()) {
+            // Assign temp index
             localVar.temp = new piglet.Temp(i++);
+            
+            piglet.Move nullInit = new piglet.Move(localVar.temp, new piglet.IntLiteral(0));
+            labeledStmts.add(convertToLabeledStmt(nullInit));
         }
         
         // Translate statments
-        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
         for (Stmt stmt: getStmtsList()) {
             for (piglet.LabeledStmt pigletStmt: stmt.toPiglet()) {
                 labeledStmts.add(pigletStmt);
@@ -512,7 +522,7 @@ aspect PigletASTBuilder {
     }
     
     eq This.toPiglet() {
-        // first param of procedure is reference to object
+        // second param of procedure is reference to object
         return new piglet.TempExp(new piglet.Temp(1));
     }
     
