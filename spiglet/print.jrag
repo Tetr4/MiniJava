@@ -122,7 +122,7 @@ aspect PrettyPrint {
     for (LabeledStmt s : getStmtss()) s.print();
     printer().append("\n" + indent() + PrettyPrinter.LABEL_INDENT + "RETURN ");
     getRetExp().print();    
-    printer().append(" END ");
+    printer().append("\nEND\n");
   }	 
   
   public abstract void Exp.print();
