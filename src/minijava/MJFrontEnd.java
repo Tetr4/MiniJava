@@ -22,6 +22,9 @@ import visitor.SetLabel;
 
 public class MJFrontEnd {
 
+    // Piglet interpreter
+    public static Object interpreter;
+    
     public static void main(String args[]) {
         String inputFileName;
         if (args.length != 1) {
@@ -114,7 +117,6 @@ public class MJFrontEnd {
         // You can't import types from default package :/
         // Screw pgi.jar >:(
         Class<?> interpreterClass = Class.forName("PigletParser");
-        Constructor<?> interpreterConstructor = interpreterClass.getConstructor(InputStream.class);
         Method interpreterGoalMethod = interpreterClass.getMethod("Goal");
         
         // Create piglet code input reader from pretty printer output
@@ -127,9 +129,18 @@ public class MJFrontEnd {
         PrintStream printStream = new PrintStream(outStream);
         System.setOut(printStream);
 
+        if (interpreter == null) {
+            Constructor<?> interpreterConstructor = interpreterClass.getConstructor(InputStream.class);
+            interpreter = interpreterConstructor.newInstance(pigletInput);
+        }
+        else
+        {
+            Method interpreterReInitMethod = interpreterClass.getMethod("ReInit", InputStream.class);
+            interpreterReInitMethod.invoke(interpreter, pigletInput);
+        }
         
         // interpret -> prints to redirected System.out
-        Node root = (Node) interpreterGoalMethod.invoke(interpreterConstructor.newInstance(pigletInput));
+        Node root = (Node) interpreterGoalMethod.invoke(interpreter);
         root.accept(new GJPigletInterpreter("MAIN", null, root), root);
 
         // undo System.out redirect
