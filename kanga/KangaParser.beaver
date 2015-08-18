@@ -1,0 +1,191 @@
+%header {:
+ // this code is inlined before the generated parser
+package kanga;
+:};
+
+%terminals LSQPAREN, RSQPAREN;
+%terminals LT, PLUS, MINUS, TIMES;
+%terminals MAIN, END, NOOP, ERROR, CJUMP, JUMP, HSTORE, HLOAD;
+%terminals MOVE, PRINT, CALL, HALLOCATE, SPILLEDARG;
+%terminals ALOAD, ASTORE, PASSARG;
+%terminals A0, A1, A2, A3;
+%terminals T0, T1, T2, T3, T4, T5, T6, T7, T8, T9;
+%terminals S0, S1, S2, S3, S4, S5, S6, S7;
+%terminals V0, V1;
+%terminals IDENTIFIER, INTEGER_LITERAL;
+
+%typeof Goal = "Program";
+%typeof Procedure = "Procedure";
+%typeof ProcedureList = "List<Procedure>";
+%typeof LabeledStmt = "LabeledStmt";
+%typeof StmtList = "List<LabeledStmt>";
+%typeof Statement = "Stmt";
+%typeof NoopStatement = "Noop";
+%typeof ErrorStatement = "Err";
+%typeof CJumpStatement = "CJump";
+%typeof JumpStatement = "Jump";
+%typeof Exp = "Exp";
+%typeof SExp = "SExp";
+%typeof HAllocExp = "HAlloc";
+%typeof CompareExp = "Lt";
+%typeof PlusExp = "Plus";
+%typeof MinusExp = "Minus";
+%typeof TimesExp = "Times";
+%typeof IntegerLiteral = "IntLiteral";
+%typeof Reg = "Reg";
+%typeof Label = "Label";
+%typeof SpilledArg = "SpilledArg";
+
+%typeof INTEGER_LITERAL = "String";
+
+%goal Goal;
+
+// Productions with semantic actions building the JastAdd AST
+
+Goal =
+   MAIN LSQPAREN INTEGER_LITERAL RSQPAREN LSQPAREN INTEGER_LITERAL.stackslots RSQPAREN LSQPAREN INTEGER_LITERAL.maxparams RSQPAREN StmtList.lsl END ProcedureList.procl  
+   										   {: return new Program(Integer.parseInt(stackslots), Integer.parseInt(maxparams), lsl, procl); :}
+;
+ProcedureList =
+                                            {: return new List<Procedure>(); :}
+| ProcedureList.procl Procedure.proc        {: return procl.add(proc); :}
+;
+Procedure =
+   Label.l LSQPAREN INTEGER_LITERAL.params RSQPAREN LSQPAREN INTEGER_LITERAL.stackslots RSQPAREN LSQPAREN INTEGER_LITERAL.maxparams RSQPAREN StmtList.stmtlist END
+   			{: return new Procedure(l, Integer.parseInt(params), Integer.parseInt(stackslots), Integer.parseInt(maxparams), stmtlist); :}
+;
+LabeledStmt = 
+   Label.l? Statement.s   {: if (l == null) 
+                                return new LabeledStmt(new Opt<Label>(),s); 
+                             else 
+                                return new LabeledStmt(new Opt<Label>(l),s); :}
+;
+StmtList =
+                                            {: return new List<LabeledStmt>(); :}
+| StmtList.sl LabeledStmt.s                 {: return sl.add(s); :}
+;
+
+Statement =
+   NoopStatement
+|  ErrorStatement
+|  CJumpStatement
+|  JumpStatement
+|  HStoreStatement
+|  HLoadStatement
+|  MoveStatement
+|  PrintStatement
+|  ALoadStatement
+|  AStoreStatement
+|  PassArgStatement
+|  CallStatement
+;
+
+NoopStatement =
+  NOOP  {: return new Noop(); :}
+;
+ErrorStatement =
+  ERROR {: return new Err(); :}
+;
+CJumpStatement =
+  CJUMP Reg.r Label.l	{: return new CJump(r,l); :}
+;
+JumpStatement =
+  JUMP Label.l	{: return new Jump(l); :}
+;
+HStoreStatement = 
+  HSTORE Reg.r1 INTEGER_LITERAL.ilt Reg.r2      {: return new HStore(r1,Integer.parseInt(ilt),r2); :}
+;
+HLoadStatement = 
+  HLOAD Reg.r1 Reg.r2 INTEGER_LITERAL.ilt       {: return new HLoad(r1,r2,Integer.parseInt(ilt)); :}
+;
+MoveStatement = 
+  MOVE Reg.r Exp.e        {: return new Move(r,e); :}
+;
+PrintStatement = 
+  PRINT SExp.e        {: return new Print(e); :}
+;
+ALoadStatement = 
+  ALOAD Reg.r SpilledArg.e       {: return new ALoad(r,e); :}
+;
+AStoreStatement = 
+  ASTORE SpilledArg.e Reg.r       {: return new AStore(e,r); :}
+;
+PassArgStatement =
+  PASSARG INTEGER_LITERAL.il Reg.r       {: return new PassArg(Integer.parseInt(il), r); :}
+;
+CallStatement =
+  CALL SExp.e       {: return new Call(e); :}
+;
+
+ 
+ Exp =
+   HAllocExp
+|  CompareExp
+|  PlusExp
+|  MinusExp
+|  TimesExp
+|  SExp
+;
+
+SExp =
+   IntegerLiteral
+|  LabelExp
+|  Reg
+;
+
+CompareExp =
+   LT Reg.le SExp.re 	 {: return new Lt(le,re); :}
+;
+PlusExp =
+   PLUS Reg.le SExp.re {: return new Plus(le,re); :} 
+;
+MinusExp =
+   MINUS Reg.le SExp.re  {: return new Minus(le,re); :}
+;
+TimesExp =
+   TIMES Reg.le SExp.re  {: return new Times(le,re); :}
+;
+HAllocExp =
+   HALLOCATE SExp.e 		{: return new HAlloc(e); :}
+;
+LabelExp = 
+   Label.l				{: return new LabelExp(l); :}
+;
+
+
+Reg = 
+   A0.r   {: return new Reg((String)r.value); :}
+ | A1.r   {: return new Reg((String)r.value); :}
+ | A2.r   {: return new Reg((String)r.value); :}
+ | A3.r   {: return new Reg((String)r.value); :}
+ | T0.r   {: return new Reg((String)r.value); :}
+ | T1.r   {: return new Reg((String)r.value); :}
+ | T2.r   {: return new Reg((String)r.value); :}
+ | T3.r   {: return new Reg((String)r.value); :}
+ | T4.r   {: return new Reg((String)r.value); :}
+ | T5.r   {: return new Reg((String)r.value); :}
+ | T6.r   {: return new Reg((String)r.value); :}
+ | T7.r   {: return new Reg((String)r.value); :}
+ | T8.r   {: return new Reg((String)r.value); :}
+ | T9.r   {: return new Reg((String)r.value); :}
+ | S0.r   {: return new Reg((String)r.value); :}
+ | S1.r   {: return new Reg((String)r.value); :}
+ | S2.r   {: return new Reg((String)r.value); :}
+ | S3.r   {: return new Reg((String)r.value); :}
+ | S4.r   {: return new Reg((String)r.value); :}
+ | S5.r   {: return new Reg((String)r.value); :}
+ | S6.r   {: return new Reg((String)r.value); :}
+ | S7.r   {: return new Reg((String)r.value); :}
+ | V0.r   {: return new Reg((String)r.value); :}
+ | V1.r   {: return new Reg((String)r.value); :}
+;
+IntegerLiteral =
+   INTEGER_LITERAL.ilt          {: return new IntLiteral(Integer.parseInt(ilt)); :}
+;
+
+SpilledArg =
+  SPILLEDARG INTEGER_LITERAL.ilt{: return new SpilledArg(Integer.parseInt(ilt)); :}
+;
+Label =
+  IDENTIFIER.id                 {: return new Label(id); :}
+;

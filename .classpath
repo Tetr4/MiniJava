@@ -8,6 +8,7 @@
 	<classpathentry kind="lib" path="tools/jastadd2.jar"/>
 	<classpathentry kind="lib" path="tools/JFlex.jar"/>
 	<classpathentry kind="lib" path="support/pgi.jar"/>
+	<classpathentry kind="lib" path="support/kgi.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="support/system-rules-1.12.0.jar"/>
 	<classpathentry kind="output" path="bin"/>

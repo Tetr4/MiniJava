@@ -1,0 +1,188 @@
+aspect PrettyPrint {
+  public class PrettyPrinter {
+    public static String INDENT = "  ";
+    public static String LABEL_INDENT = "   ";
+    
+  	private StringBuilder sb;
+  	public PrettyPrinter(){
+  		sb = new StringBuilder();
+  	}
+  
+    public void append(String s) {
+       sb.append(s);
+    }
+    
+    public String getString() {
+       return sb.toString();
+    }
+}
+
+  //similar to JastAdd Java compiler	
+  syn String ASTNode.indent() {
+        String indent = extractIndent();
+        return indent.startsWith("\n") ? indent : ("\n" + indent);
+  }
+
+    syn String ASTNode.extractIndent() {
+  	  if(getParent() == null)
+   		   return "";
+      String indent = getParent().extractIndent();
+      if(getParent().addsIndentationLevel())
+      	indent += PrettyPrinter.INDENT;
+      return indent;
+  }
+
+  syn boolean ASTNode.addsIndentationLevel() = false;
+  eq Program.addsIndentationLevel() = true;
+  eq LabeledStmt.addsIndentationLevel() = true;
+  eq Procedure.addsIndentationLevel() = true;
+
+  syn lazy PrettyPrinter Program.printer() {
+  	return new PrettyPrinter();
+  }
+  eq Program.getStmts().printer() = this.printer();
+  eq Program.getProcs().printer() = this.printer();
+  
+  inh lazy PrettyPrinter LabeledStmt.printer();
+  inh lazy PrettyPrinter Procedure.printer();
+  inh lazy PrettyPrinter Stmt.printer();
+  inh lazy PrettyPrinter Exp.printer();
+  inh lazy PrettyPrinter Label.printer();
+  inh lazy PrettyPrinter SpilledArg.printer();
+  
+  syn PrettyPrinter Program.print() {
+    printer().append("MAIN [0]");
+    printer().append(" [" + getStackSlots() + "]");
+    printer().append(" [" + getMaxParams() + "]\n");
+    for (LabeledStmt s : getStmtss()) s.print();
+    printer().append("\nEND\n");
+    for (Procedure p : getProcss()) p.print();
+    return printer();
+  }
+
+  public void LabeledStmt.print() {
+    printer().append(indent());
+    if (hasLabel()) {
+    		getLabel().print();
+    		printer().append(" ");
+    } else {
+    		printer().append(PrettyPrinter.LABEL_INDENT);
+    }
+  	getStmt().print();
+  }  
+ 
+  public void Procedure.print() {
+  	getLabel().print();
+  	printer().append(" [" + getParams() +"]");
+  	printer().append(" [" + getStackSlots() +"]");
+  	printer().append(" [" + getMaxParams() +"]\n");
+  	for (LabeledStmt s : getStmtss()) s.print();
+  	printer().append("\nEND\n");
+  }
+  
+  public abstract void Stmt.print();
+  public void Noop.print() {
+  	printer().append("NOOP");
+  }
+  public void Err.print() {
+  	printer().append("ERROR");
+  }
+  public void CJump.print() {
+  	printer().append("CJUMP ");
+  	getCond().print();
+  	printer().append(" ");
+  	getLabel().print();
+  }
+  public void Jump.print() {
+  	printer().append("JUMP ");
+  	getLabel().print();
+  }
+  public void HStore.print() {
+  	printer().append("HSTORE ");
+  	getAddr().print();
+  	printer().append(" " + getOffset() + " ");
+  	getValue().print();
+  }
+  public void HLoad.print() {
+  	printer().append("HLOAD ");
+  	getDest().print();
+  	printer().append(" ");
+  	getAddr().print();
+  	printer().append(" " + getOffset());
+  }
+  public void Move.print() {
+  	printer().append("MOVE ");
+  	getDest().print();
+  	printer().append(" ");
+  	getSource().print();
+  }
+  public void Print.print() {
+  	printer().append("PRINT ");
+  	getValue().print();
+  }
+  public void ALoad.print() {
+    printer().append("ALOAD ");
+    getDest().print();
+    printer().append(" ");
+    getStackPos().print();
+  }
+  public void AStore.print() {
+    printer().append("ASTORE ");
+    getStackPos().print();
+    printer().append(" ");
+    getValue().print();
+  }
+  public void PassArg.print() {
+    printer().append("PASSARG " + getStackIndex() + " ");
+    getValue().print();
+  }
+  public void Call.print() {
+    printer().append("CALL ");
+    getAddr().print();
+  }
+  
+  public abstract void Exp.print();
+  public void HAlloc.print() {
+  	printer().append("HALLOCATE ");
+  	getSize().print();
+  }
+  public void LabelExp.print() {
+  	getLabel().print();
+  }
+  public void Lt.print() {
+    printer().append("LT ");
+  	getLeft().print();
+  	printer().append(" ");
+  	getRight().print();
+  }
+  public void Plus.print() {
+    printer().append("PLUS ");
+  	getLeft().print();
+  	printer().append(" ");
+  	getRight().print();
+  }
+  public void Minus.print() {
+    printer().append("MINUS ");
+  	getLeft().print();
+  	printer().append(" ");
+  	getRight().print();
+  }
+  public void Times.print() {
+    printer().append("TIMES ");
+  	getLeft().print();
+  	printer().append(" ");
+  	getRight().print();
+  }
+  public void IntLiteral.print() {
+  	printer().append(getInteger().toString());
+  }
+  public void Reg.print() {
+    printer().append(getReg());
+  }
+  public void SpilledArg.print() {
+    printer().append("SPILLEDARG " + getPos());
+  } 
+  public void Label.print() {
+  	printer().append(getLabel());
+  }
+}

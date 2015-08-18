@@ -1,0 +1,34 @@
+Program		::= <StackSlots:Integer> <MaxParams:Integer> Stmts:LabeledStmt* Procs:Procedure*;
+
+LabeledStmt	::= [Label] Stmt:Stmt;
+Procedure	::= Label <Params:Integer> <StackSlots:Integer> <MaxParams:Integer> Stmts:LabeledStmt*;
+abstract Stmt;
+Noop:Stmt;
+Err:Stmt;
+CJump:Stmt	::= Cond:Reg Label:Label;
+Jump:Stmt	::= Label:Label;
+HStore:Stmt	::=	Addr:Reg <Offset:Integer> Value:Reg;
+HLoad:Stmt	::=	Dest:Reg Addr:Reg <Offset:Integer>;
+Move:Stmt	::= Dest:Reg Source:Exp;
+Print:Stmt	::= Value:SExp;
+ALoad:Stmt  ::= Dest:Reg StackPos:SpilledArg;
+AStore:Stmt ::= StackPos:SpilledArg Value:Reg;
+PassArg:Stmt::= <StackIndex:Integer> Value:Reg;
+Call:Stmt   ::= Addr:SExp;
+
+abstract Exp;
+HAlloc:Exp	::= Size:SExp;
+
+abstract Binop:Exp  ::=	Left:Reg Right:SExp;
+Lt:Binop;
+Plus:Binop;
+Minus:Binop;
+Times:Binop;
+
+abstract SExp:Exp;
+LabelExp:SExp ::= Label:Label;
+IntLiteral:SExp ::= <Integer:Integer>;
+Reg:SExp   ::= <Reg:String>;
+
+SpilledArg  ::= <Pos:Integer>;
+Label  ::= <Label>;
