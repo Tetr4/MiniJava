@@ -20,7 +20,7 @@ public class MJFrontEnd {
     public static void main(String args[]) {
         String inputFileName;
         if (args.length != 1) {
-            inputFileName = "tests/InheritanceTest.java";
+            inputFileName = "tests/ErrorTest.java";
         } else {
             inputFileName = args[0];
         }
