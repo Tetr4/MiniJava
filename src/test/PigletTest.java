@@ -178,7 +178,7 @@ public class PigletTest extends MJTest {
                 "    }    \n" + 
                 "    public boolean calculate() {\n" + 
                 "        isCtriggered = false;\n" + 
-                "        return triggerA() && triggerB() && triggerC();\n" + 
+                "        return this.triggerA() && this.triggerB() && this.triggerC();\n" + 
                 "    }\n" + 
                 "    \n" + 
                 "    public boolean isCtriggered() {\n" + 
@@ -186,7 +186,7 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "}");
         ByteArrayOutputStream stream = interpret(program.toPiglet());
-        assertEquals("42", removeNewlines(stream.toString()));
+        assertEquals("437", removeNewlines(stream.toString()));
     }
 
     @Test

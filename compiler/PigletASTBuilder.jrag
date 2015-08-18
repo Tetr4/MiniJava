@@ -252,7 +252,40 @@ aspect PigletASTBuilder {
             }
         }
         
-        piglet.StmtExp body = new piglet.StmtExp(labeledStmts, getRetExp().toPiglet());
+        // Method returning a logic chain?
+        Exp retExp = getRetExp();
+        piglet.Exp returnMe;
+        if (retExp instanceof And) {
+            piglet.Label falseLabel = new piglet.Label("return_logicchain_false");
+            piglet.Label skipFalseLabel = new piglet.Label("return_logicchain_skip");
+            
+            // condition including |&&| logic chains
+            handleCondition(labeledStmts, falseLabel, retExp, null);
+            
+            // Store boolean value in this temp.
+            piglet.Temp returnValue = new piglet.Temp(i++);
+            piglet.Move moveTrue = new piglet.Move(returnValue, new piglet.IntLiteral(1));
+            labeledStmts.add(convertToLabeledStmt(moveTrue));
+            
+            // Skip false branch
+            piglet.Jump skipFalse = new piglet.Jump(skipFalseLabel);
+            labeledStmts.add(convertToLabeledStmt(skipFalse));
+            
+            // false branch
+            piglet.Move moveFalse = new piglet.Move(returnValue, new piglet.IntLiteral(0));
+            labeledStmts.add(convertToLabeledStmt(falseLabel, moveFalse));
+            
+            // Exit label
+            labeledStmts.add(convertToLabeledStmt(skipFalseLabel, new piglet.Noop()));
+            
+            returnMe = new piglet.TempExp(returnValue);
+        }
+        else {
+            // Just a normal return
+            returnMe = retExp.toPiglet();
+        }
+        
+        piglet.StmtExp body = new piglet.StmtExp(labeledStmts, returnMe);
         return new piglet.Procedure(getPigletLabel(), getFormalParamsList().getNumChild() + 2, body);
     }
     
