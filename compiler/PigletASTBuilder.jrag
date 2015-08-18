@@ -445,10 +445,11 @@ aspect PigletASTBuilder {
         piglet.Exp offset = getOffset().toPiglet();
         
         piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        piglet.Call nullCheck = createCall("CHECKNULLADDRESS", lhs);
         
         // check at run-time for „index out of bounds “
         // offset > length --> new piglet.Err();
-        insertArrayBoundsCheck(labeledStmts, lhs, offset);
+        insertArrayBoundsCheck(labeledStmts, nullCheck, offset);
         
         //address = lhs + (offset*4)
         piglet.Exp offsetInBytes = new piglet.Times(offset, new piglet.IntLiteral(4));
@@ -537,8 +538,7 @@ aspect PigletASTBuilder {
     }
     
     eq MethodCall.toPiglet() {
-        piglet.Call nullCheck = createCall("CHECKNULLADDRESS", getObj().toPiglet());
-        piglet.Exp procedureAddress = createCall("GETMETHODADDRESS", nullCheck, new piglet.IntLiteral(decl().methodIndex));
+        piglet.Exp procedureAddress = createCall("GETMETHODADDRESS", getObj().toPiglet(), new piglet.IntLiteral(decl().methodIndex));
         piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
         
         // first param is reference to vtable list
@@ -656,10 +656,11 @@ aspect PigletASTBuilder {
         piglet.Exp vtable_index = new piglet.TempExp(new piglet.Temp(1));
         
         piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        piglet.Call nullCheck = createCall("CHECKNULLADDRESS", obj);
         
         // Get vtable
         piglet.Temp vtable = new piglet.Temp(2);
-        piglet.HLoad loadVtable = new piglet.HLoad(vtable, obj, 0);
+        piglet.HLoad loadVtable = new piglet.HLoad(vtable, nullCheck, 0);
         labeledStmts.add(convertToLabeledStmt(loadVtable));
         
         // Get offset of method in vtable
@@ -764,10 +765,11 @@ aspect PigletASTBuilder {
         piglet.Exp offset = new TempExp(new piglet.Temp(1)); // second param
         
         piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
-          
+        piglet.Call nullCheck = createCall("CHECKNULLADDRESS", arrayAddress);
+        
         // check at run-time for „index out of bounds “
         // offset > length --> new piglet.Err();
-        insertArrayBoundsCheck(labeledStmts, arrayAddress, offset);
+        insertArrayBoundsCheck(labeledStmts, nullCheck, offset);
         
         // address = arrayAdress + 4 + (offset*4)
         piglet.Exp offsetInBytes = new piglet.Times(offset, new piglet.IntLiteral(4));

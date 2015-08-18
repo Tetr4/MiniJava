@@ -108,18 +108,6 @@ public class ErrorCheckTest extends MJTest {
     }
     
     @Test
-    public void testArrayLookupBeforeAllocError() throws IOException, beaver.Parser.Exception {
-        Program program3 = parse("class Main {\n" +
-                "    public static void main(String[] bla){\n" +
-                "        int[] a;\n" +
-                "        int b;\n" +
-                "        b = a[5];\n" +
-                "    }\n" +
-                "}\n");
-        checkErrorType(program3.errors(), ArrayLookup.class);
-    }
-    
-    @Test
     public void testArrayLengthError() throws IOException, beaver.Parser.Exception {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
@@ -218,17 +206,6 @@ public class ErrorCheckTest extends MJTest {
                 "    }\n" +
                 "}\n");
         checkErrorType(program2.errors(), ArrayAssign.class);        
-    }
-    
-    @Test
-    public void testArrayAssignBeforeAllocError() throws IOException, beaver.Parser.Exception {
-        Program program = parse("class Main {\n" +
-                "    public static void main(String[] bla){\n" +
-                "        int[] a;\n" +
-                "        a[0] = 5;\n" +
-                "    }\n" +
-                "}\n");
-        checkErrorType(program.errors(), ArrayAssign.class);
     }
     
     @Test

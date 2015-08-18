@@ -234,6 +234,33 @@ public class PigletTest extends MJTest {
         interpret(program.toPiglet()); 
     }
     
+    @Test
+    public void testArrayLookupBeforeAllocError() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+        Program program = parse("class Main {\n" +
+                "    public static void main(String[] bla){\n" +
+                "        int[] a;\n" +
+                "        int b;\n" +
+                "        b = a[5];\n" +
+                "    }\n" +
+                "}\n");
+        // Interpreter calls System.exit(1) after Error
+        exit.expectSystemExit();
+        interpret(program.toPiglet()); 
+    }
+    
+    @Test
+    public void testArrayAssignBeforeAllocError() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+        Program program = parse("class Main {\n" +
+                "    public static void main(String[] bla){\n" +
+                "        int[] a;\n" +
+                "        a[0] = 5;\n" +
+                "    }\n" +
+                "}\n");
+        // Interpreter calls System.exit(1) after Error
+        exit.expectSystemExit();
+        interpret(program.toPiglet()); 
+    }
+    
     private String removeNewlines(String string) {
         return string.replaceAll("\\r|\\n", "");
     }
