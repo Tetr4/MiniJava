@@ -60,7 +60,7 @@ public class MJFrontEnd {
             
             // Interpret piglet program
             System.out.println("### Piglet - Interpreting ###");
-            ByteArrayOutputStream stream = interpret(pigletCode);
+            ByteArrayOutputStream stream = interpretPiglet(pigletCode);
             System.out.println(stream.toString());
             
             // Transform piglet AST to spiglet AST
@@ -70,6 +70,11 @@ public class MJFrontEnd {
             System.out.println("### Spiglet - Pretty Print ###");
             String spigletCode = spiglet.print().getString();
             System.out.println(spigletCode);
+            
+            // Interpret spiglet program
+            System.out.println("### Spiglet - Interpreting ###");
+            stream = interpretPiglet(spigletCode);
+            System.out.println(stream.toString());
 
         } catch (FileNotFoundException e) {
             System.err.println("MJFrontEnd: file " + inputFileName + " not found");
@@ -84,7 +89,7 @@ public class MJFrontEnd {
         }
     }
     
-    public static ByteArrayOutputStream interpret(String pigletCode)
+    public static ByteArrayOutputStream interpretPiglet(String pigletCode)
             throws IOException, ReflectiveOperationException {
         // You can't import types from default package :/
         // Screw pgi.jar >:(
