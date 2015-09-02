@@ -1,7 +1,6 @@
 package test;
 import static org.junit.Assert.assertEquals;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import org.junit.Rule;
@@ -15,7 +14,7 @@ public class PigletTest extends MJTest {
     public final ExpectedSystemExit exit = ExpectedSystemExit.none();
     
     @Test
-    public void testPrint() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testPrint() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        int i;\n" +
@@ -23,12 +22,12 @@ public class PigletTest extends MJTest {
                 "        System.out.println(i);\n" +
                 "    }\n" +
                 "}\n");
-        ByteArrayOutputStream stream = interpret(program.toPiglet());
-        assertEquals("5", removeNewlines(stream.toString()));
+        String result = interpretPiglet(program.toPiglet());
+        assertEquals("5", removeNewlines(result));
     }
 
     @Test
-    public void testInstantiation() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testInstantiation() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
@@ -36,11 +35,11 @@ public class PigletTest extends MJTest {
                 "    }\n" +
                 "}\n"
                 + "class TestClass {}\n");
-        interpret(program.toPiglet());
+        interpretPiglet(program.toPiglet());
     }
 
     @Test
-    public void testMethodCall() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testMethodCall() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
@@ -54,12 +53,12 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "\n" + 
                 "}");
-        ByteArrayOutputStream stream = interpret(program.toPiglet());
-        assertEquals("123", removeNewlines(stream.toString()));
+        String result = interpretPiglet(program.toPiglet());
+        assertEquals("123", removeNewlines(result));
     }
 
     @Test
-    public void testFieldAccess() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testFieldAccess() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
@@ -80,12 +79,12 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "\n" + 
                 "}");
-        ByteArrayOutputStream stream = interpret(program.toPiglet());
-        assertEquals("4", removeNewlines(stream.toString()));
+        String result = interpretPiglet(program.toPiglet());
+        assertEquals("4", removeNewlines(result));
     }
     
     @Test
-    public void testInheritance() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testInheritance() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" + 
                 "    public static void main(String[] args) {\n" + 
                 "        A a;\n" + 
@@ -107,12 +106,12 @@ public class PigletTest extends MJTest {
                 "}\n" + 
                 "\n" + 
                 "class B extends A {}");
-        ByteArrayOutputStream stream = interpret(program.toPiglet());
-        assertEquals("111", removeNewlines(stream.toString()));
+        String result = interpretPiglet(program.toPiglet());
+        assertEquals("111", removeNewlines(result));
     }
 
     @Test
-    public void testOverride() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testOverride() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" + 
                 "    public static void main(String[] args) {\n" + 
                 "        A a;\n" + 
@@ -138,12 +137,12 @@ public class PigletTest extends MJTest {
                 "        return 2;\n" + 
                 "    }    \n" + 
                 "}");
-        ByteArrayOutputStream stream = interpret(program.toPiglet());
-        assertEquals("122", removeNewlines(stream.toString()));
+        String result = interpretPiglet(program.toPiglet());
+        assertEquals("122", removeNewlines(result));
     }
 
     @Test
-    public void testAndChain() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testAndChain() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" + 
                 "    public static void main(String[] args) {\n" + 
                 "        TestClass c;\n" + 
@@ -185,12 +184,12 @@ public class PigletTest extends MJTest {
                 "        return isCtriggered;\n" + 
                 "    }\n" + 
                 "}");
-        ByteArrayOutputStream stream = interpret(program.toPiglet());
-        assertEquals("437", removeNewlines(stream.toString()));
+        String result = interpretPiglet(program.toPiglet());
+        assertEquals("437", removeNewlines(result));
     }
 
     @Test
-    public void testVariableNullReference() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testVariableNullReference() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
@@ -205,11 +204,11 @@ public class PigletTest extends MJTest {
                 "}");
         // Interpreter calls System.exit(1) after Error
         exit.expectSystemExit();
-        interpret(program.toPiglet());  
+        interpretPiglet(program.toPiglet());  
     }
     
     @Test
-    public void testFieldNullReference() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testFieldNullReference() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass a;\n" +
@@ -231,11 +230,11 @@ public class PigletTest extends MJTest {
                 "}");
         // Interpreter calls System.exit(1) after Error
         exit.expectSystemExit();
-        interpret(program.toPiglet()); 
+        interpretPiglet(program.toPiglet()); 
     }
     
     @Test
-    public void testArrayLookupBeforeAllocError() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testArrayLookupBeforeAllocError() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        int[] a;\n" +
@@ -245,11 +244,11 @@ public class PigletTest extends MJTest {
                 "}\n");
         // Interpreter calls System.exit(1) after Error
         exit.expectSystemExit();
-        interpret(program.toPiglet()); 
+        interpretPiglet(program.toPiglet()); 
     }
     
     @Test
-    public void testArrayAssignBeforeAllocError() throws IOException, beaver.Parser.Exception, ReflectiveOperationException {
+    public void testArrayAssignBeforeAllocError() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        int[] a;\n" +
@@ -258,7 +257,7 @@ public class PigletTest extends MJTest {
                 "}\n");
         // Interpreter calls System.exit(1) after Error
         exit.expectSystemExit();
-        interpret(program.toPiglet()); 
+        interpretPiglet(program.toPiglet()); 
     }
     
     private String removeNewlines(String string) {
