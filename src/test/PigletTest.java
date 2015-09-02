@@ -3,15 +3,11 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
 import minijava.Program;
 
 public class PigletTest extends MJTest {
-    @Rule
-    public final ExpectedSystemExit exit = ExpectedSystemExit.none();
     
     @Test
     public void testPrint() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
@@ -202,9 +198,8 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "\n" + 
                 "}");
-        // Interpreter calls System.exit(1) after Error
-        exit.expectSystemExit();
-        interpretPiglet(program.toPiglet());  
+        String result = interpretPiglet(program.toPiglet());  
+        assertEquals("ERROR", removeNewlines(result));
     }
     
     @Test
@@ -228,9 +223,8 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "\n" + 
                 "}");
-        // Interpreter calls System.exit(1) after Error
-        exit.expectSystemExit();
-        interpretPiglet(program.toPiglet()); 
+        String result = interpretPiglet(program.toPiglet()); 
+        assertEquals("ERROR", removeNewlines(result));
     }
     
     @Test
@@ -242,9 +236,8 @@ public class PigletTest extends MJTest {
                 "        b = a[5];\n" +
                 "    }\n" +
                 "}\n");
-        // Interpreter calls System.exit(1) after Error
-        exit.expectSystemExit();
-        interpretPiglet(program.toPiglet()); 
+        String result = interpretPiglet(program.toPiglet()); 
+        assertEquals("ERROR", removeNewlines(result));
     }
     
     @Test
@@ -255,9 +248,8 @@ public class PigletTest extends MJTest {
                 "        a[0] = 5;\n" +
                 "    }\n" +
                 "}\n");
-        // Interpreter calls System.exit(1) after Error
-        exit.expectSystemExit();
-        interpretPiglet(program.toPiglet()); 
+        String result = interpretPiglet(program.toPiglet()); 
+        assertEquals("ERROR", removeNewlines(result));
     }
     
     private String removeNewlines(String string) {
