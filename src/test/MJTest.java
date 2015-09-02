@@ -13,6 +13,7 @@ import java.io.StringReader;
 import minijava.MJParser;
 import minijava.MJScanner;
 import minijava.Program;
+import pigletinterpreter.InterpreterErrorException;
 import pigletinterpreter.PigletParser;
 import pigletinterpreter.visitor.GJPigletInterpreter;
 
@@ -34,7 +35,11 @@ public abstract class MJTest {
         // interpret and put result into stream
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         GJPigletInterpreter interpreter = new GJPigletInterpreter("MAIN", root, new PrintStream(outStream));
-        root.accept(interpreter, root);
+        try {
+            root.accept(interpreter, root);
+        } catch (InterpreterErrorException e) {
+            // Interpreter encountered an "ERROR", wrote it to outStream and stopped interpretation
+        }
 
         return outStream.toString();
     }

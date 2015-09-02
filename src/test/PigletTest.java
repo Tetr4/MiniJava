@@ -10,7 +10,7 @@ import minijava.Program;
 public class PigletTest extends MJTest {
     
     @Test
-    public void testPrint() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testPrint() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        int i;\n" +
@@ -23,7 +23,7 @@ public class PigletTest extends MJTest {
     }
 
     @Test
-    public void testInstantiation() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testInstantiation() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
@@ -35,7 +35,7 @@ public class PigletTest extends MJTest {
     }
 
     @Test
-    public void testMethodCall() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testMethodCall() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
@@ -54,7 +54,7 @@ public class PigletTest extends MJTest {
     }
 
     @Test
-    public void testFieldAccess() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testFieldAccess() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
@@ -80,7 +80,7 @@ public class PigletTest extends MJTest {
     }
     
     @Test
-    public void testInheritance() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testInheritance() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" + 
                 "    public static void main(String[] args) {\n" + 
                 "        A a;\n" + 
@@ -107,7 +107,7 @@ public class PigletTest extends MJTest {
     }
 
     @Test
-    public void testOverride() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testOverride() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" + 
                 "    public static void main(String[] args) {\n" + 
                 "        A a;\n" + 
@@ -138,7 +138,7 @@ public class PigletTest extends MJTest {
     }
 
     @Test
-    public void testAndChain() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testAndChain() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" + 
                 "    public static void main(String[] args) {\n" + 
                 "        TestClass c;\n" + 
@@ -185,7 +185,7 @@ public class PigletTest extends MJTest {
     }
 
     @Test
-    public void testVariableNullReference() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testVariableNullReference() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
@@ -203,7 +203,7 @@ public class PigletTest extends MJTest {
     }
     
     @Test
-    public void testFieldNullReference() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testFieldNullReference() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass a;\n" +
@@ -228,7 +228,7 @@ public class PigletTest extends MJTest {
     }
     
     @Test
-    public void testArrayLookupBeforeAllocError() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testArrayLookupBeforeAllocError() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        int[] a;\n" +
@@ -241,7 +241,7 @@ public class PigletTest extends MJTest {
     }
     
     @Test
-    public void testArrayAssignBeforeAllocError() throws IOException, beaver.Parser.Exception, ReflectiveOperationException, pigletinterpreter.ParseException {
+    public void testArrayAssignBeforeAllocError() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
         Program program = parse("class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        int[] a;\n" +

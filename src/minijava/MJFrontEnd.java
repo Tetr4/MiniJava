@@ -16,6 +16,7 @@ import java.util.Hashtable;
 import kangainterpreter.util.KangaRuntime;
 import kangainterpreter.visitor.MyTreeDumper;
 import kangainterpreter.visitor.SetLabel;
+import pigletinterpreter.InterpreterErrorException;
 import pigletinterpreter.PigletParser;
 import pigletinterpreter.visitor.GJPigletInterpreter;
 
@@ -65,7 +66,11 @@ public class MJFrontEnd {
 
             // Interpret piglet program
             System.out.println("### Piglet - Interpreting ###");
-            System.out.println(interpretPiglet(pigletCode));
+            try {
+                System.out.println(interpretPiglet(pigletCode));
+            } catch(pigletinterpreter.ParseException e) {
+                System.err.println("Interpreter could not parse: " + e.getMessage());
+            }
 
             // Transform piglet AST to spiglet AST
             spiglet.Program spiglet = piglet.toSpiglet();
@@ -78,8 +83,12 @@ public class MJFrontEnd {
             // Interpret spiglet program
             System.out.println("### Spiglet - Interpreting ###");
             // subset of piglet -> interpret as piglet
-            String spigletResult = interpretPiglet(spigletCode);
-            System.out.println(spigletResult);
+            String spigletResult;
+            try {
+                System.out.println(interpretPiglet(spigletCode));
+            } catch(pigletinterpreter.ParseException e) {
+                System.err.println("Interpreter could not parse: " + e.getMessage());
+            }
 
             /*
              * // Transform spiglet AST to kanga AST kanga.Program kanga =
@@ -97,12 +106,10 @@ public class MJFrontEnd {
         } catch (FileNotFoundException e) {
             System.err.println("MJFrontEnd: file " + inputFileName + " not found");
         } catch (beaver.Parser.Exception e) {
-            System.out.println("Error when parsing: " + inputFileName);
-            System.out.println(e.getMessage());
+            System.err.println("Error when parsing: " + inputFileName);
+            System.err.println(e.getMessage());
         } catch (IOException e) {
-            System.out.println("MJFrontEnd: " + e.getMessage());
-        } catch(pigletinterpreter.ParseException e) {
-            System.out.println("Error interpreting piglet: " + e.getMessage());
+            System.err.println("MJFrontEnd: " + e.getMessage());
         }
     }
 
@@ -119,7 +126,11 @@ public class MJFrontEnd {
         // interpret and put result into stream
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         GJPigletInterpreter interpreter = new GJPigletInterpreter("MAIN", root, new PrintStream(outStream));
-        root.accept(interpreter, root);
+        try {
+            root.accept(interpreter, root);
+        } catch (InterpreterErrorException e) {
+            // Interpreter encountered an "ERROR", wrote it to outStream and stopped interpretation
+        }
 
         return outStream.toString();
     }
