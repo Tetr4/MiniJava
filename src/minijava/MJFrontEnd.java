@@ -8,14 +8,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.util.Collection;
-import java.util.Hashtable;
 
-import kangainterpreter.util.KangaRuntime;
-import kangainterpreter.visitor.MyTreeDumper;
-import kangainterpreter.visitor.SetLabel;
 import pigletinterpreter.InterpreterErrorException;
 import pigletinterpreter.PigletParser;
 import pigletinterpreter.visitor.GJPigletInterpreter;
@@ -83,7 +77,6 @@ public class MJFrontEnd {
             // Interpret spiglet program
             System.out.println("### Spiglet - Interpreting ###");
             // subset of piglet -> interpret as piglet
-            String spigletResult;
             try {
                 System.out.println(interpretPiglet(spigletCode));
             } catch(pigletinterpreter.ParseException e) {
@@ -135,47 +128,47 @@ public class MJFrontEnd {
         return outStream.toString();
     }
 
-    public static ByteArrayOutputStream interpretKanga(String kangaCode)
-            throws IOException, ReflectiveOperationException {
-        // You can't import types from default package :/
-        // Screw kgi.jar >:(
-        Class<?> interpreterClass = Class.forName("KangaParser");
-        Constructor<?> interpreterConstructor = interpreterClass.getConstructor(InputStream.class);
-        Method interpreterGoalMethod = interpreterClass.getMethod("Goal");
-
-        // Create kanga code input reader from pretty printer output
-        InputStream kangaInput = new ByteArrayInputStream(kangaCode.getBytes());
-
-        // redirect global System.out so we can compare interpreter output...
-        PrintStream savedOutStream = System.out;
-        PrintStream savedErrStream = System.err;
-        System.out.flush();
-        System.err.flush();
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        PrintStream printStream = new PrintStream(outStream);
-        System.setOut(printStream);
-        System.setErr(printStream);
-
-        // Node root = new KangaParser(kangaInput).Goal();
-        kangainterpreter.syntaxtree.Node root = (kangainterpreter.syntaxtree.Node) interpreterGoalMethod
-                .invoke(interpreterConstructor.newInstance(kangaInput));
-
-        // get line numbers
-        Hashtable<Stmt, String> stmtInfo = new Hashtable();
-        MyTreeDumper treedumper = new MyTreeDumper(stmtInfo);
-        root.accept(treedumper);
-
-        KangaRuntime runtime = new KangaRuntime(stmtInfo);
-        root.accept(new SetLabel(runtime));
-        // System.out.println(runtime);
-
-        // interpret -> prints to redirected System.out
-        runtime.run();
-
-        // undo System.out redirect
-        System.setErr(savedErrStream);
-        System.setOut(savedOutStream);
-
-        return outStream;
-    }
+//    public static ByteArrayOutputStream interpretKanga(String kangaCode)
+//            throws IOException, ReflectiveOperationException {
+//        // You can't import types from default package :/
+//        // Screw kgi.jar >:(
+//        Class<?> interpreterClass = Class.forName("KangaParser");
+//        Constructor<?> interpreterConstructor = interpreterClass.getConstructor(InputStream.class);
+//        Method interpreterGoalMethod = interpreterClass.getMethod("Goal");
+//
+//        // Create kanga code input reader from pretty printer output
+//        InputStream kangaInput = new ByteArrayInputStream(kangaCode.getBytes());
+//
+//        // redirect global System.out so we can compare interpreter output...
+//        PrintStream savedOutStream = System.out;
+//        PrintStream savedErrStream = System.err;
+//        System.out.flush();
+//        System.err.flush();
+//        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+//        PrintStream printStream = new PrintStream(outStream);
+//        System.setOut(printStream);
+//        System.setErr(printStream);
+//
+//        // Node root = new KangaParser(kangaInput).Goal();
+//        kangainterpreter.syntaxtree.Node root = (kangainterpreter.syntaxtree.Node) interpreterGoalMethod
+//                .invoke(interpreterConstructor.newInstance(kangaInput));
+//
+//        // get line numbers
+//        Hashtable<Stmt, String> stmtInfo = new Hashtable<>();
+//        MyTreeDumper treedumper = new MyTreeDumper(stmtInfo);
+//        root.accept(treedumper);
+//
+//        KangaRuntime runtime = new KangaRuntime(stmtInfo);
+//        root.accept(new SetLabel(runtime));
+//        // System.out.println(runtime);
+//
+//        // interpret -> prints to redirected System.out
+//        runtime.run();
+//
+//        // undo System.out redirect
+//        System.setErr(savedErrStream);
+//        System.setOut(savedOutStream);
+//
+//        return outStream;
+//    }
 }
