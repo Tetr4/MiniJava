@@ -62,12 +62,15 @@ aspect SpigletASTBuilder {
     // Procedure
     syn lazy spiglet.Procedure Procedure.toSpiglet() {
         // reset temp helpers for each procedure
-        Program.currentTemp = getInteger(); // skip temps reserved for args
         Program.pigletToSpigletTemps.clear();
+        Program.currentTemp = getInteger(); // skip temps reserved for args
+        // Params have to have the right temp index.
+        for(int i = 0; i < getInteger(); i++) {
+            Program.pigletToSpigletTemps.put(i, i);
+        }
         
         return new spiglet.Procedure(getLabel().toSpiglet(), getInteger(), getStmtsRet().toSpiglet()); 
     }
-    
     
     
     /*
@@ -143,12 +146,14 @@ aspect SpigletASTBuilder {
     eq Move.toSpiglet() {
         spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
         
-        // destination
-        spiglet.Temp destTemp = getDest().toSpiglet();
-        
         // source
         addAll(statements, getSource().toSpigletStmts());
         spiglet.Exp source = getSource().toSpigletExp();
+
+        // destination
+        // create the destination temp AFTER the source,
+        // to keep the temp numbers growing linearly.
+        spiglet.Temp destTemp = getDest().toSpiglet();
         
         // move
         spiglet.Move move = new spiglet.Move(destTemp, source);
@@ -188,9 +193,15 @@ aspect SpigletASTBuilder {
         addAll(statements, getName().toSpigletStmts());
         
         // params
+        spiglet.List<spiglet.Temp> paramList = new spiglet.List<spiglet.Temp>();
         for (Exp param: getParamList()) {
             addAll(statements, param.toSpigletStmts());
+            paramList.add(param.toSpigletTemp());
         }
+        
+        spiglet.Call call = new spiglet.Call(getName().toSpigletSExp(), paramList);
+        spiglet.Move move = new spiglet.Move(toSpigletTemp(), call);
+        statements.add(move);
         
         return statements;
     }
@@ -213,33 +224,51 @@ aspect SpigletASTBuilder {
         // right
         addAll(statements, getRight().toSpigletStmts());
         
+        spiglet.Move move = new spiglet.Move(toSpigletTemp(), toSpigletExp());
+        statements.add(move);
+        
         return statements;
     }
     
+    eq LabelExp.toSpigletStmts() {
+        spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
+        
+        // FIXME: Don't genereate move multiple times, if label is used multiple times in the procedure.
+        spiglet.Move move = new spiglet.Move(getLabel().toSpigletTemp(), toSpigletSExp());
+        statements.add(move);
+        
+        return statements;
+    }
+    
+    eq IntLiteral.toSpigletStmts() {
+        spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
+        
+        spiglet.Move move = new spiglet.Move(toSpigletTemp(), toSpigletSExp());
+        statements.add(move);
+        
+        return statements;
+    }
 
-    // TODO generate temps
-    syn lazy spiglet.Temp Exp.toSpigletTemp() = new spiglet.Temp(Program.currentTemp++);
-/*
-    eq StmtExp.toSpigletTemp() = null;
-    eq Call.toSpigletTemp() = null;
-    eq HAlloc.toSpigletTemp() = null;
-    eq TempExp.toSpigletTemp() = null;
-    eq LabelExp.toSpigletTemp() = null;
-    eq Binop.toSpigletTemp() = null;
-    eq IntLiteral.toSpigletTemp() = null;
-*/
+    // Temps
+    // Store spiglet temp id of piglet temps 
+    syn lazy spiglet.Temp Label.toSpigletTemp() {
+        return new spiglet.Temp(Program.currentTemp++);
+    }
+    
+    syn lazy spiglet.Temp IntLiteral.toSpigletTemp() {
+        return new spiglet.Temp(Program.currentTemp++);
+    }
+    
+    // Each expression can have its own permanent temp
+    syn lazy spiglet.Temp Exp.toSpigletTemp() {
+        return new spiglet.Temp(Program.currentTemp++);
+    }
+    
+    eq TempExp.toSpigletTemp() = getTemp().toSpiglet();
+    eq LabelExp.toSpigletTemp() = getLabel().toSpigletTemp();
 
     syn lazy spiglet.Exp Exp.toSpigletExp() = toSpigletSExp();  // don't need to set both every time
     eq StmtExp.toSpigletExp() = null;
-    eq Call.toSpigletExp() {
-        // params
-        spiglet.List<spiglet.Temp> params = new spiglet.List<spiglet.Temp>();
-        for (Exp param: getParamList()) {
-            params.add(param.toSpigletTemp());
-        }
-        
-        return new spiglet.Call(getName().toSpigletSExp(), params);
-    }
     eq HAlloc.toSpigletExp() = new spiglet.HAlloc(getSize().toSpigletSExp());
     eq Lt.toSpigletExp() = new spiglet.Lt(getLeft().toSpigletTemp(), getRight().toSpigletSExp() );
     eq Plus.toSpigletExp() = new spiglet.Plus(getLeft().toSpigletTemp(), getRight().toSpigletSExp() );
@@ -247,13 +276,13 @@ aspect SpigletASTBuilder {
     eq Times.toSpigletExp() = new spiglet.Times(getLeft().toSpigletTemp(), getRight().toSpigletSExp() );
 
     syn lazy spiglet.SExp Exp.toSpigletSExp() {
-        //throw new UnsupportedOperationException();
-        // FIXME
-        return new spiglet.TempExp(new spiglet.Temp(12345));
+        throw new UnsupportedOperationException();
     }    
     eq TempExp.toSpigletSExp() = new spiglet.TempExp(getTemp().toSpiglet());
     eq LabelExp.toSpigletSExp() = new spiglet.LabelExp(getLabel().toSpiglet());
     eq IntLiteral.toSpigletSExp() = new spiglet.IntLiteral(getInteger());
+    eq Call.toSpigletSExp() = new spiglet.TempExp(toSpigletTemp());
+    eq Binop.toSpigletSExp() = new spiglet.TempExp(toSpigletTemp());
 
     
     
@@ -272,7 +301,16 @@ aspect SpigletASTBuilder {
         
         return new spiglet.StmtExp(statements, getRetExp().toSpigletSExp());
     }
-    syn lazy spiglet.Temp Temp.toSpiglet() = new spiglet.Temp(getNumber()); // <Number:Integer>
+    
+    // Generate a new spiglet temp number, if this is the first time we encounter this temp in piglet.
+    // Use the old one, if this temp is reused.
+    syn lazy spiglet.Temp Temp.toSpiglet() {
+        if(Program.pigletToSpigletTemps.containsKey(getNumber())) {
+            return new spiglet.Temp(Program.pigletToSpigletTemps.get(getNumber()));
+        } 
+        Program.pigletToSpigletTemps.put(getNumber(), Program.currentTemp);
+        return new spiglet.Temp(Program.currentTemp++); // <Number:Integer>
+    }
     syn lazy spiglet.Label Label.toSpiglet() = new spiglet.Label(getLabel()); // <Label>
     
     
