@@ -20,8 +20,7 @@ import pigletinterpreter.visitor.GJPigletInterpreter;
 public abstract class MJTest {
     protected static PigletParser pigletInterpreterParser;
     
-    protected String interpretPiglet(piglet.Program program) throws pigletinterpreter.ParseException {
-        String pigletCode = program.print().getString();
+    protected String interpretPiglet(String pigletCode) throws pigletinterpreter.ParseException {
 
         // parse
         InputStream pigletInput = new ByteArrayInputStream(pigletCode.getBytes());

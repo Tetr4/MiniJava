@@ -7,7 +7,7 @@ import org.junit.Test;
 
 import minijava.Program;
 
-public class PigletTest extends MJTest {
+public class SPigletTest extends MJTest {
     
     @Test
     public void testPrint() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
@@ -18,7 +18,7 @@ public class PigletTest extends MJTest {
                 "        System.out.println(i);\n" +
                 "    }\n" +
                 "}\n");
-        String result = interpretPiglet(program.toPiglet().print().getString());
+        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
         assertEquals("5", removeNewlines(result));
     }
 
@@ -31,7 +31,7 @@ public class PigletTest extends MJTest {
                 "    }\n" +
                 "}\n"
                 + "class TestClass {}\n");
-        interpretPiglet(program.toPiglet().print().getString());
+        interpretPiglet(program.toPiglet().toSpiglet().print().getString());
     }
 
     @Test
@@ -49,7 +49,7 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "\n" + 
                 "}");
-        String result = interpretPiglet(program.toPiglet().print().getString());
+        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
         assertEquals("123", removeNewlines(result));
     }
 
@@ -75,7 +75,7 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "\n" + 
                 "}");
-        String result = interpretPiglet(program.toPiglet().print().getString());
+        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
         assertEquals("4", removeNewlines(result));
     }
     
@@ -102,7 +102,7 @@ public class PigletTest extends MJTest {
                 "}\n" + 
                 "\n" + 
                 "class B extends A {}");
-        String result = interpretPiglet(program.toPiglet().print().getString());
+        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
         assertEquals("111", removeNewlines(result));
     }
 
@@ -133,7 +133,7 @@ public class PigletTest extends MJTest {
                 "        return 2;\n" + 
                 "    }    \n" + 
                 "}");
-        String result = interpretPiglet(program.toPiglet().print().getString());
+        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
         assertEquals("122", removeNewlines(result));
     }
 
@@ -180,7 +180,7 @@ public class PigletTest extends MJTest {
                 "        return isCtriggered;\n" + 
                 "    }\n" + 
                 "}");
-        String result = interpretPiglet(program.toPiglet().print().getString());
+        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
         assertEquals("437", removeNewlines(result));
     }
 
@@ -198,7 +198,7 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "\n" + 
                 "}");
-        String result = interpretPiglet(program.toPiglet().print().getString());  
+        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());  
         assertEquals("ERROR", removeNewlines(result));
     }
     
@@ -223,7 +223,7 @@ public class PigletTest extends MJTest {
                 "    }\n" + 
                 "\n" + 
                 "}");
-        String result = interpretPiglet(program.toPiglet().print().getString()); 
+        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString()); 
         assertEquals("ERROR", removeNewlines(result));
     }
     
@@ -236,7 +236,7 @@ public class PigletTest extends MJTest {
                 "        b = a[5];\n" +
                 "    }\n" +
                 "}\n");
-        String result = interpretPiglet(program.toPiglet().print().getString()); 
+        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString()); 
         assertEquals("ERROR", removeNewlines(result));
     }
     
@@ -248,7 +248,7 @@ public class PigletTest extends MJTest {
                 "        a[0] = 5;\n" +
                 "    }\n" +
                 "}\n");
-        String result = interpretPiglet(program.toPiglet().print().getString()); 
+        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString()); 
         assertEquals("ERROR", removeNewlines(result));
     }
     
