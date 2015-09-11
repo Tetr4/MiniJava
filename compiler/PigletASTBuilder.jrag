@@ -538,7 +538,12 @@ aspect PigletASTBuilder {
     }
     
     eq MethodCall.toPiglet() {
-        piglet.Exp procedureAddress = createCall("GETMETHODADDRESS", getObj().toPiglet(), new piglet.IntLiteral(decl().methodIndex));
+        piglet.Exp procedureAddress;
+        if (getObj() instanceof ObjAlloc)
+            procedureAddress = new piglet.LabelExp(decl().getPigletLabel());
+        else
+	        procedureAddress = createCall("GETMETHODADDRESS", getObj().toPiglet(), new piglet.IntLiteral(decl().methodIndex));
+	        
         piglet.List<piglet.Exp> params = new piglet.List<piglet.Exp>();
         
         // first param is reference to vtable list
