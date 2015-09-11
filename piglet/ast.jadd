@@ -1,0 +1,25 @@
+aspect PrintAST {
+    /** 
+     * Print AST
+     */
+    public String ASTNode.printAST() {
+        StringBuilder sb = new StringBuilder();
+        printAST(sb);
+        return sb.toString();
+    }
+    public void ASTNode.printAST(StringBuilder sb) {
+        printAST(sb, 0);
+    }
+    public void ASTNode.printAST(StringBuilder sb, int t) {
+        for (int j = 0; j < t; j++) {
+            sb.append((j%2==0) ? " |" : " !");
+        }
+        
+        sb.append(getClass().getSimpleName());
+        sb.append("\n");
+        
+        for (int i = 0; i < getNumChild(); i++) {
+            getChild(i).printAST(sb, t+1);
+        }
+    }
+}

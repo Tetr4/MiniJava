@@ -15,7 +15,7 @@ Print:Stmt	::= Value:Exp;
 
 abstract Exp;
 StmtExp:Exp	 ::= Stmts:LabeledStmt* RetExp:Exp;
-Call:Exp	     ::= Name:Exp Param:Exp*;
+Call:Exp	 ::= Name:Exp Param:Exp*;
 HAlloc:Exp	 ::= Size:Exp;
 TempExp:Exp	 ::= Temp:Temp;
 LabelExp:Exp ::= Label:Label;

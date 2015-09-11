@@ -53,6 +53,9 @@ public class MJFrontEnd {
             // Transform minijava AST to piglet AST
             piglet.Program piglet = program.toPiglet();
 
+            System.out.println("### Piglet - AST ###");
+            System.out.println(piglet.printAST());
+            
             // Prettyprint piglet
             System.out.println("### Piglet - Pretty Print ###");
             String pigletCode = piglet.print().getString();
