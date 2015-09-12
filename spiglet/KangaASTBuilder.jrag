@@ -1,0 +1,7 @@
+aspect KangaASTBuilder {
+
+    // Program
+    syn lazy kanga.Program Program.toKanga() {
+        return new kanga.Program(0,0, new kanga.List(), new kanga.List());
+    }
+}
