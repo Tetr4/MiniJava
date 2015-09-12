@@ -1,42 +1,107 @@
 package test;
+
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.util.Hashtable;
 
 import org.junit.Test;
 
-import minijava.Program;
+import kangainterpreter.KangaParser;
+import kangainterpreter.util.KangaRuntime;
+import kangainterpreter.visitor.MyTreeDumper;
+import kangainterpreter.visitor.SetLabel;
+import pigletinterpreter.PigletParser;
+import pigletinterpreter.visitor.GJPigletInterpreter;
 
-public class SPigletTest extends MJTest {
+public abstract class TransformationTest extends MJTest {
+    protected static pigletinterpreter.PigletParser pigletInterpreterParser;
+    protected static kangainterpreter.KangaParser kangaInterpreterParser;
+
+    protected abstract String interpret(String code) throws Exception;
+    
+    protected final String interpretSpiglet(String spigletCode) throws pigletinterpreter.ParseException {
+        // spiglet is subset of piglet -> use piglet interpreter
+        return interpretPiglet(spigletCode);
+    }
+    
+    protected final String interpretPiglet(String pigletCode) throws pigletinterpreter.ParseException {
+        // parse
+        InputStream pigletInput = new ByteArrayInputStream(pigletCode.getBytes());
+        if (pigletInterpreterParser == null) {
+            pigletInterpreterParser = new PigletParser(pigletInput);
+        } else {
+            PigletParser.ReInit(pigletInput);
+        }
+        pigletinterpreter.syntaxtree.Node root = PigletParser.Goal();
+
+        // interpret and put result into stream
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        GJPigletInterpreter interpreter = new GJPigletInterpreter("MAIN", root, new PrintStream(outStream));
+        try {
+            root.accept(interpreter, root);
+        } catch (pigletinterpreter.InterpreterErrorException e) {
+            // Interpreter encountered an "ERROR", wrote it to outStream and stopped interpretation
+        }
+
+        return outStream.toString();
+    }
+    
+    protected final String interpretKanga(String kangaCode) throws kangainterpreter.ParseException {
+        // parse
+        InputStream kangaInput = new ByteArrayInputStream(kangaCode.getBytes());
+        if (kangaInterpreterParser == null) {
+            kangaInterpreterParser = new KangaParser(kangaInput);
+        } else {
+            KangaParser.ReInit(kangaInput);
+        }
+        kangainterpreter.syntaxtree.Node root = KangaParser.Goal();
+
+        // get line numbers
+        Hashtable<kangainterpreter.syntaxtree.Stmt, String> stmtInfo = new Hashtable<>();
+        MyTreeDumper treedumper = new MyTreeDumper(stmtInfo);
+        root.accept(treedumper);
+
+        // interpret and put result into stream
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        PrintStream printStream = new PrintStream(outStream);
+        KangaRuntime runtime = new KangaRuntime(stmtInfo, printStream, printStream);
+        root.accept(new SetLabel(runtime));
+        runtime.run();
+
+        return outStream.toString();
+    }
     
     @Test
-    public void testPrint() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" +
+    public void testPrint() throws Exception {
+        String code = "class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        int i;\n" +
                 "        i = 5;\n" +
                 "        System.out.println(i);\n" +
                 "    }\n" +
-                "}\n");
-        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
-        assertEquals("5", removeNewlines(result));
+                "}\n";
+        assertEquals("5", removeNewlines(interpret(code)));
     }
 
     @Test
-    public void testInstantiation() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" +
+    public void testInstantiation() throws Exception {
+        String code = "class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
                 "        c = new TestClass();\n" +
                 "    }\n" +
                 "}\n"
-                + "class TestClass {}\n");
-        interpretPiglet(program.toPiglet().toSpiglet().print().getString());
+                + "class TestClass {}\n";
+        interpret(code);
     }
 
     @Test
-    public void testMethodCall() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" +
+    public void testMethodCall() throws Exception {
+        String code = "class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
                 "        c = new TestClass();\n" +
@@ -48,14 +113,13 @@ public class SPigletTest extends MJTest {
                 "        return 123;\n" + 
                 "    }\n" + 
                 "\n" + 
-                "}");
-        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
-        assertEquals("123", removeNewlines(result));
+                "}";
+        assertEquals("123", removeNewlines(interpret(code)));
     }
 
     @Test
-    public void testFieldAccess() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" +
+    public void testFieldAccess() throws Exception {
+        String code = "class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
                 "        int v;\n" +
@@ -74,14 +138,13 @@ public class SPigletTest extends MJTest {
                 "        return value;\n" + 
                 "    }\n" + 
                 "\n" + 
-                "}");
-        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
-        assertEquals("4", removeNewlines(result));
+                "}";
+        assertEquals("4", removeNewlines(interpret(code)));
     }
     
     @Test
-    public void testInheritance() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" + 
+    public void testInheritance() throws Exception {
+        String code = "class Main {\n" + 
                 "    public static void main(String[] args) {\n" + 
                 "        A a;\n" + 
                 "        B b;\n" + 
@@ -101,14 +164,13 @@ public class SPigletTest extends MJTest {
                 "    }\n" + 
                 "}\n" + 
                 "\n" + 
-                "class B extends A {}");
-        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
-        assertEquals("111", removeNewlines(result));
+                "class B extends A {}";
+        assertEquals("111", removeNewlines(interpret(code)));
     }
 
     @Test
-    public void testOverride() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" + 
+    public void testOverride() throws Exception {
+        String code = "class Main {\n" + 
                 "    public static void main(String[] args) {\n" + 
                 "        A a;\n" + 
                 "        B b;\n" + 
@@ -132,14 +194,13 @@ public class SPigletTest extends MJTest {
                 "    public int getValue() {\n" + 
                 "        return 2;\n" + 
                 "    }    \n" + 
-                "}");
-        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
-        assertEquals("122", removeNewlines(result));
+                "}";
+        assertEquals("122", removeNewlines(interpret(code)));
     }
 
     @Test
-    public void testAndChain() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" + 
+    public void testAndChain() throws Exception {
+        String code = "class Main {\n" + 
                 "    public static void main(String[] args) {\n" + 
                 "        TestClass c;\n" + 
                 "        \n" + 
@@ -179,14 +240,13 @@ public class SPigletTest extends MJTest {
                 "    public boolean isCtriggered() {\n" + 
                 "        return isCtriggered;\n" + 
                 "    }\n" + 
-                "}");
-        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());
-        assertEquals("437", removeNewlines(result));
+                "}";
+        assertEquals("437", removeNewlines(interpret(code)));
     }
 
     @Test
-    public void testVariableNullReference() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" +
+    public void testVariableNullReference() throws Exception {
+        String code = "class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass c;\n" +
                 "        System.out.println(c.getValue());\n" +
@@ -197,14 +257,13 @@ public class SPigletTest extends MJTest {
                 "        return 123;\n" + 
                 "    }\n" + 
                 "\n" + 
-                "}");
-        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString());  
-        assertEquals("ERROR", removeNewlines(result));
+                "}";
+        assertEquals("ERROR", removeNewlines(interpret(code)));
     }
     
     @Test
-    public void testFieldNullReference() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" +
+    public void testFieldNullReference() throws Exception {
+        String code = "class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        TestClass a;\n" +
                 "        TestClass b;\n" +
@@ -222,39 +281,35 @@ public class SPigletTest extends MJTest {
                 "        return 1;\n" +
                 "    }\n" + 
                 "\n" + 
-                "}");
-        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString()); 
-        assertEquals("ERROR", removeNewlines(result));
+                "}";
+        assertEquals("ERROR", removeNewlines(interpret(code)));
     }
     
     @Test
-    public void testArrayLookupBeforeAllocError() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" +
+    public void testArrayLookupBeforeAllocError() throws Exception {
+        String code = "class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        int[] a;\n" +
                 "        int b;\n" +
                 "        b = a[5];\n" +
                 "    }\n" +
-                "}\n");
-        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString()); 
-        assertEquals("ERROR", removeNewlines(result));
+                "}\n";
+        assertEquals("ERROR", removeNewlines(interpret(code)));
     }
     
     @Test
-    public void testArrayAssignBeforeAllocError() throws IOException, beaver.Parser.Exception, pigletinterpreter.ParseException {
-        Program program = parse("class Main {\n" +
+    public void testArrayAssignBeforeAllocError() throws Exception {
+        String code = "class Main {\n" +
                 "    public static void main(String[] bla){\n" +
                 "        int[] a;\n" +
                 "        a[0] = 5;\n" +
                 "    }\n" +
-                "}\n");
-        String result = interpretPiglet(program.toPiglet().toSpiglet().print().getString()); 
-        assertEquals("ERROR", removeNewlines(result));
+                "}\n";
+        assertEquals("ERROR", removeNewlines(interpret(code)));
     }
     
     private String removeNewlines(String string) {
         return string.replaceAll("\\r|\\n", "");
     }
-    
 
 }
