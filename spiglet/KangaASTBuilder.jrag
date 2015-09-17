@@ -1,4 +1,5 @@
 import java.lang.Math;
+import java.util.HashSet;
 
 aspect KangaASTBuilder {
     /*
@@ -15,16 +16,21 @@ aspect KangaASTBuilder {
         kanga.List stmts = getStmtsList().toKanga();
         kanga.List procs = getProcsList().toKanga();
 
-        // TODO calculate from Stmts
-        int stackslots = 16384;
-         
-        int maxParams = 0;
-        for (Procedure procedure: getProcsList()) {
-            // TODO only called procedures?
-            maxParams = Math.max(maxParams, procedure.getParams());
-        }
+        // Count maximal number of parameters of a call.
+        int maxParamsOfCalls = getMaxParams(getStmtsList());
         
-        return new kanga.Program(stackslots, maxParams, stmts, procs);
+        // Calculate required stack slots
+        // See Procedure.getStackSlots()
+        HashSet<Integer> temps = new HashSet<Integer>();
+        getStmtsList().collectTemps(temps, 0);
+        
+        int localVariableStackSlots = temps.size();
+        localVariableStackSlots = Math.max(0, localVariableStackSlots - 10);
+        
+        int numSpilledArgs = Math.max(0, maxParamsOfCalls - 4);
+        int numStackSlots = localVariableStackSlots + numSpilledArgs;
+        
+        return new kanga.Program(numStackSlots, maxParamsOfCalls, stmts, procs);
     }
 
     // LabeledStmt    
@@ -40,23 +46,72 @@ aspect KangaASTBuilder {
     
     // Procedure
     syn lazy kanga.Procedure Procedure.toKanga() {
-        return new kanga.Procedure(getLabel().toKanga(), getParams(), getStackSlots(), getMaxParams(), getStmtsRet().toKanga()); 
+        int maxParams = getMaxParams(getStmtsRet().getStmtsList());
+        return new kanga.Procedure(getLabel().toKanga(), getParams(), getStackSlots(), maxParams, getStmtsRet().toKanga()); 
     }
     
-    syn lazy int Procedure.getStackSlots() = 0; // calculate from StmtsRet
+    syn lazy int Procedure.getStackSlots() {
     
-    syn lazy int Procedure.getMaxParams() {
-        int maxParams = getParams();
+        // We have 4 registers for arguments.
+        // If this procedure takes more arguments, they are put on the stack.
+        int argumentsStackSlots = Math.max(0, getParams() - 4);
+    
+        // Check how many temporaries were used in this procedure.
+		HashSet<Integer> temps = new HashSet<Integer>();
+		collectTemps(temps, getParams());
+		
+        // Ignore the arguments as they are stored in Temp(0) - Temp(numargs-1)
+		int localVariableStackSlots = temps.size();
+		// We have 10 t<x> registers t0 - t9. We start using spilled temporaries if we exceed 10 temps.
+		// Saved registers s0 - s7 require us to save the old value on the stack when they're used.
+		// So we don't really save a stack slot by using registers s0 - s7, 
+		// because we have to use one stack slot to save the old value.
+		localVariableStackSlots = Math.max(0, localVariableStackSlots - 10);
+		
+		// Check spilled args of calls
+		// Get maximum number of passed parameters of a call in our body.
+		int maxParamsOfCalls = getMaxParams(getStmtsRet().getStmtsList());
+		// We'd overwrite the a0 - a3 registers holding our own arguments
+		// when calling a function, so we have to save them before specifying the arguments of the call.
+		// Effectively we'd only save a stack slot for the unused argument registers, if our procedure uses less than 4.
+		int numFreeArgumentRegisters = 4 - Math.max(getParams(), 4);
+		int numSpilledArgs = Math.max(0, maxParamsOfCalls - numFreeArgumentRegisters);
+		
+		return argumentsStackSlots + localVariableStackSlots + numSpilledArgs;
+    }
+    
+    // Check all children and find temporaries!
+    public void ASTNode.collectTemps(HashSet<Integer> temps, int minTempNumber) {
+        for (ASTNode<ASTNode> node: this) {
+            node.collectTemps(temps, minTempNumber);
+        }
+    }
+    
+    // Add the number of this temp to the set. No duplicates!
+    public void Temp.collectTemps(HashSet<Integer> temps, int minTempNumber) {
+        if(minTempNumber <= getNumber()) {
+            temps.add(getNumber());
+        }
+    }
+            
+    public static int ASTNode.getMaxParams(List<LabeledStmt> labeledStmts) {
+        int maxParams = 0;
         
-        List<Call> callsInBody = new List<Call>(); // FIXME get calls from StmtsRet somehow
-        for(Call call : callsInBody) {
-            maxParams = Math.max(maxParams, call.getNumParam());
+        // Calls can only happen as the "source" of a Move statement.
+        // Check all Move statements in the Procedure for calls and find the one with the maximal params.
+        for(LabeledStmt labeledStmt : labeledStmts) {
+            Stmt stmt = labeledStmt.getStmt();
+            if(stmt instanceof Move) {
+                Move move = (Move)stmt;
+                if(move.getSource() instanceof Call) {
+                    Call call = (Call)move.getSource();
+                    maxParams = Math.max(maxParams, call.getNumParam());
+                } 
+            }
         }
         
         return maxParams;
     }
-        
-   
 
     
     /*
