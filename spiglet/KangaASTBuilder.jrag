@@ -13,8 +13,17 @@ aspect KangaASTBuilder {
      
     // Program
     syn lazy kanga.Program Program.toKanga() {
-        kanga.List stmts = getStmtsList().toKanga();
-        kanga.List procs = getProcsList().toKanga();
+        // Statements
+        kanga.List<kanga.LabeledStmt> stmts = new kanga.List<kanga.LabeledStmt>();
+        for (LabeledStmt labeledStmt : getStmtsList()) {
+            stmts.add(labeledStmt.toKanga());
+        }
+        
+        // Procedures
+        kanga.List<kanga.Procedure> procs = new kanga.List<kanga.Procedure>();
+        for (Procedure procedure : getProcsList()) {
+            procs.add(procedure.toKanga());
+        }
 
         // Count maximal number of parameters of a call.
         int maxParamsOfCalls = getMaxParams(getStmtsList());
@@ -157,22 +166,5 @@ aspect KangaASTBuilder {
     
     // Label
     syn lazy kanga.Label Label.toKanga() = new kanga.Label(getLabel());
-    
-
-
-    /*
-     * HELPERS
-     */
-    syn lazy kanga.List List.toKanga() {
-        kanga.List list = new kanga.List();
-        for (ASTNode node: this) {
-            // FIXME transformable interface or instanceof ?
-            
-            //kanga.ASTNode kangaNode = node.toKanga();
-            //list.addChild(kangaNode);
-        }
-        return list;
-    }
-
     
 }
