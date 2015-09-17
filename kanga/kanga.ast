@@ -19,16 +19,16 @@ Call:Stmt   ::= Addr:SExp;
 abstract Exp;
 HAlloc:Exp	::= Size:SExp;
 
+abstract SExp:Exp;
+Reg:SExp   ::= <Reg:String>;
+LabelExp:SExp ::= Label:Label;
+IntLiteral:SExp ::= <Integer:Integer>;
+
 abstract Binop:Exp  ::=	Left:Reg Right:SExp;
 Lt:Binop;
 Plus:Binop;
 Minus:Binop;
 Times:Binop;
-
-abstract SExp:Exp;
-LabelExp:SExp ::= Label:Label;
-IntLiteral:SExp ::= <Integer:Integer>;
-Reg:SExp   ::= <Reg:String>;
 
 SpilledArg  ::= <Pos:Integer>;
 Label  ::= <Label>;
