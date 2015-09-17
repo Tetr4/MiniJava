@@ -1,7 +1,123 @@
-aspect KangaASTBuilder {
+import java.lang.Math;
 
+aspect KangaASTBuilder {
+    /*
+     * 24 registers:
+     * s0-s7 <- callee-saved
+     * t0-t9 <- callee-clobbered
+     * a0-a3 <- arguments
+     * v0    <- return
+     * v0,v1 <- temporary for loading from stack
+     */ 
+     
     // Program
     syn lazy kanga.Program Program.toKanga() {
-        return new kanga.Program(0,0, new kanga.List(), new kanga.List());
+        kanga.List stmts = getStmtsList().toKanga();
+        kanga.List procs = getProcsList().toKanga();
+
+        // TODO calculate from Stmts
+        int stackslots = 16384;
+         
+        int maxParams = 0;
+        for (Procedure procedure: getProcsList()) {
+            // TODO only called procedures?
+            maxParams = Math.max(maxParams, procedure.getParams());
+        }
+        
+        return new kanga.Program(stackslots, maxParams, stmts, procs);
     }
+
+    // LabeledStmt    
+    syn lazy kanga.LabeledStmt LabeledStmt.toKanga() {
+        kanga.Opt<kanga.Label> opt;
+        if(hasLabel()) {
+            opt = new kanga.Opt<kanga.Label>(getLabel().toKanga());
+        } else {
+            opt = new kanga.Opt<kanga.Label>();
+        }
+        return new kanga.LabeledStmt(opt, getStmt().toKanga());
+    }
+    
+    // Procedure
+    syn lazy kanga.Procedure Procedure.toKanga() {
+        return new kanga.Procedure(getLabel().toKanga(), getParams(), getStackSlots(), getMaxParams(), getStmtsRet().toKanga()); 
+    }
+    
+    syn lazy int Procedure.getStackSlots() = 0; // calculate from StmtsRet
+    
+    syn lazy int Procedure.getMaxParams() {
+        int maxParams = getParams();
+        
+        List<Call> callsInBody = new List<Call>(); // FIXME get calls from StmtsRet somehow
+        for(Call call : callsInBody) {
+            maxParams = Math.max(maxParams, call.getNumParam());
+        }
+        
+        return maxParams;
+    }
+        
+   
+
+    
+    /*
+     * Statements
+     */
+    syn lazy kanga.Stmt Stmt.toKanga();
+    eq Noop.toKanga() = new kanga.Noop();
+    eq Err.toKanga() = new kanga.Err();
+    eq CJump.toKanga() = new kanga.CJump(getCond().toKanga(), getLabel().toKanga());
+    eq Jump.toKanga() = new kanga.Jump(getLabel().toKanga());
+    eq HStore.toKanga() = new kanga.HStore(getAddr().toKanga(), getOffset(), getValue().toKanga());
+    eq HLoad.toKanga() = new kanga.HLoad(getDest().toKanga(), getAddr().toKanga(), getOffset());
+    eq Move.toKanga() = new kanga.Move(getDest().toKanga(), getSource().toKanga());
+    eq Print.toKanga() = new kanga.Print((kanga.SExp) getValue().toKanga());
+
+    
+    /*
+     * Expressions
+     */
+    // TODO maybe return kanga.List<kanga.LabeledStmt> for prologue/epilog ?
+    syn lazy kanga.Exp Exp.toKanga() = null; // TODO
+    // Call:Exp      ::= Name:SExp Param:Temp*;
+    // HAlloc:Exp   ::= Size:SExp;
+    
+    // TempExp:SExp     ::= Temp:Temp;
+    // LabelExp:SExp ::= Label:Label;
+    // IntLiteral:SExp ::= <Integer:Integer>;
+    
+    eq Lt.toKanga() = new kanga.Lt(getLeft().toKanga(), (kanga.SExp) getRight().toKanga());
+    eq Plus.toKanga() = new kanga.Plus(getLeft().toKanga(), (kanga.SExp) getRight().toKanga());
+    eq Minus.toKanga() = new kanga.Minus(getLeft().toKanga(), (kanga.SExp) getRight().toKanga());
+    eq Times.toKanga() = new kanga.Times(getLeft().toKanga(), (kanga.SExp) getRight().toKanga());
+
+    
+    /*
+     * OTHER
+     */
+    // StmtExp
+    syn lazy kanga.List<kanga.LabeledStmt> StmtExp.toKanga() = null; // TODO
+    
+    // Temp
+    syn lazy kanga.Reg Temp.toKanga() = null; // TODO
+    
+    // Label
+    syn lazy kanga.Label Label.toKanga() = new kanga.Label(getLabel());
+    
+
+
+    /*
+     * HELPERS
+     */
+    syn lazy kanga.List List.toKanga() {
+        kanga.List list = new kanga.List();
+        for (ASTNode node: this) {
+            // FIXME transformable interface or instanceof ?
+            
+            //kanga.ASTNode kangaNode = node.toKanga();
+            //list.addChild(kangaNode);
+        }
+        return list;
+    }
+
+    
 }
