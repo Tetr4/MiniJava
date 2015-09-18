@@ -14,6 +14,7 @@ aspect PigletASTBuilder {
         procedures.add(createObjectAllocProcedure());
         procedures.add(createObjectFieldAccessProcedure());
         procedures.add(createMethodAddressProcedure());
+        procedures.add(createArrayBoundsCheckProcedure());
 
         // Assign index to classes in order of declaration
         // Ignore classes that don't need a virtual table (no methods or no changed methods regarding superclass)
@@ -449,11 +450,11 @@ aspect PigletASTBuilder {
         
         // check at run-time for „index out of bounds “
         // offset > length --> new piglet.Err();
-        insertArrayBoundsCheck(labeledStmts, nullCheck, offset);
+        piglet.Call arrayBoundsCheck = createCall("CHECKARRAYBOUNDS", nullCheck, offset);
         
         //address = lhs + (offset*4)
         piglet.Exp offsetInBytes = new piglet.Times(offset, new piglet.IntLiteral(4));
-        piglet.Exp address = new piglet.Plus(lhs, offsetInBytes);
+        piglet.Exp address = new piglet.Plus(arrayBoundsCheck, offsetInBytes);
         
         // length in first 4 bytes -> <Offset:Integer> = 4
         labeledStmts.add(convertToLabeledStmt(new piglet.HStore(address, 4, rhs)));
@@ -774,11 +775,11 @@ aspect PigletASTBuilder {
         
         // check at run-time for „index out of bounds “
         // offset > length --> new piglet.Err();
-        insertArrayBoundsCheck(labeledStmts, nullCheck, offset);
+        piglet.Call arrayBoundsCheck = createCall("CHECKARRAYBOUNDS", nullCheck, offset);
         
         // address = arrayAdress + 4 + (offset*4)
         piglet.Exp offsetInBytes = new piglet.Times(offset, new piglet.IntLiteral(4));
-        piglet.Exp address = new piglet.Plus(arrayAddress, offsetInBytes);
+        piglet.Exp address = new piglet.Plus(arrayBoundsCheck, offsetInBytes);
         
         // load result into temp, which will be returned
         piglet.Temp temp = new piglet.Temp(2);
@@ -850,7 +851,15 @@ aspect PigletASTBuilder {
         return new piglet.Procedure(label, paramCount, stmtsRet);
     }
     
-    public void ASTNode.insertArrayBoundsCheck(piglet.List<piglet.LabeledStmt> labeledStmts, piglet.Exp arrayBase, piglet.Exp index) {
+    syn lazy piglet.Procedure ASTNode.createArrayBoundsCheckProcedure() {
+        piglet.Label label = new piglet.Label("CHECKARRAYBOUNDS");
+        int paramCount = 2;
+        piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        
+        // params
+        piglet.Exp arrayBase = new piglet.TempExp(new piglet.Temp(0));
+        piglet.Exp index = new piglet.TempExp(new piglet.Temp(1));
+    
         piglet.Label errorLabel = new piglet.Label("arraybounds_error");
         piglet.Label returnLabel = new piglet.Label("arraybounds_ok");
         
@@ -879,6 +888,10 @@ aspect PigletASTBuilder {
         labeledStmts.add(convertToLabeledStmt(errorLabel, error));
         
         labeledStmts.add(convertToLabeledStmt(returnLabel, new piglet.Noop()));
+        
+        // return array base
+        piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, arrayBase);
+        return new piglet.Procedure(label, paramCount, stmtsRet);
     }
     
     syn lazy piglet.Label MethodDecl.getPigletLabel() {
