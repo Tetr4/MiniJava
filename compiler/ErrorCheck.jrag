@@ -76,6 +76,41 @@ aspect ErrorCheck {
                 error(c, "Overridden method \"" + getIdent() + "\" has return type <" + superclassType + "> in super class " + overriddenMethod().containingClass().getIdent() + ", but <" + myType + "> here. They must match.");
             }
         }
+        
+        // check for overloaded methods
+        int numParams = getFormalParamsList().getNumChild();
+        // Check if there is another Method in the class hierachy with this name
+        for (ClassDecl currentClass = containingClass(); currentClass != null; currentClass = currentClass.superClass()) {
+            methodLoop:
+            for (MethodDecl method: currentClass.getMethodsList()) {
+                // we only care for methods with the same name
+                if (method == this || !method.getIdent().equals(getIdent()))
+                    continue;
+                if (currentClass == containingClass()) {
+                    error(c, "Multiple definitions of method \"" + getIdent() + "\" in class " + currentClass.getIdent());
+                    continue;
+                }
+                
+                // Have to have the same amount of parameters.
+                int otherNumParams = method.getFormalParamsList().getNumChild();
+                if (otherNumParams != numParams) {
+                    error(c, "Method " + getIdent() + " is already defined with a different amount of parameters ("
+                            + otherNumParams + " != " + numParams + ")");
+                    continue;
+                }
+                
+                // Check type for every parameter.
+                for (int i=0; i<numParams; i++) {
+                    // One of the param types doesn't match our types?
+                    if (!getFormalParams(i).type().isSameType(method.getFormalParams(i).type())) {
+                        error(c, "Redefinition of method \"" + getIdent() + "\" in class " + containingClass() + " with different parameter types (parameter " + i + "). Method already defined in class " + currentClass); 
+                        continue methodLoop;
+                    }
+                }
+                
+            }
+        }
+        
     }
     
     public void Not.collectErrors(Collection<SemanticError> c) {
