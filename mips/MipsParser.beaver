@@ -1,0 +1,151 @@
+%header {:
+ // this code is inlined before the generated parser
+package mips;
+:};
+
+%terminals LPAREN, RPAREN, COLON, COMMA, MINUS;
+%terminals A0, A1, A2, A3, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, S0, S1, S2, S3, S4, S5, S6, S7, V0, V1, SP, FP, RA;
+%terminals ADD, ADDU, B, BNE, J, JAL, JALR, LA, LI, LW, MOVE, NOP, SW, SUBU;
+%terminals SYSCALL, WORD, TEXT, DATA, GLOBL;
+%terminals IDENTIFIER, INTEGER_LITERAL;
+
+
+%typeof Goal = "Program";
+%typeof StmtList = "List<Stmt>";
+%typeof Stmt = "Stmt";
+%typeof Label = "Label";
+%typeof Reg = "Reg";
+%typeof Operand = "Operand";
+%typeof LabelExp = "LabExpr";
+%typeof AddrImmed = "AddrImmed";
+%typeof Expr = "Expr";
+%typeof Data = "Data";
+%typeof DataMode = "DataMode";
+%typeof DataList = "List<DataExpr>";
+%typeof DataExpr = "DataExpr";
+%typeof Directive = "Directive";
+
+
+%goal Goal;
+
+// Productions with semantic actions building the JastAdd AST
+
+Goal = StmtList.lsl   {: return new Program(lsl); :} ;
+StmtList =
+                                            {: return new List<Stmt>(); :}
+| StmtList.sl Stmt.s                        {: return sl.add(s); :}
+;
+   
+
+Stmt =
+  Label.l       {: return l; :}
+| Instruction.i {: return i; :}   
+| Data.d        {: return d; :}
+| Directive.d   {: return d; :}
+;
+
+Label =
+   IDENTIFIER.id COLON {: return new IdLabel(id); :}
+|  INTEGER_LITERAL.ilt COLON {: return new DecLabel(Integer.parseInt((String)ilt.value)); :}
+;
+
+Instruction = 
+   NOP                                   {: return new Nop();          :}
+|  SYSCALL                               {: return new Syscall();      :}
+|  JAL Operand.o                         {: return new Jal(o);         :}
+|  JALR Operand.o                        {: return new Jalr(o);        :}
+|  B Operand.o                           {: return new B(o);           :}
+|  J Operand.o                           {: return new J(o);           :}
+|  MOVE Operand.o1 Operand.o2            {: return new Move(o1,o2);    :}
+|  LI Operand.o1 Operand.o2              {: return new Li(o1,o2);      :}
+|  LA Operand.o1 Operand.o2              {: return new La(o1,o2);      :}
+|  LW Operand.o1 Operand.o2              {: return new Lw(o1,o2);      :}
+|  SW Operand.o1 Operand.o2              {: return new Sw(o1,o2);      :}
+|  ADD Operand.o1 Operand.o2 Operand.o3  {: return new Add(o1,o2,o3);  :}
+|  ADDU Operand.o1 Operand.o2 Operand.o3 {: return new Addu(o1,o2,o3); :}
+|  SUBU Operand.o1 Operand.o2 Operand.o3 {: return new Subu(o1,o2,o3); :}
+|  BNE Operand.o1 Operand.o2 Operand.o3  {: return new Bne(o1,o2,o3);  :}
+;
+
+Operand = 
+   Reg.r                                   {: return r; :}
+|  AddrImmed.a                             {: return a; :}
+|  AddrImmed.a LPAREN Reg.r RPAREN         {: return new AddrReg(a,r); :}
+;
+
+
+AddrImmed = 
+   LabelExp.l                              {: return new LabAddr(l);    :}
+|  Expr.e                                  {: return new ExpAddr(e);    :}
+;
+
+
+LabelExp =
+  IDENTIFIER.lref                          {: return new Ref(lref);     :}
+| IDENTIFIER.lref1 MINUS IDENTIFIER.lref2  {: return new Min(lref1,lref2); :}
+;
+
+Expr =
+  INTEGER_LITERAL.ilt {: return new ConstExpr(Integer.parseInt((String)ilt.value)); :}
+;
+
+Data = 
+  DataMode.m  DataList.l {: return new ListData(m,l); :}
+;
+
+DataMode =
+  WORD   {: return new Word(); :}  
+;
+
+DataList =
+  DataExpr.e                                {: return new List<DataExpr>().add(e); :}
+| DataList.dl COMMA DataExpr.e              {: return dl.add(e); :}
+;
+
+DataExpr =
+  Expr.e {: return new Exp(e); :}
+;
+
+Directive =
+  Segment.s {: return s; :}
+| Sym.s     {: return s; :}
+;
+
+Segment =
+  TEXT      {: return new Txt(); :}
+| DATA      {: return new Dat(); :}
+;
+
+Sym =
+  GLOBL IDENTIFIER.id {: return new Globl(id); :}
+;
+Reg = 
+   A0   {: return new A0(); :} 
+|  A1   {: return new A1(); :} 
+|  A2   {: return new A2(); :} 
+|  A3   {: return new A3(); :}
+|  T0   {: return new T0(); :} 
+|  T1   {: return new T1(); :} 
+|  T2   {: return new T2(); :} 
+|  T3   {: return new T3(); :} 
+|  T4   {: return new T4(); :} 
+|  T5   {: return new T5(); :} 
+|  T6   {: return new T6(); :} 
+|  T7   {: return new T7(); :} 
+|  T8   {: return new T8(); :} 
+|  T9   {: return new T9(); :} 
+|  S0   {: return new S0(); :} 
+|  S1   {: return new S1(); :} 
+|  S2   {: return new S2(); :} 
+|  S3   {: return new S3(); :} 
+|  S4   {: return new S4(); :} 
+|  S5   {: return new S5(); :} 
+|  S6   {: return new S6(); :} 
+|  S7   {: return new S7(); :} 
+|  V0   {: return new V0(); :} 
+|  V1   {: return new V1(); :} 
+|  SP   {: return new SP(); :} 
+|  FP   {: return new FP(); :} 
+|  RA   {: return new RA(); :} 
+;
+

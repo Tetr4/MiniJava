@@ -1,0 +1,102 @@
+/* mips.sable - Specification of the MIPS grammar. */
+Program ::= Stmt*;
+
+abstract Stmt;
+
+abstract Label:Stmt;
+IdLabel:Label  ::= <Ident:String>;
+DecLabel:Label ::= <Int:Integer>; 
+
+
+abstract Operand;
+AddrReg:Operand ::= AddrImmed Reg;
+abstract Reg:Operand;
+abstract AddrImmed:Operand;
+LabAddr:AddrImmed  ::= LabExpr;
+ExpAddr:AddrImmed  ::= Expr;
+
+abstract LabExpr;
+Ref:LabExpr ::= <Ident:String>;
+Min:LabExpr ::= <LRef1:String> <LRef2:String>; 
+
+abstract Data:Stmt;
+ListData:Data ::= DataMode DataExpr*;
+ExprData:Data ::= Expr;
+
+abstract DataMode;
+Word:DataMode;
+
+abstract DataExpr;
+Exp:DataExpr   ::= Expr;
+
+abstract Directive:Stmt;
+
+abstract Seg:Directive;
+Txt:Seg;
+Dat:Seg;
+
+abstract Sym:Directive;
+Globl:Sym      ::= <Ident:String>;
+   
+abstract Expr; 
+ConstExpr:Expr ::= <Int:Integer>;    
+
+abstract Constant; 
+DecConst:Constant  ::= <Int:Integer>; 
+IdConst:Constant   ::= <Ident:String>;
+
+A0:Reg;
+A1:Reg;
+A2:Reg;
+A3:Reg;
+T0:Reg;
+T1:Reg;
+T2:Reg;
+T3:Reg;
+T4:Reg;
+T5:Reg;
+T6:Reg;
+T7:Reg;
+T8:Reg;
+T9:Reg;
+S0:Reg;
+S1:Reg;
+S2:Reg;
+S3:Reg;
+S4:Reg;
+S5:Reg;
+S6:Reg;
+S7:Reg;
+V0:Reg;
+V1:Reg;
+SP:Reg;
+FP:Reg;
+RA:Reg;
+
+abstract Instruction:Stmt;
+abstract Opcode0:Instruction;
+Nop:Opcode0;
+Syscall:Opcode0;
+
+abstract Opcode1:Instruction ::= Op:Operand; 
+Jal:Opcode1;
+B:Opcode1;
+J:Opcode1;
+Jalr:Opcode1;
+
+abstract Opcode2:Instruction  ::= Op1:Operand Op2:Operand;
+Move:Opcode2;
+Li:Opcode2;
+La:Opcode2;
+Lw:Opcode2;
+Beqz:Opcode2;
+Sw:Opcode2;
+
+abstract Opcode3:Instruction ::= Op1:Operand Op2:Operand Op3:Operand;   
+Add:Opcode3;
+Mul:Opcode3;
+Sub:Opcode3;
+Slt:Opcode3;
+Addu:Opcode3;
+Subu:Opcode3;
+Bne:Opcode3;

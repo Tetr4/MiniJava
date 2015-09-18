@@ -1,0 +1,189 @@
+aspect PrettyPrint {
+  public class PrettyPrinter {
+    public static String INDENT = "         ";
+    
+  	private StringBuilder sb;
+  	public PrettyPrinter(){
+  		sb = new StringBuilder();
+  	}
+  
+    public void append(String s) {
+       sb.append(s);
+    }
+
+    public void beginNewLine() {
+       sb.append("\n");
+    }
+    
+    private void appendPredefinedMethods() {
+		String halloc = "\n         .text\n" + "         .globl _halloc\n"
+				+ "_halloc:\n" + "         li $v0, 9\n" + "         syscall\n"
+				+ "         j $ra\n";
+		String print = "\n         .text\n" + "         .globl _print\n"
+				+ "_print:\n" + "         li $v0, 1\n" + "         syscall\n"
+				+ "         la $a0, newl\n" + "         li $v0, 4\n"
+				+ "         syscall\n" + "         j $ra\n";
+		String newl = "\n         .data\n" + "         .align   0\n"
+				+ "newl:    .asciiz \"\\n\"\n";
+		String str_er = "\n         .data\n" + "         .align   0\n"
+				+ "str_er:  .asciiz \"ERROR\"";
+
+		sb.append(halloc + print + newl + str_er);
+	}
+
+    public String getString() {
+       appendPredefinedMethods();
+       return sb.toString();
+    }
+}
+
+  syn lazy PrettyPrinter Program.printer() {
+  	return new PrettyPrinter();
+  }
+  inh lazy PrettyPrinter Stmt.printer();
+  eq Program.getStmt().printer() = this.printer();
+  inh lazy PrettyPrinter Operand.printer();
+  inh lazy PrettyPrinter Constant.printer();
+  inh lazy PrettyPrinter Expr.printer();
+  inh lazy PrettyPrinter DataMode.printer();
+  inh lazy PrettyPrinter LabExpr.printer();
+  
+  syn boolean Stmt.hasIndent() = true;
+  eq Label.hasIndent() = false;
+  
+  syn PrettyPrinter Program.print() {
+    for (Stmt s : getStmts()) {
+ 	  if (s.hasIndent()) {
+	    printer().append(PrettyPrinter.INDENT);
+	  }
+      s.print();
+      printer().beginNewLine();
+    }
+    return printer();
+  }
+
+
+  public abstract void Stmt.print();
+  
+  public void DecLabel.print() { printer().append(getInt() + ": "); }  
+  public void IdLabel.print()  { printer().append(getIdent() + ": "); }  
+  
+  
+  public void Dat.print()   { printer().append(".data"); }
+  public void Txt.print()   { printer().append(".text"); }
+  public void Globl.print() { printer().append(".globl " + getIdent()); }  
+    
+  public void ExprData.print() { getExpr().print(); }  
+  public void ListData.print() { 
+    getDataMode().print();
+   	if (getNumDataExpr() > 0) {
+  	  getDataExpr(0).print();
+  	  for (int i = 1; i < getNumDataExpr(); i++) {
+  	    printer().append(", ");
+  	    getDataExpr(i).print();
+  	  }
+  	} 
+  }  
+  
+  public abstract void DataMode.print();
+  public void Word.print() { printer().append(".word"); }
+  
+  public abstract void DataExpr.print();
+  public void Exp.print() { getExpr().print(); }
+  
+  public abstract void Operand.print();
+  public void AddrReg.print() { 
+    getAddrImmed().print();
+    printer().append("(");
+    getReg().print();
+    printer().append(")");
+  }  
+  public void ExpAddr.print() { getExpr().print(); }
+  public void LabAddr.print() { getLabExpr().print(); }
+  
+  public abstract void LabExpr.print();
+  public void Ref.print() { printer().append(getIdent()); }
+  public void Min.print() { printer().append(getLRef1() + "-" + getLRef2()); }
+  
+  public abstract void Expr.print();
+  public void ConstExpr.print() { printer().append(getInt().toString()); }
+  
+  public abstract void Constant.print();
+  public void DecConst.print() { printer().append(getInt().toString()); }
+  public void IdConst.print() { printer().append(getIdent()); }
+  
+  public void A0.print() { printer().append("$a0"); } 
+  public void A1.print() { printer().append("$a1"); } 
+  public void A2.print() { printer().append("$a2"); } 
+  public void A3.print() { printer().append("$a3"); } 
+  public void T0.print() { printer().append("$t0"); } 
+  public void T1.print() { printer().append("$t1"); } 
+  public void T2.print() { printer().append("$t2"); } 
+  public void T3.print() { printer().append("$t3"); } 
+  public void T4.print() { printer().append("$t4"); } 
+  public void T5.print() { printer().append("$t5"); } 
+  public void T6.print() { printer().append("$t6"); } 
+  public void T7.print() { printer().append("$t7"); } 
+  public void T8.print() { printer().append("$t8"); } 
+  public void T9.print() { printer().append("$t9"); } 
+  public void S0.print() { printer().append("$s0"); } 
+  public void S1.print() { printer().append("$s1"); }
+  public void S2.print() { printer().append("$s2"); } 
+  public void S3.print() { printer().append("$s3"); }  
+  public void S4.print() { printer().append("$s4"); }  
+  public void S5.print() { printer().append("$s5"); }  
+  public void S6.print() { printer().append("$s6"); }  
+  public void S7.print() { printer().append("$s7"); }
+  public void V0.print() { printer().append("$v0"); } 
+  public void V1.print() { printer().append("$v1"); }  
+  public void FP.print() { printer().append("$fp"); } 
+  public void SP.print() { printer().append("$sp"); }  
+  public void RA.print() { printer().append("$ra"); }  
+
+  syn String Instruction.asString();
+  eq Add.asString() = "add"; 
+  eq Addu.asString() = "addu";
+  eq B.asString() = "b"; 
+  eq Beqz.asString() = "beqz"; 
+  eq Bne.asString() = "bne"; 
+  eq J.asString() = "j"; 
+  eq Jal.asString() = "jal"; 
+  eq Jalr.asString() = "jalr"; 
+  eq Li.asString() = "li"; 
+  eq La.asString() = "la"; 
+  eq Lw.asString() = "lw"; 
+  eq Move.asString() = "move"; 
+  eq Mul.asString() = "mul"; 
+  eq Nop.asString() = "nop"; 
+  eq Slt.asString() = "slt"; 
+  eq Sub.asString() = "sub"; 
+  eq Subu.asString() = "subu"; 
+  eq Sw.asString() = "sw";   
+  eq Syscall.asString() = "syscall"; 
+  
+  public void Opcode0.print() { printer().append(asString()); }
+  public void Opcode1.print() { 
+    printer().append(asString()); 
+    printer().append(" ");
+    getOp().print();
+  }
+  public void Opcode2.print() { 
+    printer().append(asString()); 
+    printer().append(" ");
+    getOp1().print();
+    printer().append(", ");
+    getOp2().print();
+    }
+  public void Opcode3.print() { 
+    printer().append(asString()); 
+    printer().append(" ");
+    getOp1().print();
+    printer().append(", ");
+    getOp2().print();
+    printer().append(", ");
+    getOp3().print();
+    }
+  
+}
+
+
