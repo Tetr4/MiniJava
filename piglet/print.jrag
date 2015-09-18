@@ -1,6 +1,6 @@
 aspect PrettyPrint {
   public class PrettyPrinter {
-    public static String INDENT = "  ";
+    public static String INDENT = "   ";
     public static String LABEL_INDENT = "   ";
     
   	private StringBuilder sb;
@@ -119,11 +119,13 @@ aspect PrettyPrint {
 
   public abstract void Exp.print();
   public void StmtExp.print() {
+    printer().append(indent());
     printer().append("BEGIN");
     for (LabeledStmt s : getStmtss()) s.print();
-    printer().append(indent() + PrettyPrinter.LABEL_INDENT + "RETURN ");
-    getRetExp().print();    
-    printer().append("\nEND");
+    printer().append(indent() + "RETURN ");
+    getRetExp().print();
+    printer().append(indent());    
+    printer().append("END");
   }	 
   public void Call.print() {
     printer().append("CALL ");
