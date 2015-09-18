@@ -180,6 +180,9 @@ aspect ErrorCheck {
         if(!isSubtypeOfIgnoreUnknown(getOffset().type(), intType())) {
             error(c, "Array index has to be integer, got <" + getOffset().type() + ">");
         }
+        if(!isSubtypeOfIgnoreUnknown(getExp().type(), intType())) {
+            error(c, "Can't assign " + getExp().type() + " to an int[]");
+        }
     }
     
     
