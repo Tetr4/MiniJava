@@ -45,6 +45,18 @@ aspect ErrorCheck {
         return t1.isSubtypeOf(t2);
     }
     
+    public void Program.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        HashSet<String> classNames = new HashSet<String>();
+        for (ClassDecl classDecl : getDeclsList()) {
+            String className = classDecl.getIdent();
+            if (classNames.contains(className)) {
+                error(c, "Class " + className + " is already defined");
+            }
+            classNames.add(className);
+        }
+    }
+    
     public void ClassDecl.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
         if(hasCycleOnSuperclassChain())
