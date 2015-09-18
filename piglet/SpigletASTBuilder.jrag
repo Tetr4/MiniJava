@@ -108,14 +108,14 @@ aspect SpigletASTBuilder {
         spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
         
         // address
-        addAll(statements, getAddr().toSpigletStmts());
+        addAll(statements, getAddr().toSpigletStmtsForTemp());
         spiglet.Temp addrTemp = getAddr().toSpigletTemp();
         
         // offset
         int offset = getOffset();
         
         // value
-        addAll(statements, getValue().toSpigletStmts());
+        addAll(statements, getValue().toSpigletStmtsForTemp());
         spiglet.Temp valueTemp = getValue().toSpigletTemp();
         
         // hstore
@@ -131,7 +131,7 @@ aspect SpigletASTBuilder {
         spiglet.Temp destTemp = getDest().toSpiglet();
         
         // address
-        addAll(statements, getAddr().toSpigletStmts());
+        addAll(statements, getAddr().toSpigletStmtsForTemp());
         spiglet.Temp addrTemp = getAddr().toSpigletTemp();
         
         // offset
@@ -180,6 +180,7 @@ aspect SpigletASTBuilder {
      */
     // 1 piglet expression may generate multiple spiglet statements
     syn lazy spiglet.List<spiglet.Stmt> Exp.toSpigletStmts() = new spiglet.List<spiglet.Stmt>(); // no statements as default
+    syn lazy spiglet.List<spiglet.Stmt> Exp.toSpigletStmtsForTemp() = toSpigletStmts();
     
     eq StmtExp.toSpigletStmts() {
         // special case, see StmtExp.toSpigletStmtExp()
@@ -195,7 +196,7 @@ aspect SpigletASTBuilder {
         // params
         spiglet.List<spiglet.Temp> paramList = new spiglet.List<spiglet.Temp>();
         for (Exp param: getParamList()) {
-            addAll(statements, param.toSpigletStmts());
+            addAll(statements, param.toSpigletStmtsForTemp());
             paramList.add(param.toSpigletTemp());
         }
         
@@ -219,7 +220,7 @@ aspect SpigletASTBuilder {
         spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
         
         // left
-        addAll(statements, getLeft().toSpigletStmts());
+        addAll(statements, getLeft().toSpigletStmtsForTemp());
         
         // right
         addAll(statements, getRight().toSpigletStmts());
@@ -230,7 +231,7 @@ aspect SpigletASTBuilder {
         return statements;
     }
     
-    eq LabelExp.toSpigletStmts() {
+    eq LabelExp.toSpigletStmtsForTemp() {
         spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
         
         // FIXME: Don't genereate move multiple times, if label is used multiple times in the procedure.
@@ -240,13 +241,23 @@ aspect SpigletASTBuilder {
         return statements;
     }
     
-    eq IntLiteral.toSpigletStmts() {
+    eq LabelExp.toSpigletStmts() {
+        // No need to add anything
+        return new spiglet.List<spiglet.Stmt>();
+    }
+    
+    eq IntLiteral.toSpigletStmtsForTemp() {
         spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
         
         spiglet.Move move = new spiglet.Move(toSpigletTemp(), toSpigletSExp());
         statements.add(move);
         
         return statements;
+    }
+    
+    eq IntLiteral.toSpigletStmts() {
+        // No need to add anything
+        return new spiglet.List<spiglet.Stmt>();
     }
 
     // Temps
