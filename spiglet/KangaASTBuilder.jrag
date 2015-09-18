@@ -1,5 +1,6 @@
 import java.lang.Math;
 import java.util.HashSet;
+import java.util.HashMap;
 
 aspect KangaASTBuilder {
     /*
@@ -16,7 +17,10 @@ aspect KangaASTBuilder {
         // Statements
         kanga.List<kanga.LabeledStmt> stmts = new kanga.List<kanga.LabeledStmt>();
         for (LabeledStmt labeledStmt : getStmtsList()) {
-            stmts.add(labeledStmt.toKanga());
+            // add all
+            for (kanga.LabeledStmt stmt : labeledStmt.toKanga()) {
+                stmts.add(stmt);
+            }
         }
         
         // Procedures
@@ -34,7 +38,6 @@ aspect KangaASTBuilder {
         getStmtsList().collectTemps(temps, 0);
         
         int localVariableStackSlots = temps.size();
-        localVariableStackSlots = Math.max(0, localVariableStackSlots - 10);
         
         int numSpilledArgs = Math.max(0, maxParamsOfCalls - 4);
         int numStackSlots = localVariableStackSlots + numSpilledArgs;
@@ -43,18 +46,40 @@ aspect KangaASTBuilder {
     }
 
     // LabeledStmt    
-    syn lazy kanga.LabeledStmt LabeledStmt.toKanga() {
+    syn lazy kanga.List<kanga.LabeledStmt> LabeledStmt.toKanga() {
+        // opt label
         kanga.Opt<kanga.Label> opt;
         if(hasLabel()) {
             opt = new kanga.Opt<kanga.Label>(getLabel().toKanga());
         } else {
             opt = new kanga.Opt<kanga.Label>();
         }
-        return new kanga.LabeledStmt(opt, getStmt().toKanga());
+        
+        // statement (may generate multiple spiglet statements)
+        kanga.List<kanga.LabeledStmt> labeledStmts = new kanga.List<kanga.LabeledStmt>();
+        boolean labelSet = false;
+        for (kanga.Stmt statement: getStmt().toKanga()) {
+            if(!labelSet) {
+                // label only on first statement
+                labeledStmts.add(new kanga.LabeledStmt(opt, statement));
+                labelSet = true;
+            } else {
+                // no label
+                labeledStmts.add(new kanga.LabeledStmt(new kanga.Opt<kanga.Label>(), statement));
+            }
+        }
+        
+        return labeledStmts;
     }
     
     // Procedure
     syn lazy kanga.Procedure Procedure.toKanga() {
+        
+        // Reset stack index for every procedure.
+        // They have their own stack frame.
+        Temp.stackIndex = 0;
+        Temp.stackMap.clear();
+    
         int maxParams = getMaxParams(getStmtsRet().getStmtsList());
         return new kanga.Procedure(getLabel().toKanga(), getParams(), getStackSlots(), maxParams, getStmtsRet().toKanga()); 
     }
@@ -70,12 +95,8 @@ aspect KangaASTBuilder {
 		collectTemps(temps, getParams());
 		
         // Ignore the arguments as they are stored in Temp(0) - Temp(numargs-1)
+        // We put all local temps on the stack!
 		int localVariableStackSlots = temps.size();
-		// We have 10 t<x> registers t0 - t9. We start using spilled temporaries if we exceed 10 temps.
-		// Saved registers s0 - s7 require us to save the old value on the stack when they're used.
-		// So we don't really save a stack slot by using registers s0 - s7, 
-		// because we have to use one stack slot to save the old value.
-		localVariableStackSlots = Math.max(0, localVariableStackSlots - 10);
 		
 		// Check spilled args of calls
 		// Get maximum number of passed parameters of a call in our body.
@@ -126,45 +147,259 @@ aspect KangaASTBuilder {
     /*
      * Statements
      */
-    syn lazy kanga.Stmt Stmt.toKanga();
-    eq Noop.toKanga() = new kanga.Noop();
-    eq Err.toKanga() = new kanga.Err();
-    eq CJump.toKanga() = new kanga.CJump(getCond().toKanga(), getLabel().toKanga());
-    eq Jump.toKanga() = new kanga.Jump(getLabel().toKanga());
-    eq HStore.toKanga() = new kanga.HStore(getAddr().toKanga(), getOffset(), getValue().toKanga());
-    eq HLoad.toKanga() = new kanga.HLoad(getDest().toKanga(), getAddr().toKanga(), getOffset());
-    eq Move.toKanga() = new kanga.Move(getDest().toKanga(), getSource().toKanga());
-    eq Print.toKanga() = new kanga.Print((kanga.SExp) getValue().toKanga());
-
+    syn lazy kanga.List<kanga.Stmt> Stmt.toKanga();
+    eq Noop.toKanga() = convertToStmtList(new kanga.Noop());
+    eq Err.toKanga() = convertToStmtList(new kanga.Err());
+    eq CJump.toKanga() {
+        kanga.List<kanga.Stmt> stmts = new kanga.List<kanga.Stmt>();
+        kanga.Reg cond = getCond().toKangaRead(stmts, this);
+        
+        kanga.CJump cjump = new kanga.CJump(cond, getLabel().toKanga());
+        stmts.add(cjump);
+        return stmts;
+    }
+    eq Jump.toKanga() = convertToStmtList(new kanga.Jump(getLabel().toKanga()));
+    eq HStore.toKanga() {
+        kanga.List<kanga.Stmt> stmts = new kanga.List<kanga.Stmt>();
+        kanga.Reg addr = getAddr().toKangaRead(stmts, this);
+        kanga.Reg value = getValue().toKangaRead(stmts, this);
+        
+        kanga.HStore hstore = new kanga.HStore(addr, getOffset(), value);
+        stmts.add(hstore);
+        return stmts;
+    }
+    eq HLoad.toKanga() {
+        kanga.List<kanga.Stmt> stmts = new kanga.List<kanga.Stmt>();
+        kanga.List<kanga.Stmt> stmtsEpilog = new kanga.List<kanga.Stmt>();
+        
+        // We might need to write the new value from the register back on the stack.
+        kanga.Reg dest = getDest().toKangaWrite(stmts, this);
+        kanga.Reg addr = getAddr().toKangaRead(stmts, this);
+        
+        kanga.HLoad hload = new kanga.HLoad(dest, addr, getOffset());
+        stmts.add(hload);
+        
+        // Put the register back on the stack
+        for(kanga.Stmt stmt : stmtsEpilog) {
+            stmts.add(stmt);
+        }
+        
+        return stmts;
+    }
+    eq Move.toKanga() {
+        kanga.List<kanga.Stmt> stmts = new kanga.List<kanga.Stmt>();
+        kanga.List<kanga.Stmt> stmtsEpilog = new kanga.List<kanga.Stmt>();
+        
+        // We might need to write the new value from the register back on the stack.
+        kanga.Reg dest = getDest().toKangaWrite(stmtsEpilog, this);
+        
+        kanga.Exp source = getSource().toKanga(stmts, this);
+        
+        kanga.Move move = new kanga.Move(dest, source);
+        stmts.add(move);
+        
+        // Put the register back on the stack
+        for(kanga.Stmt stmt : stmtsEpilog) {
+            stmts.add(stmt);
+        }
+        
+        return stmts;
+    }
+    eq Print.toKanga() {
+        kanga.List<kanga.Stmt> stmts = new kanga.List<kanga.Stmt>();
+        kanga.SExp value = (kanga.SExp) getValue().toKanga(stmts, this);
+        
+        kanga.Print print = new kanga.Print(value);
+        stmts.add(print);
+        return stmts;
+    }
+ 
+ 
     
     /*
      * Expressions
      */
-    // TODO maybe return kanga.List<kanga.LabeledStmt> for prologue/epilog ?
-    syn lazy kanga.Exp Exp.toKanga() = null; // TODO
-    // Call:Exp      ::= Name:SExp Param:Temp*;
-    // HAlloc:Exp   ::= Size:SExp;
+    syn lazy kanga.Exp Exp.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt);
     
-    // TempExp:SExp     ::= Temp:Temp;
-    // LabelExp:SExp ::= Label:Label;
-    // IntLiteral:SExp ::= <Integer:Integer>;
+    // Call is not an expression in kanga, it's a statment now.
+    eq Call.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt) {
+        
+        // Generate parameter registers from temps
+        kanga.List<kanga.Reg> params = new kanga.List<kanga.Reg>();
+        for(Temp temp : getParamList()) {
+            params.add(temp.toKangaRead(stmts, stmt));
+        }        
+        
+        // Create the call and translate the method address.
+        kanga.Call call = new kanga.Call((kanga.SExp) getName().toKanga(stmts, stmt));
+
+        // Save arguments of calling procedure
+        // Only need to save as much params as the called function uses as well.
+        int numParams = Math.min(getContainingProcedureParamCount(), getNumParam());
+        // But don't need to save spilled args.
+        numParams = Math.min(numParams, 4);
+        
+        int startStackIndex = Temp.stackIndex;
+        for(int i=0; i<numParams; i++) {
+            kanga.AStore astore = new kanga.AStore(new kanga.SpilledArg(Temp.stackIndex++), new kanga.Reg("a" + i));
+            stmts.add(astore);
+        }
+        
+        // Pass parameters
+        for(int i = 0; i<params.getNumChild(); i++) {
+            kanga.Reg reg = params.getChild(i);
+            
+            // Use the argument registers!
+            if(i < 4) {
+                kanga.Move move = new kanga.Move(new kanga.Reg("a" + i), reg);
+                stmts.add(move);
+            }
+            else {
+                // PassArg's index starts at 1. SpilledArg starts at 0 D:<
+                kanga.PassArg passArg = new kanga.PassArg(i-3, reg);
+                stmts.add(passArg);
+            }
+        }
+        
+        // Actually call the method
+        stmts.add(call);
     
-    eq Lt.toKanga() = new kanga.Lt(getLeft().toKanga(), (kanga.SExp) getRight().toKanga());
-    eq Plus.toKanga() = new kanga.Plus(getLeft().toKanga(), (kanga.SExp) getRight().toKanga());
-    eq Minus.toKanga() = new kanga.Minus(getLeft().toKanga(), (kanga.SExp) getRight().toKanga());
-    eq Times.toKanga() = new kanga.Times(getLeft().toKanga(), (kanga.SExp) getRight().toKanga());
+        // Restore arguments
+        for(int i=0; i<numParams; i++) {
+            kanga.ALoad aload = new kanga.ALoad(new kanga.Reg("a" + i), new kanga.SpilledArg(startStackIndex++));
+            stmts.add(aload);
+        }
+        
+        // Pop the arguments from the stack!
+        Temp.stackIndex = startStackIndex;
+    
+        // Called procedures return their values in register v0.
+        return new kanga.Reg("v0");
+    }
+     
+    eq HAlloc.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt) = new kanga.HAlloc((kanga.SExp) getSize().toKanga(stmts, stmt));
+    eq TempExp.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt) = getTemp().toKangaRead(stmts, stmt); // no TempExp in Kanga
+    eq LabelExp.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt) = new kanga.LabelExp(getLabel().toKanga());
+    eq IntLiteral.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt) = new kanga.IntLiteral(getInteger());
+    
+    eq Lt.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt) = new kanga.Lt(getLeft().toKangaRead(stmts, stmt), (kanga.SExp) getRight().toKanga(stmts, stmt));
+    eq Plus.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt) = new kanga.Plus(getLeft().toKangaRead(stmts, stmt), (kanga.SExp) getRight().toKanga(stmts, stmt));
+    eq Minus.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt) = new kanga.Minus(getLeft().toKangaRead(stmts, stmt), (kanga.SExp) getRight().toKanga(stmts, stmt));
+    eq Times.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt) = new kanga.Times(getLeft().toKangaRead(stmts, stmt), (kanga.SExp) getRight().toKanga(stmts, stmt));
 
     
     /*
      * OTHER
      */
     // StmtExp
-    syn lazy kanga.List<kanga.LabeledStmt> StmtExp.toKanga() = null; // TODO
+    syn lazy kanga.List<kanga.LabeledStmt> StmtExp.toKanga() {
+        // Transform all statements first.
+        kanga.List<kanga.LabeledStmt> labeledStmts = new kanga.List<kanga.LabeledStmt>();
+        for(LabeledStmt labeledStmt : getStmtsList()) {
+            for (kanga.LabeledStmt kls : labeledStmt.toKanga()) {
+                labeledStmts.add(kls);
+            }
+        }
+        
+        // We might need to load the return value from the stack.
+        kanga.List<kanga.Stmt> simpleStmts = new kanga.List<kanga.Stmt>();
+        kanga.Exp source = getRetExp().toKanga(simpleStmts, new Noop());
+        
+        // Add the necessary instructions for the return value.
+        for(kanga.Stmt stmt : simpleStmts) {
+            labeledStmts.add(new kanga.LabeledStmt(new kanga.Opt<kanga.Label>(), stmt));
+        }
+        
+        // move return exp to v0 by convention.
+        kanga.Move move = new kanga.Move(new kanga.Reg("v0"), source); 
+        labeledStmts.add(new kanga.LabeledStmt(new kanga.Opt<kanga.Label>(), move));
+        
+        return labeledStmts;
+    }
+    
+    syn lazy Integer ASTNode.getContainingProcedureParamCount() {
+        ASTNode<T> parent = this;
+        
+        do {
+            if (parent instanceof Procedure) {
+                Procedure procedure = (Procedure)parent;
+                return procedure.getParams();
+            }
+            else if(parent instanceof Program) {
+                return 0;
+            }
+            
+            parent = parent.getParent();
+        } while(parent != null);
+        
+        throw new IllegalStateException("node has no procedure as parent!");
+    }
+    
+    // Stack index starts at 0.
+    public static int Temp.stackIndex = 0;
+    // Map all temp numbers to a stack index.
+    public static HashMap<Integer, kanga.SpilledArg> Temp.stackMap = new HashMap<Integer, kanga.SpilledArg>();
+
+    // Always return the same stack index for the same temp number in a procedure.    
+    syn lazy kanga.SpilledArg Temp.getStackIndex() {
+        if (stackMap.containsKey(getNumber())) {
+            return stackMap.get(getNumber());
+        }
+        kanga.SpilledArg spilledArg = new kanga.SpilledArg(stackIndex++);
+        stackMap.put(getNumber(), spilledArg);
+        return spilledArg;
+    }
+
+    // Each statment can use all of the registers.
+    // Remember which were already used. Max. of 3 for a Move statement.    
+    protected int Stmt.registerStartIndex = 0;
+    syn kanga.Reg Stmt.getNextRegister() = new kanga.Reg("t" + registerStartIndex++);
     
     // Temp
-    syn lazy kanga.Reg Temp.toKanga() = null; // TODO
+    // This temp is used on a rhs, so we need to load the value from the stack first.
+    syn kanga.Reg Temp.toKangaRead(kanga.List<kanga.Stmt> stmts, Stmt stmt) {
+        int numParams = getContainingProcedureParamCount();
+        
+        // This is an argument!
+        if (getNumber() < numParams && getNumber() < 4) {
+            return new kanga.Reg("a" + getNumber());
+        }
+        
+        kanga.Reg reg = stmt.getNextRegister();
+        kanga.ALoad aload = new kanga.ALoad(reg, getStackIndex());
+        stmts.add(aload);
+        
+        return reg;
+    }
+    
+    // This temp is used as a lhs. We need to write the value back on the stack.
+    // Don't care for the old value. It gets overwritten.
+    syn kanga.Reg Temp.toKangaWrite(kanga.List<kanga.Stmt> stmts, Stmt stmt) {
+        int numParams = getContainingProcedureParamCount();
+        
+        // This is an argument!
+        if (getNumber() < numParams && getNumber() < 4) {
+            return new kanga.Reg("a" + getNumber());
+        }
+        
+        kanga.Reg reg = stmt.getNextRegister();
+        kanga.AStore astore = new kanga.AStore(getStackIndex(), reg);
+        stmts.add(astore);
+        
+        return reg;
+    }
     
     // Label
     syn lazy kanga.Label Label.toKanga() = new kanga.Label(getLabel());
     
+    
+    
+    /*
+     * HELPERS
+     */
+     syn kanga.List<kanga.Stmt> Stmt.convertToStmtList(kanga.Stmt stmt) {
+        kanga.List<kanga.Stmt> list = new kanga.List<kanga.Stmt>();
+        list.add(stmt);
+        return list;
+    }
 }
