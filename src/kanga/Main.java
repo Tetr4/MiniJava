@@ -1,44 +1,43 @@
-package spiglet;
+package kanga;
 
-import java.io.*;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 
+import kangainterpreter.ParseException;
 import minijava.MJFrontEnd;
-import pigletinterpreter.ParseException;
 
-class Main {
+public class Main {
 
     public static void main(String args[]) {
 
         String inputFileName;
         if (args.length != 1) {
-            inputFileName = "tests/Factorial.spg";
+            inputFileName = "tests/Factorial.kg";
         } else {
             inputFileName = args[0];
         }
         try {
             System.out.println("FrontEnd: starting on file " + inputFileName);
             System.out.flush();
-            SPigletParser parser = new SPigletParser();
+            KangaParser parser = new KangaParser();
 
             Program ast = (Program) parser
-                    .parse(new SPigletScanner(new FileReader(inputFileName)));
+                    .parse(new KangaScanner(new FileReader(inputFileName)));
             // Print the resulting AST on standard output.
-            String pigletCode = ast.print().getString();
-            System.out.println(pigletCode);
+            String kangaCode = ast.print().getString();
+            System.out.println(kangaCode);
 
-            String output = MJFrontEnd.interpretPiglet(pigletCode);
+            String output = MJFrontEnd.interpretKanga(kangaCode);
             System.out.println(output);
         } catch (FileNotFoundException e) {
             System.err
                     .println("FrontEnd: file " + inputFileName + " not found");
-        } catch (beaver.Parser.Exception e) {
+        } catch (beaver.Parser.Exception | ParseException e) {
             System.out.println("Error when parsing: " + inputFileName);
             System.out.println(e.getMessage());
         } catch (IOException e) {
             System.out.println("FrontEnd: " + e.getMessage());
-        } catch (ParseException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
         }
     }
 

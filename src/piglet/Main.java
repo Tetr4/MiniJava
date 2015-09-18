@@ -2,33 +2,41 @@ package piglet;
 
 import java.io.*;
 
+import minijava.MJFrontEnd;
+import pigletinterpreter.ParseException;
+
 class Main {
 
-  public static void main(String args[]) {
+    public static void main(String args[]) {
 
-   if(args.length != 1) {
-      System.err.println("FrontEnd: missing file command line argument");
-      System.exit(1);
-    }
-    try {
-      PigletParser parser = new PigletParser();
+        String inputFileName;
+        if (args.length != 1) {
+            inputFileName = "tests/Factorial.pg";
+        } else {
+            inputFileName = args[0];
+        }
 
-      // Start parsing from the nonterminal "Start".
-      Program ast = (Program) parser.parse(new PigletScanner(new FileReader(args[0])));
-      // Print the resulting AST on standard output.
+        try {
+            PigletParser parser = new PigletParser();
 
-      System.out.println(ast.print().getString());
+            Program ast = (Program) parser
+                    .parse(new PigletScanner(new FileReader(inputFileName)));
+
+            // Print the resulting AST on standard output.
+            String pigletCode = ast.print().getString();
+            System.out.println(pigletCode);
+
+            String output = MJFrontEnd.interpretPiglet(pigletCode);
+            System.out.println(output);
+        } catch (FileNotFoundException e) {
+            System.err
+                    .println("FrontEnd: file " + inputFileName + " not found");
+        } catch (beaver.Parser.Exception | ParseException e) {
+            System.out.println("Error when parsing: " + inputFileName);
+            System.out.println(e.getMessage());
+        } catch (IOException e) {
+            System.out.println("FrontEnd: " + e.getMessage());
+        }
     }
-    catch (FileNotFoundException e) {
-      System.err.println("FrontEnd: file " + args[0] + " not found");
-    }
-    catch (beaver.Parser.Exception e) {
-      System.out.println("Error when parsing: " + args[0]);      
-      System.out.println(e.getMessage());      
-    }
-    catch (IOException e) {
-      System.out.println("FrontEnd: " + e.getMessage());
-    } 
-  }
 
 }
