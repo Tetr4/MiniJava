@@ -178,7 +178,7 @@ aspect KangaASTBuilder {
         kanga.List<kanga.Stmt> stmtsEpilog = new kanga.List<kanga.Stmt>();
         
         // We might need to write the new value from the register back on the stack.
-        kanga.Reg dest = getDest().toKangaWrite(stmts, this);
+        kanga.Reg dest = getDest().toKangaWrite(stmtsEpilog, this);
         kanga.Reg addr = getAddr().toKangaRead(stmts, this);
         
         kanga.HLoad hload = new kanga.HLoad(dest, addr, getOffset());
