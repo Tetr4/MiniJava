@@ -19,7 +19,7 @@ public class MJFrontEnd {
         try {
             MJParser parser = new MJParser();
             MJScanner scanner = new MJScanner(new FileReader(inputFileName));
-
+            
             // Start parsing from the nonterminal "Start".
             minijava.Program program = (Program) parser.parse(scanner);
 
