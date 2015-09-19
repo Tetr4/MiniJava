@@ -755,7 +755,7 @@ aspect PigletASTBuilder {
         labeledStmts.add(convertToLabeledStmt(storeSize));
         
         // Offset of 4 because of the array size as first element.
-        insertInitializeWithZero(labeledStmts, address, sizeInBytes, 4, 2);
+        insertInitializeWithZero(labeledStmts, address, sizeInBytes, 4, 2, "array_alloc");
        
         // return address of allocated memory block
         piglet.StmtExp stmtsRet = new StmtExp(labeledStmts, addressExp);
@@ -832,7 +832,7 @@ aspect PigletASTBuilder {
          // fill with zeros
          // skip first 4 bytes (vtable address is saved there, see below)
          // don't use temp 0-4
-        insertInitializeWithZero(labeledStmts, address, size, 4, 5);
+        insertInitializeWithZero(labeledStmts, address, size, 4, 5, "object_alloc");
         
         // Get virtual function table address
         // vtableList[classIndex]
@@ -909,10 +909,10 @@ aspect PigletASTBuilder {
         return new piglet.Call(procedureLabel, paramsList); 
     }
     
-    public void ASTNode.insertInitializeWithZero(piglet.List<piglet.LabeledStmt> labeledStmts, piglet.Temp baseAddress, piglet.Exp sizeInBytes, int offset, int firstTempNr) {
+    public void ASTNode.insertInitializeWithZero(piglet.List<piglet.LabeledStmt> labeledStmts, piglet.Temp baseAddress, piglet.Exp sizeInBytes, int offset, int firstTempNr, String labelSuffix) {
         // create labels
-        piglet.Label entryLabel = new piglet.Label("insert_zero_condition");
-        piglet.Label exitLabel = new piglet.Label("insert_zero_exit");
+        piglet.Label entryLabel = new piglet.Label("insert_zero_condition_" + labelSuffix);
+        piglet.Label exitLabel = new piglet.Label("insert_zero_exit_" + labelSuffix);
         
         piglet.TempExp baseAddressExp = new piglet.TempExp(baseAddress);
  
