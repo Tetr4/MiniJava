@@ -342,15 +342,16 @@ aspect KangaASTBuilder {
     // Stack index starts at 0.
     public static int Temp.stackIndex = 0;
     // Map all temp numbers to a stack index.
-    public static HashMap<Integer, kanga.SpilledArg> Temp.stackMap = new HashMap<Integer, kanga.SpilledArg>();
+    public static HashMap<Integer, Integer> Temp.stackMap = new HashMap<Integer, Integer>();
 
     // Always return the same stack index for the same temp number in a procedure.    
     syn lazy kanga.SpilledArg Temp.getStackIndex() {
         if (stackMap.containsKey(getNumber())) {
-            return stackMap.get(getNumber());
+            int stackIndex = stackMap.get(getNumber());
+            return new kanga.SpilledArg(stackIndex);
         }
-        kanga.SpilledArg spilledArg = new kanga.SpilledArg(stackIndex++);
-        stackMap.put(getNumber(), spilledArg);
+        kanga.SpilledArg spilledArg = new kanga.SpilledArg(stackIndex);
+        stackMap.put(getNumber(), stackIndex++);
         return spilledArg;
     }
 
