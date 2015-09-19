@@ -10,13 +10,13 @@ import minijava.MJParser;
 import minijava.MJScanner;
 import minijava.Program;
 
-public class MiniJavaFile {
+public class MJFile {
     private File file;
-    public MiniJavaFile(String filePath) {
+    public MJFile(String filePath) {
         this.file = new File(filePath);
     }
     
-    public MiniJavaFile(File file) {
+    public MJFile(File file) {
         this.file = file;
     }
     
