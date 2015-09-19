@@ -1,8 +1,9 @@
 package piglet;
 
-import java.io.*;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 
-import minijava.MJFrontEnd;
 import pigletinterpreter.ParseException;
 
 class Main {
@@ -26,7 +27,7 @@ class Main {
             String pigletCode = ast.print().getString();
             System.out.println(pigletCode);
 
-            String output = MJFrontEnd.interpretPiglet(pigletCode);
+            String output = ast.interpret();
             System.out.println(output);
         } catch (FileNotFoundException e) {
             System.err

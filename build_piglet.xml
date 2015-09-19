@@ -8,7 +8,8 @@
   <property name="grammar.dir" value="piglet/"/>
   <property name="gen.dir" value="${basedir}/gen"/>
   <property name="classes.dir" value="bin"/>
-  <property name="tools"   value="tools"/>
+  <property name="tools" value="tools"/>
+  <property name="support" value="support"/>
 
   <taskdef name="jflex"   classname="JFlex.anttask.JFlexTask" classpath="${tools}/JFlex.jar"/>
   <taskdef name="beaver"  classname="beaver.comp.run.AntTask" classpath="${tools}/beaver.jar"/>
@@ -42,7 +43,7 @@
      <mkdir dir="${classes.dir}"/>
      <javac srcdir="${gen.dir}"
             destdir="${classes.dir}"
-            classpath="${tools}/beaver-rt.jar"
+            classpath="${tools}/beaver-rt.jar:${support}/pgi.jar"
             debug="true" debuglevel="lines,vars,source"
      	    includeantruntime="false">
              <include name="**/*.java"/>

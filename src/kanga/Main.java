@@ -5,7 +5,6 @@ import java.io.FileReader;
 import java.io.IOException;
 
 import kangainterpreter.ParseException;
-import minijava.MJFrontEnd;
 
 public class Main {
 
@@ -28,7 +27,7 @@ public class Main {
             String kangaCode = ast.print().getString();
             System.out.println(kangaCode);
 
-            String output = MJFrontEnd.interpretKanga(kangaCode);
+            String output = ast.interpret();
             System.out.println(output);
         } catch (FileNotFoundException e) {
             System.err

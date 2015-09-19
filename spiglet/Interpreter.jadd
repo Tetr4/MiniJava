@@ -1,0 +1,37 @@
+//import pigletinterpreter.PigletParser;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.io.IOException;
+import java.io.InputStream;
+import pigletinterpreter.visitor.GJPigletInterpreter;
+
+aspect SpigletInterpreter {
+    
+    public String Program.interpret() throws pigletinterpreter.ParseException {
+        String code = print().getString();
+        
+        // use same static as  piglet interpreter
+        pigletinterpreter.PigletParser interpreterParser = piglet.Program.interpreterParser;
+        
+        // parse
+        InputStream pigletInput = new ByteArrayInputStream(code.getBytes());
+        if (interpreterParser == null) {
+            interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
+        } else {
+            pigletinterpreter.PigletParser.ReInit(pigletInput);
+        }
+        pigletinterpreter.syntaxtree.Node root = pigletinterpreter.PigletParser.Goal();
+
+        // interpret and put result into stream
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        GJPigletInterpreter interpreter = new GJPigletInterpreter("MAIN", root, new PrintStream(outStream));
+        try {
+            root.accept(interpreter, root);
+        } catch (pigletinterpreter.InterpreterErrorException e) {
+            // Interpreter encountered an "ERROR", wrote it to outStream and stopped interpretation
+        }
+
+        return outStream.toString();
+    }
+}
