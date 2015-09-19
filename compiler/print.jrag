@@ -15,6 +15,10 @@ aspect PrettyPrint {
     public String getString() {
        return sb.toString();
     }
+    
+    public void reset() {
+        sb.setLength(0);
+    }
   }
 
   //similar to JastAdd Java compiler    
@@ -54,6 +58,7 @@ aspect PrettyPrint {
   inh lazy PrettyPrinter Exp.printer();
   
   syn PrettyPrinter Program.print() {
+    printer().reset();
     getMain().print();
     for (ClassDecl cd : getDeclss()) cd.print();
     return printer();

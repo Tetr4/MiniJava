@@ -35,6 +35,10 @@ aspect PrettyPrint {
        appendPredefinedMethods();
        return sb.toString();
     }
+    
+    public void reset() {
+        sb.setLength(0);
+    }
 }
 
   syn lazy PrettyPrinter Program.printer() {
@@ -52,6 +56,7 @@ aspect PrettyPrint {
   eq Label.hasIndent() = false;
   
   syn PrettyPrinter Program.print() {
+    printer().reset();
     for (Stmt s : getStmts()) {
  	  if (s.hasIndent()) {
 	    printer().append(PrettyPrinter.INDENT);
