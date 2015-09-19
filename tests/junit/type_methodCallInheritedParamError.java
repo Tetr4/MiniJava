@@ -1,0 +1,36 @@
+class MainTest{
+    public static void main(String[] arg0){
+    }
+}
+
+class Integer{
+}
+
+class A1{
+}
+class A2 extends A1{
+}
+
+class B1{
+}
+class B2 extends B1{
+}
+class FehlerSammlung{
+	int x;
+	Methodensammlung m;
+	A1 a;
+	
+	public int executeFunktioniert(){
+		x = m.m1(a);
+		return 0;
+	}
+}
+
+
+class Methodensammlung{
+	
+	public int m1(A2 a){
+		return 0;
+	}
+	
+}
