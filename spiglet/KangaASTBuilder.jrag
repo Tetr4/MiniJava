@@ -86,9 +86,16 @@ aspect KangaASTBuilder {
     
     syn lazy int Procedure.getStackSlots() {
     
-        // We have 4 registers for arguments.
-        // If this procedure takes more arguments, they are put on the stack.
-        int argumentsStackSlots = Math.max(0, getParams() - 4);
+        // We need to save the arguments on the stack
+        int argumentsStackSlots = getParams();
+        // Get maximum number of passed parameters of a call in our body.
+        int maxParamsOfCalls = getMaxParams(getStmtsRet().getStmtsList());
+        // No calls in our body
+        if (maxParamsOfCalls == 0) {
+            // We have 4 registers for arguments.
+            // We don't have to save the first 4 arguments, if there is no call which could potentially overwrite them.
+            argumentsStackSlots = Math.max(0, argumentsStackSlots - 4);
+        }
     
         // Check how many temporaries were used in this procedure.
 		HashSet<Integer> temps = new HashSet<Integer>();
@@ -99,8 +106,6 @@ aspect KangaASTBuilder {
 		int localVariableStackSlots = temps.size();
 		
 		// Check spilled args of calls
-		// Get maximum number of passed parameters of a call in our body.
-		int maxParamsOfCalls = getMaxParams(getStmtsRet().getStmtsList());
 		// We'd overwrite the a0 - a3 registers holding our own arguments
 		// when calling a function, so we have to save them before specifying the arguments of the call.
 		// Effectively we'd only save a stack slot for the unused argument registers, if our procedure uses less than 4.
