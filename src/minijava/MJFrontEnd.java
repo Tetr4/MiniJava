@@ -92,6 +92,18 @@ public class MJFrontEnd {
             } catch(kangainterpreter.ParseException e) {
                 System.err.println("Interpreter could not parse: " + e.getMessage());
             }
+            
+            
+            // Transform kanga AST to mips AST
+            mips.Program mips = kanga.toMips();
+            
+            // Prettyprint mips
+            System.out.println("### MIPS - Pretty Print ###");
+            System.out.println(mips.print().getString() + '\n');
+            
+            // Interpret mips program
+            System.out.println("### MIPS - Interpreting ###");
+            System.out.println(mips.interpret());
 
         } catch (FileNotFoundException e) {
             System.err.println("MJFrontEnd: file " + inputFileName + " not found");

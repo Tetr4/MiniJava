@@ -9,6 +9,7 @@ import tests.minijava.NameTest;
 import tests.minijava.ParserTest;
 import tests.minijava.ScannerTest;
 import tests.minijava.TypeTest;
+import tests.mips.MipsTest;
 import tests.piglet.PigletTest;
 import tests.spiglet.SPigletTest;
 
@@ -21,7 +22,7 @@ import tests.spiglet.SPigletTest;
 	PigletTest.class,
 	SPigletTest.class,
 	KangaTest.class,
-//	MipsTest.class
+	MipsTest.class
 })
 public class AllTests {
 }

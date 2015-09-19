@@ -1,0 +1,13 @@
+import java.lang.Math;
+import java.util.HashSet;
+import java.util.HashMap;
+
+aspect MipsASTBuilder {
+     
+    // Program
+    syn lazy mips.Program Program.toMips() {
+        // TODO implement
+        return new mips.Program(new mips.List<mips.Stmt>());
+    }
+
+}

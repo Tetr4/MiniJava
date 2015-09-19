@@ -1,0 +1,8 @@
+aspect MipsInterpreter {
+    
+    public String Program.interpret() {
+        // TODO implement interpreter
+        return "INTERPRETER NOT YET IMPLEMENTED";
+    }
+    
+}
