@@ -11,13 +11,11 @@ aspect SpigletInterpreter {
     public String Program.interpret() throws pigletinterpreter.ParseException {
         String code = print().getString();
         
-        // use same static as  piglet interpreter
-        pigletinterpreter.PigletParser interpreterParser = piglet.Program.interpreterParser;
-        
         // parse
         InputStream pigletInput = new ByteArrayInputStream(code.getBytes());
-        if (interpreterParser == null) {
-            interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
+        if (piglet.Program.interpreterParser == null) {
+            // use same static as  piglet interpreter
+            piglet.Program.interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
         } else {
             pigletinterpreter.PigletParser.ReInit(pigletInput);
         }
