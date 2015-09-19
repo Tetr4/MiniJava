@@ -13,14 +13,22 @@ public abstract class TransformationTest {
     protected static pigletinterpreter.PigletParser pigletInterpreterParser;
     protected static kangainterpreter.KangaParser kangaInterpreterParser;
 
-    protected abstract String interpret(MJFile file) throws java.lang.Exception;
+    protected abstract String interpret(MJFile file) throws Exception;
     
     protected static String[] getLines(String s) {
         return s.split("\\r?\\n");
     }
     
     @Test
-    public void testPrint() throws java.lang.Exception {
+    public void testFactorial() throws Exception {
+        String result = interpret(new MJFile("tests/Factorial.java"));
+        String[] resultLines = getLines(result);
+        assertEquals(1, resultLines.length);
+        assertEquals("3628800", resultLines[0]);
+    }
+    
+    @Test
+    public void testPrint() throws Exception {
         String result = interpret(new MJFile("tests/junit/test_print.java"));
         String[] resultLines = getLines(result);
         assertEquals(1, resultLines.length);
