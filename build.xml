@@ -3,8 +3,6 @@
 <project name="MiniJavaCompiler" default="compile_all">
 
     <property name="gen.dir" value="gen" />
-    <property name="test.dir" location="junit" />
-    <property name="build.test.dir" location="bin/tests" />
 
     <target name="compile_all" depends="clean, minijava, piglet, spiglet, kanga, mips" />
 
