@@ -6,15 +6,15 @@ import java.io.InputStream;
 import pigletinterpreter.visitor.GJPigletInterpreter;
 
 aspect PigletInterpreter {
-    public static pigletinterpreter.PigletParser Program.interpreterParser;
-    
     public String Program.interpret() throws pigletinterpreter.ParseException {
         String code = print().getString();
         
         // parse
         InputStream pigletInput = new ByteArrayInputStream(code.getBytes());
-        if (interpreterParser == null) {
-            interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
+        if (spiglet.Program.interpreterParser == null) {
+            // use same static piglet and spiglet. 
+            // static is at spiglet.Program to prevent circular build dependency, as spiglet is build first
+            spiglet.Program.interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
         } else {
             pigletinterpreter.PigletParser.ReInit(pigletInput);
         }

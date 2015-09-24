@@ -7,15 +7,15 @@ import java.io.InputStream;
 import pigletinterpreter.visitor.GJPigletInterpreter;
 
 aspect SpigletInterpreter {
+    public static pigletinterpreter.PigletParser Program.interpreterParser;
     
     public String Program.interpret() throws pigletinterpreter.ParseException {
         String code = print().getString();
         
         // parse
         InputStream pigletInput = new ByteArrayInputStream(code.getBytes());
-        if (piglet.Program.interpreterParser == null) {
-            // use same static as  piglet interpreter
-            piglet.Program.interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
+        if (interpreterParser == null) {
+            interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
         } else {
             pigletinterpreter.PigletParser.ReInit(pigletInput);
         }
