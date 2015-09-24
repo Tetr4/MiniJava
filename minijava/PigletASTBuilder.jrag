@@ -711,6 +711,7 @@ aspect PigletASTBuilder {
         piglet.Exp obj = new piglet.TempExp(new piglet.Temp(0));
         
         piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
+        
         piglet.Label returnLabel = new piglet.Label("nullcheck_ok");
         
         // if (obj < 1)

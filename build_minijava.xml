@@ -1,0 +1,84 @@
+<project name="minijava" default="compile" basedir=".">
+
+  <property name="parser.name" value="MJParser"/>
+
+  <property name="package" value="minijava"/>
+
+  <property name="src.dir" value="src"/>
+  <property name="grammar.dir" value="minijava"/>
+  <property name="gen.dir" value="${basedir}/gen"/>
+  <property name="classes.dir" value="bin"/>
+  <property name="tools"   value="tools"/>
+
+  <taskdef name="jflex"   classname="JFlex.anttask.JFlexTask" classpath="${tools}/JFlex.jar"/>
+  <taskdef name="beaver"  classname="beaver.comp.run.AntTask" classpath="${tools}/beaver.jar"/>
+  <taskdef name="jastadd" classname="jastadd.JastAddTask" classpath="${tools}/jastadd2.jar" />
+
+  <target name="scanner">
+    <mkdir dir="${gen.dir}/${package}"/>
+    <jflex file="${grammar.dir}/MJScanner.flex" outdir="${gen.dir}/${package}" nobak="true" />
+  </target>
+
+  <target name="parser">
+    <mkdir dir="${gen.dir}/${package}"/>
+    <beaver file="${grammar.dir}/MJParser.beaver" destdir="${gen.dir}/${package}" terminalNames="yes" compress="no" useSwitch="yes" reportActions="yes" />
+  </target>
+
+  <target name="jastadd">
+    <mkdir dir="${gen.dir}"/>
+    <jastadd package="${package}" grammar="${grammar.dir}" outdir="${gen.dir}" beaver="true" debug="true">
+        <fileset dir=".">
+          <include name="${grammar.dir}/*.ast"/>
+          <include name="${grammar.dir}/*.jrag"/>
+          <include name="${grammar.dir}/*.jadd"/>
+        </fileset>
+      </jastadd>
+  </target>
+
+  <target name="preprocess" depends="clean,jastadd,parser,scanner">
+  </target>
+
+  <target name="compile" depends="preprocess">
+     <mkdir dir="${classes.dir}"/>
+     <javac srcdir="${gen.dir}"  
+            destdir="${classes.dir}"
+            classpath="${tools}/beaver-rt.jar"
+     	    includeantruntime="false"
+            debug="true" debuglevel="lines,vars,source">
+             <include name="**/*.java"/>
+     </javac>
+     <javac srcdir="${src.dir}" 
+            destdir="${classes.dir}"
+            classpath="${classes.dir}:${tools}/beaver-rt.jar"
+            includeantruntime="false"
+            debug="true" debuglevel="lines,vars,source">
+            <include name="**/*.java"/>
+     </javac>
+  </target>
+
+  <target name="clean">
+     <delete dir="${gen.dir}/${package}"/>
+  </target>
+
+  <!--<target name="test" depends="compile">
+    <java
+      classname="minijava.MJFrontEnd"
+      classpath="${classes.dir}:${tools}/junit.jar:${tools}/beaver-rt.jar"
+      fork="true"
+      dir=".">
+      <arg value="${target}"/>
+    </java>
+  </target>-->
+  
+  <target name="alltests" depends="compile">
+    <apply executable="java" parallel="false" force="true">
+      <arg value="-classpath" />
+      <arg path="${classes.dir}:${tools}/junit.jar:${tools}/beaver-rt.jar" />
+      <arg value="minijava.MJFrontEnd" />
+      <srcfile />
+        <fileset dir="tests/" includes="*.java"/>
+        <!--fileset dir="../sheets/ex5/tests/" includes="*.java" id="fid"/-->
+    </apply>
+  </target>
+  
+</project>
