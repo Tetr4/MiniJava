@@ -6,8 +6,127 @@ aspect MipsASTBuilder {
      
     // Program
     syn lazy mips.Program Program.toMips() {
-        // TODO implement
-        return new mips.Program(new mips.List<mips.Stmt>());
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        
+        // Labeled Statements
+        for (LabeledStmt labeledStmt : getStmtsList()) {
+            // add all
+            for (mips.Stmt stmt : labeledStmt.toMips()) {
+                stmts.add(stmt);
+            }
+        }
+        
+        // Procedures
+        for (Procedure procedure : getProcsList()) {
+            // add all
+            for (mips.Stmt stmt : procedure.toMips()) {
+                stmts.add(stmt);
+            }
+        }
+        
+        return new mips.Program(stmts);
     }
+    
+    // LabeledStmt
+    syn lazy mips.List<mips.Stmt> LabeledStmt.toMips() {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        
+        // Label
+        if(hasLabel()) {
+            stmts.add(getLabel().toMips());
+        }
+        
+        // Statement
+        for (mips.Stmt stmt : getStmt().toMips()) {
+            stmts.add(stmt);
+        }
+        return stmts;
+    }
+    
+    // Procedure
+    syn lazy mips.List<mips.Stmt> Procedure.toMips() {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        
+        // label
+        stmts.add(getLabel().toMips());
+        
+        // allocate stack space
+        // subi $sp, $sp, <stackslots>
+        mips.ExpAddr stackslotsAlloc = new mips.ExpAddr(new mips.ConstExpr(getStackSlots()));
+        mips.Sub allocateStack = new mips.Sub(new mips.SP(), new mips.SP(), stackslotsAlloc);
+        stmts.add(allocateStack);
+        
+        // Labeled Statements
+        for (LabeledStmt labeledStmt : getStmtsList()) {
+            // add all
+            for (mips.Stmt stmt : labeledStmt.toMips()) {
+                stmts.add(stmt);
+            }
+        }
+        
+        // free stack space
+        // addi $sp, $sp, <stackslots>
+        mips.ExpAddr stackslotsFree = new mips.ExpAddr(new mips.ConstExpr(getStackSlots()));
+        mips.Add freeStack = new mips.Add(new mips.SP(), new mips.SP(), stackslotsFree);
+        stmts.add(freeStack);
+        
+        return stmts;
+    }
+    
+    
+    /*
+     * Statements
+     */
+    syn lazy mips.List<mips.Stmt> Stmt.toMips() = convertToStmtList(new mips.IdLabel("NOT IMPLEMENTED"));
+    eq Noop.toMips() = convertToStmtList(new mips.Nop());
+    // eq Err.toMips() = ; // syscall to error stream?
+    eq CJump.toMips() = convertToStmtList(new mips.Beqz(getCond().toMips(), getLabel().toMipsOperand())); // TODO invert cond?
+    // eq Jump.toMips() = convertToStmtList(new mips.J(...));
+    // eq HStore.toMips() = // Addr:Reg <Offset:Integer> Value:Reg;
+    // eq HLoad.toMips() = // Dest:Reg Addr:Reg <Offset:Integer>;
+    // eq Move.toMips() = convertToStmtList(new mips.Move(getDest().toMips(), getAddr).toMips()); // TODO add <Offset:Integer>
+    // eq Print.toMips() = // Value:SExp; // TODO syscall 
+    // eq ALoad.toMips() = new mips.Lw(...) // Dest:Reg StackPos:SpilledArg;
+    // eq AStore.toMips() = new mips.Sw(...) // StackPos:SpilledArg Value:Reg;
+    // eq PassArg.toMips() =  // <StackIndex:Integer> Value:Reg;
+    // eq Call.toMips() = new mips.Jalr(...) // Addr:SExp;
 
+    
+    /*
+     * Expressions
+     */
+    /*
+    abstract Exp;
+    HAlloc:Exp  ::= Size:SExp;
+    
+    abstract SExp:Exp;
+    Reg:SExp   ::= <Reg:String>;
+    LabelExp:SExp ::= Label:Label;
+    IntLiteral:SExp ::= <Integer:Integer>;
+    
+    abstract Binop:Exp  ::= Left:Reg Right:SExp;
+    Lt:Binop;
+    Plus:Binop;
+    Minus:Binop;
+    Times:Binop;
+    */    
+    syn lazy mips.Reg Reg.toMips() = new mips.A0(); // TODO string compare
+    
+    
+    /*
+     * OTHER
+     */
+    syn lazy mips.IdLabel Label.toMips() = new mips.IdLabel(getLabel());
+    syn lazy mips.LabAddr Label.toMipsOperand() = new mips.LabAddr(new mips.Ref(getLabel()));
+    // SpilledArg  ::= <Pos:Integer>;
+    
+
+    /*
+     * HELPERS
+     */
+     syn mips.List<mips.Stmt> Stmt.convertToStmtList(mips.Stmt stmt) {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        stmts.add(stmt);
+        return stmts;
+    }
 }
