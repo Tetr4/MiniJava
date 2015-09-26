@@ -7,6 +7,7 @@ aspect PigletASTBuilder {
         If.labelIndex = 0;
         While.labelIndex = 0;
         Assign.labelIndex = 0;
+        MethodDecl.labelIndex = 0;
         And.firstCondition = true;
         And.exitLabel = null;
         And.collectedStmts = null;
@@ -239,6 +240,7 @@ aspect PigletASTBuilder {
         return procedures;
     }
     
+    public static int MethodDecl.labelIndex = 0;
     syn lazy piglet.Procedure MethodDecl.toPiglet() {
         // Assign local vars and parameters a temporary identifier
         // skip param 0 (vtable list)
@@ -269,8 +271,8 @@ aspect PigletASTBuilder {
         Exp retExp = getRetExp();
         piglet.Exp returnMe;
         if (retExp instanceof And) {
-            piglet.Label falseLabel = new piglet.Label("return_logicchain_false");
-            piglet.Label skipFalseLabel = new piglet.Label("return_logicchain_skip");
+            piglet.Label falseLabel = new piglet.Label("return_logicchain_false_" + labelIndex);
+            piglet.Label skipFalseLabel = new piglet.Label("return_logicchain_skip_" + labelIndex++);
             
             // condition including |&&| logic chains
             handleCondition(labeledStmts, falseLabel, retExp, null);
