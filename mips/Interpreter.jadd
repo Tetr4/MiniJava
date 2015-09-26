@@ -1,8 +1,25 @@
+import mips.interpreter.SPIMInterpreter;
+import java.io.*;
+
 aspect MipsInterpreter {
     
+    public static int Program.tempFileNameIndex = 0;
     public String Program.interpret() {
-        // TODO implement interpreter
-        return "INTERPRETER NOT YET IMPLEMENTED";
+        // Pretty print code
+        String code = print().getString();
+        
+        try {
+	        // Save it to temporary file..
+	        File filename = File.createTempFile("mips_" + tempFileNameIndex++, ".tmp");
+	        BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
+	        bw.write(code);
+	        bw.close();
+	        
+	        // Have SPIM load and interpret the file
+	        return SPIMInterpreter.getInstance().interpret(filename.getAbsolutePath());
+	    }
+	    catch (IOException e) {
+	        return e.getMessage();
+	    }
     }
-    
 }

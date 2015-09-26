@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 
 import mips.Program;
+import mips.interpreter.SPIMInterpreter;
 
 public class Main {
 
@@ -26,6 +27,10 @@ public class Main {
             // Print the resulting AST on standard output.
             String mipsCode = ast.print().getString();
             System.out.println(mipsCode);
+            
+            // String output = SPIMInterpreter.getInstance().interpret(inputFileName);
+            String output = ast.interpret();
+            System.out.println(output);
 
         } catch (FileNotFoundException e) {
             System.err
