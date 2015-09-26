@@ -89,7 +89,7 @@ aspect SpigletASTBuilder {
         spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
         
         // condition
-        addAll(statements, getCond().toSpigletStmts());
+        addAll(statements, getCond().toSpigletStmtsForTemp());
         spiglet.Temp conditionTemp = getCond().toSpigletTemp();
         
         // label
@@ -211,22 +211,34 @@ aspect SpigletASTBuilder {
         spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
         
         // size
-        addAll(statements, getSize().toSpigletStmts());
+        addAll(statements, getSize().toSpigletStmtsForTemp());
         
         return statements;
     } 
     
-    eq Binop.toSpigletStmts() {
+    eq Binop.toSpigletStmtsForTemp() {
         spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
         
         // left
         addAll(statements, getLeft().toSpigletStmtsForTemp());
         
         // right
-        addAll(statements, getRight().toSpigletStmts());
+        addAll(statements, getRight().toSpigletStmtsForTemp());
         
         spiglet.Move move = new spiglet.Move(toSpigletTemp(), toSpigletExp());
         statements.add(move);
+        
+        return statements;
+    }
+    
+    eq Binop.toSpigletStmts() {
+       spiglet.List<spiglet.Stmt> statements = new spiglet.List<spiglet.Stmt>();
+        
+        // left
+        addAll(statements, getLeft().toSpigletStmts());
+        
+        // right
+        addAll(statements, getRight().toSpigletStmtsForTemp());
         
         return statements;
     }
