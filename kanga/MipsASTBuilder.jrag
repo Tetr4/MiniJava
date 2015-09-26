@@ -3,9 +3,16 @@ import java.util.HashSet;
 import java.util.HashMap;
 
 aspect MipsASTBuilder {
+    
+    
+    private static void Program.reset() {
+    }
      
     // Program
     syn lazy mips.Program Program.toMips() {
+        // Reset builder state
+        reset();
+        
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         
         // Labeled Statements
@@ -116,7 +123,7 @@ aspect MipsASTBuilder {
     /*
      * OTHER
      */
-    syn lazy mips.IdLabel Label.toMips() = new mips.IdLabel(getLabel());
+    syn lazy mips.Label Label.toMips() = new mips.IdLabel(getLabel());
     syn lazy mips.LabAddr Label.toMipsOperand() = new mips.LabAddr(new mips.Ref(getLabel()));
     // SpilledArg  ::= <Pos:Integer>;
     

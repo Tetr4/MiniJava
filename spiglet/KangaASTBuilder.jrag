@@ -12,8 +12,16 @@ aspect KangaASTBuilder {
      * v0,v1 <- temporary for loading from stack
      */ 
      
+    private static void Program.reset() {
+        Temp.stackIndex = 0;
+        Temp.stackMap = new HashMap<Integer, Integer>();
+    } 
+     
     // Program
     syn lazy kanga.Program Program.toKanga() {
+        // Reset builder state
+        reset();
+    
         // Statements
         kanga.List<kanga.LabeledStmt> stmts = new kanga.List<kanga.LabeledStmt>();
         for (LabeledStmt labeledStmt : getStmtsList()) {

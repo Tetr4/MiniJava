@@ -9,10 +9,15 @@ aspect SpigletASTBuilder {
     // spiglet uses more temps -> remember which piglet temp belongs to which spiglet temp and reuse
     public static Map<Integer, Integer> Program.pigletToSpigletTemps;
     
-    // Program
-    syn lazy spiglet.Program Program.toSpiglet() {
+    private static void Program.reset() {
         currentTemp = 0;
         pigletToSpigletTemps = new HashMap<Integer, Integer>(); 
+    }
+    
+    // Program
+    syn lazy spiglet.Program Program.toSpiglet() {
+        // Reset builder state
+        reset();
         
         // statements
         spiglet.List<spiglet.LabeledStmt> statements = new spiglet.List<spiglet.LabeledStmt>();

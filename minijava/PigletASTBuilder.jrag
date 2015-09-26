@@ -3,7 +3,19 @@ import java.util.ArrayList;
 
 aspect PigletASTBuilder {
     
+    private static void Program.reset() {
+        If.labelIndex = 0;
+        While.labelIndex = 0;
+        Assign.labelIndex = 0;
+        And.firstCondition = true;
+        And.exitLabel = null;
+        And.collectedStmts = null;
+    }
+    
     syn lazy piglet.Program Program.toPiglet() {
+        // Reset builder state
+        reset();
+    
         piglet.List<piglet.Procedure> procedures = new piglet.List<piglet.Procedure>();
         
         // helper procedures
