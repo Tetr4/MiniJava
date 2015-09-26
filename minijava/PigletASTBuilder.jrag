@@ -33,6 +33,9 @@ aspect PigletASTBuilder {
         // Ignore classes that don't need a virtual table (no methods or no changed methods regarding superclass)
         int numClassesWithMethods = setupClassIndices();
         
+        // vtable list must have at least 1 element, because it is dereferenced in OBJECTALLOC
+        int vtableSize = Math.max(numClassesWithMethods, 1);
+        
         // Prepare classes and translate all methods of all classes to procedures.
         for (ClassDecl classDecl: getDeclsList()) {
             // Assign proper field offsets to TypedVars
@@ -52,7 +55,7 @@ aspect PigletASTBuilder {
         // Generate a vtable_list with all the vtables of the classes.
         // This vtable list is passed around in method calls next to the this pointer.
         piglet.List<piglet.LabeledStmt> labeledStmts = new piglet.List<piglet.LabeledStmt>();
-        piglet.HAlloc vtableListBase = new piglet.HAlloc(new piglet.IntLiteral(numClassesWithMethods * 4));
+        piglet.HAlloc vtableListBase = new piglet.HAlloc(new piglet.IntLiteral(vtableSize * 4));
         
         // Save address of vtable list in TEMP 0.
         piglet.Temp vtableList = new piglet.Temp(0);
