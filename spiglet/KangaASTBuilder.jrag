@@ -278,7 +278,7 @@ aspect KangaASTBuilder {
     
         // Restore arguments
         for(int i=0; i<numParams; i++) {
-            kanga.ALoad aload = new kanga.ALoad(new kanga.Reg("a" + i), new kanga.SpilledArg(startStackIndex++));
+            kanga.ALoad aload = new kanga.ALoad(new kanga.Reg("a" + i), new kanga.SpilledArg(startStackIndex+i));
             stmts.add(aload);
         }
         
