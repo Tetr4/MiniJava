@@ -917,9 +917,10 @@ aspect PigletASTBuilder {
         
         piglet.TempExp baseAddressExp = new piglet.TempExp(baseAddress);
  
-        // currentAddress = address;
+        // currentAddress = address + offset;
         piglet.Temp currentAddress = new piglet.Temp(firstTempNr++);
-        piglet.Move setStartAddress = new piglet.Move(currentAddress, baseAddressExp);
+        piglet.Plus calcCurrentAddress = new piglet.Plus(baseAddressExp, new piglet.IntLiteral(offset));
+        piglet.Move setStartAddress = new piglet.Move(currentAddress, calcCurrentAddress);
         labeledStmts.add(convertToLabeledStmt(setStartAddress));
         
         piglet.Temp endAddress = new piglet.Temp(firstTempNr++);
@@ -934,7 +935,7 @@ aspect PigletASTBuilder {
         labeledStmts.add(convertToLabeledStmt(entryLabel, condition));
         
         // block[currentAddress] = 0;
-        piglet.HStore initBlock = new piglet.HStore(new piglet.TempExp(currentAddress), offset, new piglet.IntLiteral(0));
+        piglet.HStore initBlock = new piglet.HStore(new piglet.TempExp(currentAddress), 0, new piglet.IntLiteral(0));
         labeledStmts.add(convertToLabeledStmt(initBlock));
 
         // currentAddress += 4;
