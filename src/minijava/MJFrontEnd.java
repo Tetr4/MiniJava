@@ -97,9 +97,6 @@ public class MJFrontEnd {
             // Transform kanga AST to mips AST
             mips.Program mips = kanga.toMips();
             
-            System.out.println("### MIPS - AST ###");
-            System.out.println(mips.printAST());
-            
             // Prettyprint mips
             System.out.println("### MIPS - Pretty Print ###");
             System.out.println(mips.print().getString() + '\n');
