@@ -4,9 +4,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
-import mips.Program;
-import mips.interpreter.SPIMInterpreter;
-
 public class Main {
 
     public static void main(String args[]) {
@@ -22,19 +19,16 @@ public class Main {
             System.out.flush();
             MipsParser parser = new MipsParser();
 
-            Program ast = (Program) parser
-                    .parse(new MipsScanner(new FileReader(inputFileName)));
+            Program ast = (Program) parser.parse(new MipsScanner(new FileReader(inputFileName)));
             // Print the resulting AST on standard output.
             String mipsCode = ast.print().getString();
             System.out.println(mipsCode);
-            
-            // String output = SPIMInterpreter.getInstance().interpret(inputFileName);
+
             String output = ast.interpret();
             System.out.println(output);
 
         } catch (FileNotFoundException e) {
-            System.err
-                    .println("FrontEnd: file " + inputFileName + " not found");
+            System.err.println("FrontEnd: file " + inputFileName + " not found");
         } catch (beaver.Parser.Exception e) {
             System.out.println("Error when parsing: " + inputFileName);
             System.out.println(e.getMessage());

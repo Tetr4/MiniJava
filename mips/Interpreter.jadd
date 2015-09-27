@@ -1,4 +1,3 @@
-import mips.interpreter.SPIMInterpreter;
 import java.io.*;
 
 aspect MipsInterpreter {
@@ -15,8 +14,37 @@ aspect MipsInterpreter {
 	        bw.write(code);
 	        bw.close();
 	        
-	        // Have SPIM load and interpret the file
-	        return SPIMInterpreter.getInstance().interpret(filename.getAbsolutePath());
+	        // Create process for SPIM
+	        ProcessBuilder pb;
+            if (System.getProperty("os.name").startsWith("Windows")) { // can execute .exe files
+                String spimExe = "support/spim/spim.exe";
+                String spimPath = new File(spimExe).getParent();
+                String[] cmd = { spimExe, "-file", filename.getAbsolutePath() };
+                pb = new ProcessBuilder(cmd);
+            } else { // Unix-like
+                pb = new ProcessBuilder("support/spim/spim",
+                            "-exception_file",  "support/spim/exceptions.s",
+                            "-file", filename.getAbsolutePath());
+            } 
+
+	        // Have SPIM interpret the file
+            Process process = pb.start();
+            
+            // result from in stream
+            BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            StringBuilder builder = new StringBuilder();
+            String line;
+            while ((line = in.readLine()) != null) {
+                builder.append(line + '\n');
+            }
+            
+            // result from error stream
+            BufferedReader err = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            while ((line = err.readLine()) != null) {
+                builder.append(line + '\n');
+            }
+             
+	        return builder.toString();
 	    }
 	    catch (IOException e) {
 	        return e.getMessage();
