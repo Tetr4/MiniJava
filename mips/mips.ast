@@ -1,82 +1,45 @@
-/* mips.sable - Specification of the MIPS grammar. */
+/* Specification of the MIPS grammar. */
 Program ::= Stmt*;
 
 abstract Stmt;
 
-abstract Label:Stmt;
-IdLabel:Label  ::= <Ident:String>;
-DecLabel:Label ::= <Int:Integer>; 
+Label:Stmt ::= <Ident:String>;
 
-
-abstract Operand;
-AddrReg:Operand ::= AddrImmed Reg;
-abstract Reg:Operand;
-abstract AddrImmed:Operand;
-LabAddr:AddrImmed  ::= LabExpr;
-ExpAddr:AddrImmed  ::= Expr;
-
-abstract LabExpr;
-Ref:LabExpr ::= <Ident:String>;
-Min:LabExpr ::= <LRef1:String> <LRef2:String>; 
-
-abstract Data:Stmt;
-ListData:Data ::= DataMode DataExpr*;
-ExprData:Data ::= Expr;
+Data:Stmt ::= DataMode DataConstant;
 
 abstract DataMode;
 Word:DataMode;
+Asciiz:DataMode;
 
-abstract DataExpr;
-Exp:DataExpr   ::= Expr;
+abstract DataConstant; 
+IntData:DataConstant ::= <Int:Integer>;
+StringData:DataConstant ::= <String:String>;
+
 
 abstract Directive:Stmt;
-
 abstract Seg:Directive;
 Txt:Seg;
 Dat:Seg;
 
 abstract Sym:Directive;
-Globl:Sym      ::= <Ident:String>;
-   
-abstract Expr; 
-ConstExpr:Expr ::= <Int:Integer>;    
+Globl:Sym ::= <Ident:String>;
+Align:Sym ::= <Amount:Integer>;
 
-abstract Constant; 
+   
+abstract Operand;
+Reg:Operand ::= <Reg:String>;
+AddrReg:Operand ::= Constant Reg;
+
+abstract Constant:Operand;
 DecConst:Constant  ::= <Int:Integer>; 
 IdConst:Constant   ::= <Ident:String>;
 
-A0:Reg;
-A1:Reg;
-A2:Reg;
-A3:Reg;
-T0:Reg;
-T1:Reg;
-T2:Reg;
-T3:Reg;
-T4:Reg;
-T5:Reg;
-T6:Reg;
-T7:Reg;
-T8:Reg;
-T9:Reg;
-S0:Reg;
-S1:Reg;
-S2:Reg;
-S3:Reg;
-S4:Reg;
-S5:Reg;
-S6:Reg;
-S7:Reg;
-V0:Reg;
-V1:Reg;
-SP:Reg;
-FP:Reg;
-RA:Reg;
 
 abstract Instruction:Stmt;
 abstract Opcode0:Instruction;
 Nop:Opcode0;
 Syscall:Opcode0;
+
 
 abstract Opcode1:Instruction ::= Op:Operand; 
 Jal:Opcode1;

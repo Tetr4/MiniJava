@@ -1,6 +1,7 @@
 import java.lang.Math;
 import java.util.HashSet;
 import java.util.HashMap;
+import mips.*;
 
 aspect MipsASTBuilder {
     
@@ -14,6 +15,10 @@ aspect MipsASTBuilder {
         reset();
         
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        
+        stmts.add(new Txt());
+        stmts.add(new Globl("main"));
+        stmts.add(new mips.Label("main"));
         
         // Labeled Statements
         for (LabeledStmt labeledStmt : getStmtsList()) {
@@ -30,6 +35,44 @@ aspect MipsASTBuilder {
                 stmts.add(stmt);
             }
         }
+        
+        // Add predefined helpers:
+        // _halloc!
+        stmts.add(new Txt());
+        stmts.add(new Globl("_halloc"));
+        stmts.add(new mips.Label("_halloc"));
+        stmts.add(new Li(new mips.Reg("v0"), new DecConst(9))); // sbrk (alloc)
+        stmts.add(new Syscall());
+        stmts.add(new J(new mips.Reg("ra")));
+        
+        // _print
+        stmts.add(new Globl("_print"));
+        stmts.add(new mips.Label("_print"));
+        stmts.add(new Li(new mips.Reg("v0"), new DecConst(1))); // print int
+        stmts.add(new Syscall());
+        stmts.add(new La(new mips.Reg("a0"), new IdConst("newl")));
+        stmts.add(new Li(new mips.Reg("v0"), new DecConst(4))); // print string
+        stmts.add(new Syscall());
+        stmts.add(new J(new mips.Reg("ra")));
+        
+        // _error
+        stmts.add(new Globl("_error"));
+        stmts.add(new mips.Label("_error"));
+        stmts.add(new La(new mips.Reg("a0"), new IdConst("str_er")));
+        stmts.add(new Li(new mips.Reg("v0"), new DecConst(4))); // print string
+        stmts.add(new Syscall());
+        stmts.add(new Li(new mips.Reg("v0"), new DecConst(10))); // exit
+        stmts.add(new Syscall());
+        
+        // newl   
+        stmts.add(new Dat());
+        stmts.add(new Align(0));
+        stmts.add(new mips.Label("newl"));
+        stmts.add(new Data(new Asciiz(), new StringData("\\n")));
+        
+        // str_er
+        stmts.add(new mips.Label("str_er"));
+        stmts.add(new Data(new Asciiz(), new StringData("ERROR\\n"))); 
         
         return new mips.Program(stmts);
     }
@@ -54,13 +97,16 @@ aspect MipsASTBuilder {
     syn lazy mips.List<mips.Stmt> Procedure.toMips() {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         
+        // globl
+        stmts.add(new Txt());
+        stmts.add(new Globl(getLabel().getLabel()));
+        
         // label
         stmts.add(getLabel().toMips());
         
         // allocate stack space
         // subi $sp, $sp, <stackslots>
-        mips.ExpAddr stackslotsAlloc = new mips.ExpAddr(new mips.ConstExpr(getStackSlots()));
-        mips.Sub allocateStack = new mips.Sub(new mips.SP(), new mips.SP(), stackslotsAlloc);
+        mips.Sub allocateStack = new mips.Sub(new mips.Reg("sp"), new mips.Reg("sp"), new DecConst(getStackSlots()));
         stmts.add(allocateStack);
         
         // Labeled Statements
@@ -73,9 +119,11 @@ aspect MipsASTBuilder {
         
         // free stack space
         // addi $sp, $sp, <stackslots>
-        mips.ExpAddr stackslotsFree = new mips.ExpAddr(new mips.ConstExpr(getStackSlots()));
-        mips.Add freeStack = new mips.Add(new mips.SP(), new mips.SP(), stackslotsFree);
+        mips.Add freeStack = new mips.Add(new mips.Reg("sp"), new mips.Reg("sp"), new DecConst(getStackSlots()));
         stmts.add(freeStack);
+        
+        // jump back
+        stmts.add(new J(new mips.Reg("ra")));
         
         return stmts;
     }
@@ -84,9 +132,9 @@ aspect MipsASTBuilder {
     /*
      * Statements
      */
-    syn lazy mips.List<mips.Stmt> Stmt.toMips() = convertToStmtList(new mips.IdLabel("NOT IMPLEMENTED"));
+    syn lazy mips.List<mips.Stmt> Stmt.toMips() = convertToStmtList(new mips.Label("NOT IMPLEMENTED"));
     eq Noop.toMips() = convertToStmtList(new mips.Nop());
-    // eq Err.toMips() = ; // syscall to error stream?
+    eq Err.toMips() = convertToStmtList(new J(new IdConst("_error")));
     eq CJump.toMips() = convertToStmtList(new mips.Beqz(getCond().toMips(), getLabel().toMipsOperand())); // TODO invert cond?
     // eq Jump.toMips() = convertToStmtList(new mips.J(...));
     // eq HStore.toMips() = // Addr:Reg <Offset:Integer> Value:Reg;
@@ -116,24 +164,63 @@ aspect MipsASTBuilder {
     Plus:Binop;
     Minus:Binop;
     Times:Binop;
-    */    
-    syn lazy mips.Reg Reg.toMips() = new mips.A0(); // TODO string compare
+    */
+    syn lazy mips.List<mips.Stmt> Exp.toMipsStmts() = new mips.List<mips.Stmt>();
+    syn lazy mips.Reg Exp.toMipsReg() = new mips.Reg("meh");
+    eq HAlloc.toMipsStmts() {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        
+        // TODO Save current a0
+        addAll(stmts, getSize().toMipsLoad(new mips.Reg("a0")));
+        
+        // Call halloc
+        stmts.add(new Jal(new IdConst("_halloc")));
+        
+        return stmts;
+    }
+    eq HAlloc.toMipsReg() {
+        return new mips.Reg("v0");
+    }
     
+    syn lazy mips.Reg Reg.toMips() = new mips.Reg(getReg());
+    
+    syn lazy mips.List<mips.Stmt> SExp.toMipsLoad(mips.Reg target);
+    eq IntLiteral.toMipsLoad(mips.Reg target) {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        stmts.add(new Li(target, new DecConst(getInteger())));
+        return stmts;
+    }
+    eq Reg.toMipsLoad(mips.Reg target) {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        stmts.add(new mips.Move(target, toMips()));
+        return stmts;
+    }
+    eq LabelExp.toMipsLoad(mips.Reg target) {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        stmts.add(new mips.Move(target, getLabel().toMipsOperand()));
+        return stmts;
+    }
     
     /*
      * OTHER
      */
-    syn lazy mips.Label Label.toMips() = new mips.IdLabel(getLabel());
-    syn lazy mips.LabAddr Label.toMipsOperand() = new mips.LabAddr(new mips.Ref(getLabel()));
+    syn lazy mips.Label Label.toMips() = new mips.Label(getLabel());
+    syn lazy mips.IdConst Label.toMipsOperand() = new IdConst(getLabel());
     // SpilledArg  ::= <Pos:Integer>;
     
 
     /*
      * HELPERS
      */
-     syn mips.List<mips.Stmt> Stmt.convertToStmtList(mips.Stmt stmt) {
+    syn mips.List<mips.Stmt> Stmt.convertToStmtList(mips.Stmt stmt) {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         stmts.add(stmt);
         return stmts;
+    }
+    
+    public void ASTNode.addAll(mips.List<mips.Stmt> statements, mips.List<mips.Stmt> additionalStatements) {
+        for (mips.Stmt stmt: additionalStatements) {
+            statements.add(stmt);
+        }
     }
 }
