@@ -35,7 +35,7 @@
       </jastadd>
   </target>
 
-  <target name="preprocess" depends="jastadd,scanner,parser">
+  <target name="preprocess" depends="jastadd">
   </target>
 
   <target name="compile" depends="preprocess">
