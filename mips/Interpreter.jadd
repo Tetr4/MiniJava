@@ -7,6 +7,7 @@ aspect MipsInterpreter {
         // Pretty print code
         String code = print().getString();
         
+        StringBuilder builder = new StringBuilder();
         try {
 	        // Save it to temporary file..
 	        File filename = File.createTempFile("mips_" + tempFileNameIndex++, ".tmp");
@@ -21,6 +22,7 @@ aspect MipsInterpreter {
                 String spimPath = new File(spimExe).getParent();
                 String[] cmd = { spimExe, "-file", filename.getAbsolutePath() };
                 pb = new ProcessBuilder(cmd);
+                pb.directory(new File(spimPath));
             } else { // Unix-like
                 pb = new ProcessBuilder("support/spim/spim",
                             "-exception_file",  "support/spim/exceptions.s",
@@ -32,22 +34,40 @@ aspect MipsInterpreter {
             
             // result from in stream
             BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            StringBuilder builder = new StringBuilder();
             String line;
+            boolean awaitsInput = false;
             while ((line = in.readLine()) != null) {
+                // The spim shell waits for some input? Don't wait for output forever.
+                if (line.startsWith("(spim)")) {
+                    awaitsInput = true;
+                    break;
+                }
                 builder.append(line + '\n');
             }
             
-            // result from error stream
-            BufferedReader err = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            while ((line = err.readLine()) != null) {
-                builder.append(line + '\n');
+            // End the simulator if execution failed and it waits for a command.
+            if (awaitsInput) {
+                BufferedWriter out = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+                out.write("quit");
+                out.close();
             }
+            else {
+                // result from error stream
+                BufferedReader err = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                while ((line = err.readLine()) != null) {
+                    builder.append(line + '\n');
+                }
+                err.close();
+            }
+            
+            // Close spim.
+            in.close();
+            process.destroy();
              
 	        return builder.toString();
 	    }
 	    catch (IOException e) {
-	        return e.getMessage();
+	        return builder.toString() + "\n" + e.getMessage();
 	    }
     }
 }
