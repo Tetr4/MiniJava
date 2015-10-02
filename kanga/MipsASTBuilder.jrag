@@ -135,16 +135,44 @@ aspect MipsASTBuilder {
     syn lazy mips.List<mips.Stmt> Stmt.toMips() = convertToStmtList(new mips.Label("NOT IMPLEMENTED"));
     eq Noop.toMips() = convertToStmtList(new mips.Nop());
     eq Err.toMips() = convertToStmtList(new J(new IdConst("_error")));
-    eq CJump.toMips() = convertToStmtList(new mips.Beqz(getCond().toMips(), getLabel().toMipsOperand())); // TODO invert cond?
-    // eq Jump.toMips() = convertToStmtList(new mips.J(...));
-    // eq HStore.toMips() = // Addr:Reg <Offset:Integer> Value:Reg;
-    // eq HLoad.toMips() = // Dest:Reg Addr:Reg <Offset:Integer>;
-    // eq Move.toMips() = convertToStmtList(new mips.Move(getDest().toMips(), getAddr).toMips()); // TODO add <Offset:Integer>
-    // eq Print.toMips() = // Value:SExp; // TODO syscall 
+    eq CJump.toMips() = convertToStmtList(new mips.Beqz(getCond().toMipsReg(), getLabel().toMipsOperand()));
+    eq Jump.toMips() = convertToStmtList(new mips.J(getLabel().toMipsOperand()));
+    eq HStore.toMips() {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        
+        AddrReg offsDest = new AddrReg(new DecConst(getOffset()), getAddr().toMipsReg());
+        stmts.add(new mips.Move(offsDest, getValue().toMipsReg()));
+        
+        return stmts;
+    }
+    eq HLoad.toMips() {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        
+        AddrReg offsSource = new AddrReg(new DecConst(getOffset()), getAddr().toMipsReg());
+        stmts.add(new mips.Move(getDest().toMipsReg(), offsSource));
+        
+        return stmts;
+    }
+    eq Move.toMips() {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        
+        addAll(stmts, getSource().toMipsLoad(getDest().toMipsReg()));
+        
+        return stmts;
+    } 
+    eq Print.toMips() {
+        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
+        
+        // TODO: Save a0
+        addAll(stmts, getValue().toMipsLoad(new mips.Reg("a0")));
+        stmts.add(new Jal(new IdConst("_print")));
+        
+        return stmts;
+    } 
     // eq ALoad.toMips() = new mips.Lw(...) // Dest:Reg StackPos:SpilledArg;
     // eq AStore.toMips() = new mips.Sw(...) // StackPos:SpilledArg Value:Reg;
     // eq PassArg.toMips() =  // <StackIndex:Integer> Value:Reg;
-    // eq Call.toMips() = new mips.Jalr(...) // Addr:SExp;
+    eq Call.toMips() = convertToStmtList(getAddr().toMipsCall());
 
     
     /*
@@ -166,8 +194,8 @@ aspect MipsASTBuilder {
     Times:Binop;
     */
     syn lazy mips.List<mips.Stmt> Exp.toMipsStmts() = new mips.List<mips.Stmt>();
-    syn lazy mips.Reg Exp.toMipsReg() = new mips.Reg("meh");
-    eq HAlloc.toMipsStmts() {
+    
+    eq HAlloc.toMipsLoad(mips.Reg target) {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         
         // TODO Save current a0
@@ -176,30 +204,34 @@ aspect MipsASTBuilder {
         // Call halloc
         stmts.add(new Jal(new IdConst("_halloc")));
         
+        // Save returned pointer
+        stmts.add(new mips.Move(target, new mips.Reg("v0")));
+        
         return stmts;
-    }
-    eq HAlloc.toMipsReg() {
-        return new mips.Reg("v0");
     }
     
-    syn lazy mips.Reg Reg.toMips() = new mips.Reg(getReg());
+    // Binary expressions
+    syn lazy mips.List<mips.Stmt> Exp.toMipsLoad(mips.Reg target);
+    eq Lt.toMipsLoad(mips.Reg target) = convertToStmtList(new Slt(target, getLeft().toMipsOperand(), getRight().toMipsOperand()));
+    eq Plus.toMipsLoad(mips.Reg target) = convertToStmtList(new Add(target, getLeft().toMipsOperand(), getRight().toMipsOperand()));
+    eq Minus.toMipsLoad(mips.Reg target) = convertToStmtList(new Sub(target, getLeft().toMipsOperand(), getRight().toMipsOperand()));
+    eq Times.toMipsLoad(mips.Reg target) = convertToStmtList(new Mul(target, getLeft().toMipsOperand(), getRight().toMipsOperand()));
     
-    syn lazy mips.List<mips.Stmt> SExp.toMipsLoad(mips.Reg target);
-    eq IntLiteral.toMipsLoad(mips.Reg target) {
-        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
-        stmts.add(new Li(target, new DecConst(getInteger())));
-        return stmts;
-    }
-    eq Reg.toMipsLoad(mips.Reg target) {
-        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
-        stmts.add(new mips.Move(target, toMips()));
-        return stmts;
-    }
-    eq LabelExp.toMipsLoad(mips.Reg target) {
-        mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
-        stmts.add(new mips.Move(target, getLabel().toMipsOperand()));
-        return stmts;
-    }
+    // Simple expressions
+    eq IntLiteral.toMipsLoad(mips.Reg target) = convertToStmtList(new Li(target, toMipsOperand()));
+    eq Reg.toMipsLoad(mips.Reg target) = convertToStmtList(new mips.Move(target, toMipsOperand()));
+    eq LabelExp.toMipsLoad(mips.Reg target) = convertToStmtList(new mips.Move(target, toMipsOperand()));
+    
+    syn lazy mips.Operand SExp.toMipsOperand();
+    eq IntLiteral.toMipsOperand() = new DecConst(getInteger());
+    eq Reg.toMipsOperand() = new mips.Reg(getReg());
+    eq LabelExp.toMipsOperand() = getLabel().toMipsOperand();
+    
+    syn lazy mips.Reg Reg.toMipsReg() = (mips.Reg)toMipsOperand();
+    
+    // Generate correct jump and link instructions
+    syn lazy mips.Stmt SExp.toMipsCall() = new Jal(toMipsOperand());
+    eq Reg.toMipsCall() = new Jalr(toMipsOperand());
     
     /*
      * OTHER
@@ -212,7 +244,7 @@ aspect MipsASTBuilder {
     /*
      * HELPERS
      */
-    syn mips.List<mips.Stmt> Stmt.convertToStmtList(mips.Stmt stmt) {
+    syn mips.List<mips.Stmt> ASTNode.convertToStmtList(mips.Stmt stmt) {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         stmts.add(stmt);
         return stmts;
