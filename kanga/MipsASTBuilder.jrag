@@ -199,9 +199,17 @@ aspect MipsASTBuilder {
         
         return stmts;
     } 
-    // eq ALoad.toMips() = new mips.Lw(...) // Dest:Reg StackPos:SpilledArg;
-    // eq AStore.toMips() = new mips.Sw(...) // StackPos:SpilledArg Value:Reg;
-    // eq PassArg.toMips() =  // <StackIndex:Integer> Value:Reg;
+    eq ALoad.toMips() = convertToStmtList(new Lw(getDest().toMipsReg(), getStackPos().toMips()));
+    eq AStore.toMips() = convertToStmtList(new Sw(getValue().toMipsReg(), getStackPos().toMips()));
+    eq PassArg.toMips() {
+        // passarg index starts at 1, so we have to subtract 1
+        int stackIndex = getStackIndex()-1;
+        
+        // store at the top of the stack
+        // the called function will access the arguments from the callers stackframe
+        AddrReg addrReg = new AddrReg(new DecConst(stackIndex * 4), new mips.Reg("sp"));    
+        return convertToStmtList(new Sw(getValue().toMipsReg(), addrReg));
+    } 
     eq Call.toMips() = convertToStmtList(getAddr().toMipsCall());
 
     
@@ -260,12 +268,104 @@ aspect MipsASTBuilder {
      */
     syn lazy mips.Label Label.toMips() = new mips.Label(getLabel());
     syn lazy mips.IdConst Label.toMipsOperand() = new IdConst(getLabel());
-    // SpilledArg  ::= <Pos:Integer>;
+    syn lazy mips.AddrReg SpilledArg.toMips() {
+        // exclude the param registers (a0-a4)
+        int stackParams = Math.max(0, getContainingProcedureParamCount()-4);
+        
+        // This is an argument passed on the stack!
+        if(getPos() < stackParams) {
+            // Arguments are stored in the stackframe of the caller!
+            // Calculate the address of the first arugment on the stack by 
+            // skipping the allocated stackspace for the current procedure,
+            // including the return address (add 4).   
+            int argStart = getContainingProcedureStackSlots()*4 + 4;
+            // Skip to the correct argument, corresponding to the loaded stack position
+            int argOffset = argStart + getPos()*4;
+            // Calculate offset of the argument from the stack pointer
+            return new AddrReg(new DecConst(argOffset), new mips.Reg("sp"));
+        }
+        else {
+            // Normal local variable
+            // Exclude the param registers (a0-a4) for calls in body. 
+            int passedStackArgs = Math.max(0, getContainingProcedureMaxParams() - 4);
+            // Skip the space on the stack, which is reserved for arguments 
+            // of calls with more than 4 arguments.
+            int localStart = passedStackArgs * 4;
+            // If the containing procedure has more than 4 parameters, 
+            // they are mapped to the first stackpositions in spilledargs.
+            // So the first local variable might not start at the position 0, 
+            // but after the passargs of the containing procedure
+            // (e.g. position 2 if the containing procedure has 6 params).
+            // Skip those parameter slots, to start indexing the local variables at 0.
+            int actualPos = getPos() - stackParams;
+            // Calculate offset of the variable from the stack pointer
+            return new AddrReg(new DecConst(localStart + actualPos*4), new mips.Reg("sp"));
+        }
+    }
     
 
     /*
      * HELPERS
      */
+    // Containing Procedure may also be the Program (main method), 
+    // so we can't just return the procedures object. 
+    // Therefore we require a helper for each procedure attribute :/
+    syn lazy Integer ASTNode.getContainingProcedureMaxParams() {
+        ASTNode<T> parent = this;
+        
+        do {
+            if (parent instanceof Procedure) {
+                Procedure procedure = (Procedure)parent;
+                return procedure.getMaxParams();
+            }
+            else if(parent instanceof Program) {
+                Program program = (Program)parent;
+                return program.getMaxParams();
+            }
+            
+            parent = parent.getParent();
+        } while(parent != null);
+        
+        throw new IllegalStateException("node has no procedure as parent!");
+    }
+    
+    syn lazy Integer ASTNode.getContainingProcedureStackSlots() {
+        ASTNode<T> parent = this;
+        
+        do {
+            if (parent instanceof Procedure) {
+                Procedure procedure = (Procedure)parent;
+                return procedure.getStackSlots();
+            }
+            else if(parent instanceof Program) {
+                Program program = (Program)parent;
+                return program.getStackSlots();
+            }
+            
+            parent = parent.getParent();
+        } while(parent != null);
+        
+        throw new IllegalStateException("node has no procedure as parent!");
+    }
+    
+    syn lazy Integer ASTNode.getContainingProcedureParamCount() {
+        ASTNode<T> parent = this;
+        
+        do {
+            if (parent instanceof Procedure) {
+                Procedure procedure = (Procedure)parent;
+                return procedure.getParams();
+            }
+            else if(parent instanceof Program) {
+                return 0;
+            }
+            
+            parent = parent.getParent();
+        } while(parent != null);
+        
+        throw new IllegalStateException("node has no procedure as parent!");
+    }
+     
     syn mips.List<mips.Stmt> ASTNode.convertToStmtList(mips.Stmt stmt) {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         stmts.add(stmt);
