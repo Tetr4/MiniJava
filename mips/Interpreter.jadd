@@ -6,72 +6,17 @@ aspect MipsInterpreter {
         // Pretty print code
         String code = print().getString();
         
-        StringBuilder builder = new StringBuilder();
-        File file = null;
         try {
-	        // Save it to temporary file..
-	        file = File.createTempFile("mips_code", ".tmp");
-	        BufferedWriter bw = new BufferedWriter(new FileWriter(file));
-	        bw.write(code);
-	        bw.close();
+	        Spim interpreter = new Spim(code);
 	        
-	        // Create process for SPIM
-	        ProcessBuilder pb;
-            if (System.getProperty("os.name").startsWith("Windows")) { // can execute .exe files
-                String spimExe = "support/spim/spim.exe";
-                String spimPath = new File(spimExe).getParent();
-                String[] cmd = { spimExe, "-file", file.getAbsolutePath() };
-                pb = new ProcessBuilder(cmd);
-                pb.directory(new File(spimPath));
-            } else { // Unix-like
-                pb = new ProcessBuilder("support/spim/spim",
-                            "-exception_file",  "support/spim/exceptions.s",
-                            "-file", file.getAbsolutePath());
-            } 
-
-	        // Have SPIM interpret the file
-            Process process = pb.start();
-            
-            // result from in stream
-            BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            boolean awaitsInput = false;
-            while ((line = in.readLine()) != null) {
-                // The spim shell waits for some input? Don't wait for output forever.
-                if (line.startsWith("(spim)")) {
-                    awaitsInput = true;
-                    break;
-                }
-                builder.append(line + '\n');
-            }
-            
-            // End the simulator if execution failed and it waits for a command.
-            if (awaitsInput) {
-                BufferedWriter out = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
-                out.write("quit");
-                out.close();
-            }
-            else {
-                // result from error stream
-                BufferedReader err = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                while ((line = err.readLine()) != null) {
-                    builder.append(line + '\n');
-                }
-                err.close();
-            }
-            
-            // Close spim.
-            in.close();
-            process.destroy();
-             
-	        return builder.toString();
-	    }
-	    catch (IOException e) {
-	        return builder.toString() + "\n" + e.getMessage();
-	    } finally {
-	       if (file != null && file.exists()) {
-	           file.delete();
-	       }
+	        boolean success = interpreter.parse();
+	        if(!success) {
+	            return interpreter.getParseError();
+	        }
+	        
+	        return interpreter.interpret();
+	    } catch (IOException e) {
+	       return e.getMessage();
 	    }
     }
 }

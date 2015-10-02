@@ -1,0 +1,155 @@
+package mips;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+
+public class Spim {
+    private File file;
+    private Process process;
+    private OutputStreamWriter out;
+    private BufferedReader in;
+    
+    private String error = "";
+
+    public Spim(String code) throws IOException {
+        file = File.createTempFile("mips_code", ".tmp");
+        file.deleteOnExit();
+        // Save it to temporary file..
+        BufferedWriter bw = new BufferedWriter(new FileWriter(file));
+        bw.write(code);
+        bw.close();
+    }
+    
+    public boolean parse() {
+        // Create process for SPIM
+        ProcessBuilder pb;
+        // can execute .exe files?
+        if (System.getProperty("os.name").startsWith("Windows")) { 
+            String spimExe = "support/spim/spim.exe";
+            String spimPath = new File(spimExe).getParent();
+            String[] cmd = { spimExe, "-file", file.getAbsolutePath() };
+            pb = new ProcessBuilder(cmd);
+            pb.directory(new File(spimPath));
+        } else { // Unix-like
+            pb = new ProcessBuilder("support/spim/spim", "-exception_file",
+                    "support/spim/exceptions.s", "-file",
+                    file.getAbsolutePath());
+        }
+
+        // Have SPIM parse the file
+        try {
+            process = pb.start();
+        } catch (IOException e) {
+            this.error = e.getMessage();
+            stop();
+            return false;
+        }
+
+        out = new OutputStreamWriter(process.getOutputStream());
+        in = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        
+        return !checkForParseError();
+    }
+
+    public String getParseError() {
+        return error;
+    }
+
+    public String interpret() {
+        try {
+            write("run\n");
+            // Skip (input) spim output.
+            read(true);
+            // Start at address 0.
+            write("0\n");
+            
+        } catch (IOException e) {
+            stop();
+            return e.getMessage();
+        }
+        return read(false);
+    }
+
+    private void stop() {
+        if (file != null && file.exists()) {
+            file.delete();
+        }
+        if (in != null) {
+            try {
+                in.close();
+                out.close();
+            } catch (IOException e) {
+                // Ignore
+            }
+        }
+        if (process != null) {
+            process.destroy();
+        }
+    }
+
+    private boolean checkForParseError() {
+        String result = read(true);
+        String[] lines = result.split("\\r?\\n");
+        String lastLine = lines[lines.length-1];
+        if(lastLine.startsWith("Loaded:")) {
+            // Parsed fine.
+            return false;
+        }
+        
+        // Find the error line.
+        StringBuilder builder = new StringBuilder();
+        boolean isError = false;
+        for(String line : lines) {
+            if (isError) {
+                builder.append(line);
+                builder.append('\n');
+            }
+            // Everything after this belongs to the error message.
+            if (line.startsWith("Loaded:")) {
+                isError = true;
+            }
+        }
+        // Save the error string
+        if (isError) {
+            this.error = builder.toString();
+        }
+        else {
+            // Couldn't find the "Loaded:" line. Just return everything as error!
+            this.error = result;
+        }
+        // There is an error!
+        return true;
+    }
+    
+    private String read(boolean skipEmptyLines) {
+        String line;
+        StringBuilder builder = new StringBuilder();
+        try {
+            while ((line = in.readLine()) != null) {
+                // The spim shell waits for some input? Don't wait for output forever.
+                if (line.startsWith("(spim)") || line.startsWith("(input)")) {
+                    break;
+                }
+                // skip empty lines
+                if (skipEmptyLines && line.trim().isEmpty()) {
+                    continue;
+                }
+                builder.append(line + '\n');
+            }
+        } catch (IOException e) {
+            builder.append('\n');
+            builder.append(e.getMessage());
+        }
+        return builder.toString();
+    }
+    
+    private void write(String line) throws IOException {
+        out.write(line);
+        out.flush();
+    }
+}
