@@ -88,6 +88,15 @@ aspect KangaASTBuilder {
         Temp.stackIndex = 0;
         Temp.stackMap.clear();
     
+        // Map all arguments that were passed on the stack (PassArg) to the first stack indices.
+        // Calculate how many parameters were pushed to the stack (4 argument registers).
+        int stackParams = Math.max(getParams() - 4, 0);
+        for(int i=0; i<stackParams; i++) {
+            // Map the 4-x temp indices to the first stack slots.
+            // temp 0-3 are mapped to the a0-a3 registers.
+            Temp.stackMap.put(i+4, Temp.stackIndex++);
+        }
+    
         int maxParams = getMaxParams(getStmtsRet().getStmtsList());
         return new kanga.Procedure(getLabel().toKanga(), getParams(), getStackSlots(), maxParams, getStmtsRet().toKanga()); 
     }
