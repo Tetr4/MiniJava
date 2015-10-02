@@ -141,7 +141,7 @@ aspect MipsASTBuilder {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         
         AddrReg offsDest = new AddrReg(new DecConst(getOffset()), getAddr().toMipsReg());
-        stmts.add(new mips.Move(offsDest, getValue().toMipsReg()));
+        stmts.add(new mips.Sw(getValue().toMipsReg(), offsDest));
         
         return stmts;
     }
@@ -149,7 +149,7 @@ aspect MipsASTBuilder {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         
         AddrReg offsSource = new AddrReg(new DecConst(getOffset()), getAddr().toMipsReg());
-        stmts.add(new mips.Move(getDest().toMipsReg(), offsSource));
+        stmts.add(new mips.Lw(getDest().toMipsReg(), offsSource));
         
         return stmts;
     }
@@ -220,7 +220,7 @@ aspect MipsASTBuilder {
     // Simple expressions
     eq IntLiteral.toMipsLoad(mips.Reg target) = convertToStmtList(new Li(target, toMipsOperand()));
     eq Reg.toMipsLoad(mips.Reg target) = convertToStmtList(new mips.Move(target, toMipsOperand()));
-    eq LabelExp.toMipsLoad(mips.Reg target) = convertToStmtList(new mips.Move(target, toMipsOperand()));
+    eq LabelExp.toMipsLoad(mips.Reg target) = convertToStmtList(new mips.La(target, toMipsOperand()));
     
     syn lazy mips.Operand SExp.toMipsOperand();
     eq IntLiteral.toMipsOperand() = new DecConst(getInteger());
