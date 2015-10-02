@@ -188,7 +188,7 @@ aspect MipsASTBuilder {
     eq Print.toMips() {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         
-        // Save a0 in t9!
+        // Save a0 in v1! (v1 is unused)
         stmts.add(new mips.Move(new mips.Reg("v1"), new mips.Reg("a0")));
         
         addAll(stmts, getValue().toMipsLoad(new mips.Reg("a0")));
@@ -208,27 +208,12 @@ aspect MipsASTBuilder {
     /*
      * Expressions
      */
-    /*
-    abstract Exp;
-    HAlloc:Exp  ::= Size:SExp;
-    
-    abstract SExp:Exp;
-    Reg:SExp   ::= <Reg:String>;
-    LabelExp:SExp ::= Label:Label;
-    IntLiteral:SExp ::= <Integer:Integer>;
-    
-    abstract Binop:Exp  ::= Left:Reg Right:SExp;
-    Lt:Binop;
-    Plus:Binop;
-    Minus:Binop;
-    Times:Binop;
-    */
-    syn lazy mips.List<mips.Stmt> Exp.toMipsStmts() = new mips.List<mips.Stmt>();
-    
+    // generate code to load the expressions value into the given register 
+    syn lazy mips.List<mips.Stmt> Exp.toMipsLoad(mips.Reg target);
     eq HAlloc.toMipsLoad(mips.Reg target) {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         
-        // Save a0 in v1!
+        // Save a0 in v1! (v1 is unused)
         stmts.add(new mips.Move(new mips.Reg("v1"), new mips.Reg("a0")));
         
         addAll(stmts, getSize().toMipsLoad(new mips.Reg("a0")));
@@ -244,29 +229,31 @@ aspect MipsASTBuilder {
         
         return stmts;
     }
-    
     // Binary expressions
-    syn lazy mips.List<mips.Stmt> Exp.toMipsLoad(mips.Reg target);
     eq Lt.toMipsLoad(mips.Reg target) = convertToStmtList(new Slt(target, getLeft().toMipsOperand(), getRight().toMipsOperand()));
     eq Plus.toMipsLoad(mips.Reg target) = convertToStmtList(new Add(target, getLeft().toMipsOperand(), getRight().toMipsOperand()));
     eq Minus.toMipsLoad(mips.Reg target) = convertToStmtList(new Sub(target, getLeft().toMipsOperand(), getRight().toMipsOperand()));
     eq Times.toMipsLoad(mips.Reg target) = convertToStmtList(new Mul(target, getLeft().toMipsOperand(), getRight().toMipsOperand()));
-    
     // Simple expressions
     eq IntLiteral.toMipsLoad(mips.Reg target) = convertToStmtList(new Li(target, toMipsOperand()));
     eq Reg.toMipsLoad(mips.Reg target) = convertToStmtList(new mips.Move(target, toMipsOperand()));
     eq LabelExp.toMipsLoad(mips.Reg target) = convertToStmtList(new mips.La(target, toMipsOperand()));
-    
+
+    // convert simple expressions to operands    
     syn lazy mips.Operand SExp.toMipsOperand();
     eq IntLiteral.toMipsOperand() = new DecConst(getInteger());
     eq Reg.toMipsOperand() = new mips.Reg(getReg());
     eq LabelExp.toMipsOperand() = getLabel().toMipsOperand();
     
+    // shortcut to avoid casting
     syn lazy mips.Reg Reg.toMipsReg() = (mips.Reg)toMipsOperand();
     
     // Generate correct jump and link instructions
     syn lazy mips.Stmt SExp.toMipsCall() = new Jal(toMipsOperand());
+    // if the procedure address isn't hardcoded but provided in a register,
+    // we need to load it from the register first (jalr)
     eq Reg.toMipsCall() = new Jalr(toMipsOperand());
+    
     
     /*
      * OTHER
