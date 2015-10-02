@@ -323,7 +323,7 @@ aspect SpigletASTBuilder {
         addAllToSpiglet(statements, getStmtsList());
         
         // add all return expression statements
-        for (spiglet.Stmt stmt : getRetExp().toSpigletStmts()) {
+        for (spiglet.Stmt stmt : getRetExp().toSpigletStmtsForTemp()) {
             statements.add(new spiglet.LabeledStmt(new spiglet.Opt<spiglet.Label>(), stmt));
         }
         
