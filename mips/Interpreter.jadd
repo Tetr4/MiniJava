@@ -2,16 +2,16 @@ import java.io.*;
 
 aspect MipsInterpreter {
     
-    public static int Program.tempFileNameIndex = 0;
     public String Program.interpret() {
         // Pretty print code
         String code = print().getString();
         
         StringBuilder builder = new StringBuilder();
+        File file = null;
         try {
 	        // Save it to temporary file..
-	        File filename = File.createTempFile("mips_" + tempFileNameIndex++, ".tmp");
-	        BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
+	        file = File.createTempFile("mips_code", ".tmp");
+	        BufferedWriter bw = new BufferedWriter(new FileWriter(file));
 	        bw.write(code);
 	        bw.close();
 	        
@@ -20,13 +20,13 @@ aspect MipsInterpreter {
             if (System.getProperty("os.name").startsWith("Windows")) { // can execute .exe files
                 String spimExe = "support/spim/spim.exe";
                 String spimPath = new File(spimExe).getParent();
-                String[] cmd = { spimExe, "-file", filename.getAbsolutePath() };
+                String[] cmd = { spimExe, "-file", file.getAbsolutePath() };
                 pb = new ProcessBuilder(cmd);
                 pb.directory(new File(spimPath));
             } else { // Unix-like
                 pb = new ProcessBuilder("support/spim/spim",
                             "-exception_file",  "support/spim/exceptions.s",
-                            "-file", filename.getAbsolutePath());
+                            "-file", file.getAbsolutePath());
             } 
 
 	        // Have SPIM interpret the file
@@ -68,6 +68,10 @@ aspect MipsInterpreter {
 	    }
 	    catch (IOException e) {
 	        return builder.toString() + "\n" + e.getMessage();
+	    } finally {
+	       if (file != null && file.exists()) {
+	           file.delete();
+	       }
 	    }
     }
 }
