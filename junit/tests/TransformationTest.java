@@ -117,4 +117,11 @@ public abstract class TransformationTest {
         assertEquals("ERROR", resultLines[0]);
     }
     
+    @Test
+    public void testStackArguments() throws Exception {
+        String result = interpret(new MJFile("tests/junit/test_stackArguments.java"));
+        String[] resultLines = getLines(result);
+        assertEquals(1, resultLines.length);
+        assertEquals("176400", resultLines[0]);
+    }
 }
