@@ -20,6 +20,15 @@ aspect MipsASTBuilder {
         stmts.add(new Globl("main"));
         stmts.add(new mips.Label("main"));
         
+        // allocate stack space
+        // subi $sp, $sp, <stackslots>
+        // +4 due to $ra return address
+        int requiredStackspace = getStackSlots() * 4 + 4;
+        stmts.add(new mips.Sub(new mips.Reg("sp"), new mips.Reg("sp"), new DecConst(requiredStackspace)));
+        
+        // Save return address
+        stmts.add(new mips.Sw(new mips.Reg("ra"), new AddrReg(new DecConst(requiredStackspace - 4), new mips.Reg("sp"))));
+        
         // Labeled Statements
         for (LabeledStmt labeledStmt : getStmtsList()) {
             // add all
@@ -27,6 +36,16 @@ aspect MipsASTBuilder {
                 stmts.add(stmt);
             }
         }
+        
+        // Restore return address
+        stmts.add(new mips.Lw(new mips.Reg("ra"), new AddrReg(new DecConst(requiredStackspace - 4), new mips.Reg("sp"))));
+        
+        // free stack space
+        // addi $sp, $sp, <stackslots>
+        stmts.add(new mips.Add(new mips.Reg("sp"), new mips.Reg("sp"), new DecConst(requiredStackspace)));
+        
+        // jump back
+        stmts.add(new J(new mips.Reg("ra")));
         
         // Procedures
         for (Procedure procedure : getProcsList()) {
@@ -106,8 +125,12 @@ aspect MipsASTBuilder {
         
         // allocate stack space
         // subi $sp, $sp, <stackslots>
-        mips.Sub allocateStack = new mips.Sub(new mips.Reg("sp"), new mips.Reg("sp"), new DecConst(getStackSlots()));
-        stmts.add(allocateStack);
+        // +4 due to $ra return address
+        int requiredStackspace = getStackSlots() * 4 + 4;
+        stmts.add(new mips.Sub(new mips.Reg("sp"), new mips.Reg("sp"), new DecConst(requiredStackspace)));
+        
+        // Save return address
+        stmts.add(new mips.Sw(new mips.Reg("ra"), new AddrReg(new DecConst(requiredStackspace - 4), new mips.Reg("sp"))));
         
         // Labeled Statements
         for (LabeledStmt labeledStmt : getStmtsList()) {
@@ -117,10 +140,12 @@ aspect MipsASTBuilder {
             }
         }
         
+        // Restore return address
+        stmts.add(new mips.Lw(new mips.Reg("ra"), new AddrReg(new DecConst(requiredStackspace - 4), new mips.Reg("sp"))));
+        
         // free stack space
         // addi $sp, $sp, <stackslots>
-        mips.Add freeStack = new mips.Add(new mips.Reg("sp"), new mips.Reg("sp"), new DecConst(getStackSlots()));
-        stmts.add(freeStack);
+        stmts.add(new mips.Add(new mips.Reg("sp"), new mips.Reg("sp"), new DecConst(requiredStackspace)));
         
         // jump back
         stmts.add(new J(new mips.Reg("ra")));
