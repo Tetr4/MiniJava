@@ -163,9 +163,14 @@ aspect MipsASTBuilder {
     eq Print.toMips() {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         
-        // TODO: Save a0
+        // Save a0 in t9!
+        stmts.add(new mips.Move(new mips.Reg("v1"), new mips.Reg("a0")));
+        
         addAll(stmts, getValue().toMipsLoad(new mips.Reg("a0")));
         stmts.add(new Jal(new IdConst("_print")));
+        
+        // Restore a0
+        stmts.add(new mips.Move(new mips.Reg("a0"), new mips.Reg("v1")));
         
         return stmts;
     } 
@@ -198,7 +203,9 @@ aspect MipsASTBuilder {
     eq HAlloc.toMipsLoad(mips.Reg target) {
         mips.List<mips.Stmt> stmts = new mips.List<mips.Stmt>();
         
-        // TODO Save current a0
+        // Save a0 in v1!
+        stmts.add(new mips.Move(new mips.Reg("v1"), new mips.Reg("a0")));
+        
         addAll(stmts, getSize().toMipsLoad(new mips.Reg("a0")));
         
         // Call halloc
@@ -206,6 +213,9 @@ aspect MipsASTBuilder {
         
         // Save returned pointer
         stmts.add(new mips.Move(target, new mips.Reg("v0")));
+        
+        // Restore a0
+        stmts.add(new mips.Move(new mips.Reg("a0"), new mips.Reg("v1")));
         
         return stmts;
     }
