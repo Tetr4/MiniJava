@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project MiniJava">
+    <property name="dir.buildfile" value="."/>
+    <property name="dir.jarfile" value="${dir.buildfile}/bin"/>
+    
+    <target name="create_run_jar">
+        <jar destfile="${dir.jarfile}/compile.jar" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Main-Class" value="minijava.MJFrontEnd"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <fileset dir="${dir.jarfile}">
+                <exclude name="compile.jar"/>
+                <exclude name="tests/**"/>
+            </fileset>
+            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/tools/beaver-rt.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/support/pgi.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/support/kgi.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/support/spp.jar"/>
+        </jar>
+    </target>
+    
+</project>
