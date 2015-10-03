@@ -7,42 +7,55 @@ import java.io.IOException;
 import java.util.Collection;
 
 public class MJFrontEnd {
+    private static final int ERROR = 1;
 
     public static void main(String args[]) {
-        if (args.length < 1) {
-            System.err.println("1 input file required!");
-            System.exit(1);
-        }
-        String inputFileName = args[0];
-
-        try {
-            MJParser parser = new MJParser();
-            MJScanner scanner = new MJScanner(new FileReader(inputFileName));
-
-            // Parse given file
-            minijava.Program program = (Program) parser.parse(scanner);
-
-            Collection<SemanticError> errors = program.errors();
-            if (!errors.isEmpty()) {
-                System.err.println("There are " + errors.size() + " error(s) in " + inputFileName);
-                for (SemanticError e : errors) {
-                    System.err.println(e.getMessage());
-                }
-                System.exit(1);
+        // choose input source
+        MJScanner scanner = null;
+        if (args.length == 0) {
+            // pipe or interactive shell
+            scanner = new MJScanner(System.in);
+        } else if (args.length == 1) {
+            // read from file
+            String inputFileName = args[0];
+            try {
+                scanner = new MJScanner(new FileReader(inputFileName));
+            } catch (FileNotFoundException e) {
+                System.err.println("File " + inputFileName + " not found");
+                System.exit(ERROR);
             }
-
-            // Transform minijava AST to mips AST
-            mips.Program mips = program.toPiglet().toSpiglet().toKanga().toMips();
-
-            // Prettyprint mips
-            System.out.println(mips.print().getString() + '\n');
-
-        } catch (FileNotFoundException e) {
-            System.err.println("File " + inputFileName + " not found");
-        } catch (beaver.Parser.Exception | IOException e) {
-            System.err.println("Error when parsing: " + inputFileName);
-            System.err.println(e.getMessage());
+        } else {
+            // can't compile multiple files, because only 1 mainclass is supported
+            System.err.println("Too many input files");
+            System.exit(ERROR);
         }
+
+        // Parse given file
+        MJParser parser = new MJParser();
+        minijava.Program program = null;
+        try {
+            program = (Program) parser.parse(scanner);
+        } catch (beaver.Parser.Exception | IOException e) {
+            System.err.println("Error when parsing");
+            System.err.println(e.getMessage());
+            System.exit(ERROR);
+        }
+
+        // Check for semantic errors
+        Collection<SemanticError> errors = program.errors();
+        if (!errors.isEmpty()) {
+            System.err.println("There are " + errors.size() + " error(s)");
+            for (SemanticError e : errors) {
+                System.err.println(e.getMessage());
+            }
+            System.exit(ERROR);
+        }
+
+        // Transform minijava AST to mips AST
+        mips.Program mips = program.toPiglet().toSpiglet().toKanga().toMips();
+
+        // Print mips code
+        System.out.println(mips.print().getString() + '\n');
     }
 
 }
