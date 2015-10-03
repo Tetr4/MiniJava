@@ -124,4 +124,14 @@ public abstract class TransformationTest {
         assertEquals(1, resultLines.length);
         assertEquals("176400", resultLines[0]);
     }
+    
+    @Test
+    public void testPrintExpression() throws Exception {
+        String result = interpret(new MJFile("tests/junit/test_printExpression.java"));
+        String[] resultLines = getLines(result);
+        assertEquals(1, resultLines.length);
+        assertEquals("12", resultLines[0]);
+    }
+    
+    
 }
