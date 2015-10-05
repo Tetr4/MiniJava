@@ -36,7 +36,7 @@ aspect PigletASTBuilder {
         // vtable list must have at least 1 element, because it is dereferenced in OBJECTALLOC
         int vtableSize = Math.max(numClassesWithMethods, 1);
         
-        // Prepare classes and translate all methods of all classes to procedures.
+        // Prepare classes
         for (ClassDecl classDecl: getDeclsList()) {
             // Assign proper field offsets to TypedVars
             // Start at offset 4, vtable pointer as first element.
@@ -44,8 +44,10 @@ aspect PigletASTBuilder {
         
             // Assign indices to methods starting at the superclass with 0.
             classDecl.setupMethods(0);
-            
+        }
         
+        // Translate all methods of all classes to procedures.
+        for (ClassDecl classDecl: getDeclsList()) {
             for(piglet.Procedure procedure: classDecl.getProcedures()) {
                 procedures.add(procedure);
             }
