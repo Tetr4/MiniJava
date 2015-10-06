@@ -34,18 +34,32 @@ aspect SpigletASTBuilder {
         return new spiglet.Program(statements, procedures);
     }
     
+    
     // LabeledStmt
     syn lazy spiglet.LabeledStmt LabeledStmt.toSpiglet(spiglet.List<spiglet.LabeledStmt> stmts) {
-        if(hasLabel()) {
-            // the statement may generate multiple spiglet statements
-            // therefore we need to add the label before the first statement
-            spiglet.Opt<spiglet.Label> labelOpt = new spiglet.Opt<spiglet.Label>(getLabel().toSpiglet());
-            stmts.add(new spiglet.LabeledStmt(labelOpt, new spiglet.Noop())); 
-        }
+        // remember how many statements are in the list, so we can see how many are generated
+        int stmtsSize = stmts.getNumChild();
+        
+        // generate statement(s)
+        spiglet.Stmt stmt = getStmt().toSpiglet(stmts);
         
         spiglet.Opt<spiglet.Label> emptyLabel = new spiglet.Opt<spiglet.Label>();
-        spiglet.Stmt stmt = getStmt().toSpiglet(stmts); 
-        return new spiglet.LabeledStmt(emptyLabel, stmt);
+        if(hasLabel()) {
+            spiglet.Opt<spiglet.Label> label = new spiglet.Opt<spiglet.Label>(getLabel().toSpiglet());
+            if (stmts.getNumChild() > stmtsSize) {
+	            // add the label at the first statement, because multiple statements have been generated
+	            spiglet.LabeledStmt firstStmt = stmts.getChild(stmtsSize);
+	            firstStmt.setLabelOpt(label);
+	            // return without label, as it is already on the first statement
+	            return new spiglet.LabeledStmt(emptyLabel, stmt);
+            } else {
+                // return with label, as it is the only statement
+                return new spiglet.LabeledStmt(label, stmt);    
+            }
+        } else {
+            // has no label
+            return new spiglet.LabeledStmt(emptyLabel, stmt);
+        }
     }
     
     // Procedure
@@ -88,7 +102,6 @@ aspect SpigletASTBuilder {
         spiglet.Temp addrTemp = getAddr().toSpigletTemp(stmts);
         int offset = getOffset();
         spiglet.Temp valueTemp = getValue().toSpigletTemp(stmts);
-        
         return new spiglet.HStore(addrTemp, offset, valueTemp);
     }
     
