@@ -140,19 +140,24 @@ public abstract class TransformationTest {
         assertEquals(1, resultLines.length);
         assertEquals("2", resultLines[0]);
     }
-    
-    @Test(timeout=1000)
-    public void andTest() throws Exception {
-        String result = interpret(new MJFile("tests/junit/Hauke/AndTest.java"));
-        String[] resultLines = getLines(result);
-        assertEquals(6, resultLines.length);
-        assertEquals("0", resultLines[0]);
-        assertEquals("0", resultLines[1]);
-        assertEquals("0", resultLines[2]);
-        assertEquals("1", resultLines[3]);
-        assertEquals("0", resultLines[4]);
-        assertEquals("1", resultLines[5]);
-    }
+
+    /*
+     *  FIXME This test requires that print accepts boolean types,
+     *  instead of only integers. This is at odds with the given
+     *  minijava grammar
+     */
+//    @Test(timeout=1000)
+//    public void andTest() throws Exception {
+//        String result = interpret(new MJFile("tests/junit/Hauke/AndTest.java"));
+//        String[] resultLines = getLines(result);
+//        assertEquals(6, resultLines.length);
+//        assertEquals("0", resultLines[0]);
+//        assertEquals("0", resultLines[1]);
+//        assertEquals("0", resultLines[2]);
+//        assertEquals("1", resultLines[3]);
+//        assertEquals("0", resultLines[4]);
+//        assertEquals("1", resultLines[5]);
+//    }
     
     @Test(timeout=1000)
     public void binaryTreeTest() throws Exception {
