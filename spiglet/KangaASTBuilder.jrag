@@ -87,7 +87,7 @@ aspect KangaASTBuilder {
         // They have their own stack frame.
         Temp.stackIndex = 0;
         Temp.stackMap.clear();
-    
+        
         // Map all arguments that were passed on the stack (PassArg) to the first stack indices.
         // Calculate how many parameters were pushed to the stack (4 argument registers).
         int stackParams = Math.max(getParams() - 4, 0);
@@ -96,8 +96,15 @@ aspect KangaASTBuilder {
             // temp 0-3 are mapped to the a0-a3 registers.
             Temp.stackMap.put(i+4, Temp.stackIndex++);
         }
-    
+        
+        // Save all params on the stack if the procedure contains a call
         int maxParams = getMaxParams(getStmtsRet().getStmtsList());
+        if(maxParams > 0) {
+            for(int i=stackParams; i<getParams(); i++) {
+                Temp.stackIndex++;
+            }
+        }
+    
         return new kanga.Procedure(getLabel().toKanga(), getParams(), getStackSlots(), maxParams, getStmtsRet().toKanga()); 
     }
     
@@ -245,55 +252,57 @@ aspect KangaASTBuilder {
     
     // Call is not an expression in kanga, it's a statment now.
     eq Call.toKanga(kanga.List<kanga.Stmt> stmts, Stmt stmt) {
-        
-        // Generate parameter registers from temps
-        kanga.List<kanga.Reg> params = new kanga.List<kanga.Reg>();
-        for(Temp temp : getParamList()) {
-            params.add(temp.toKangaRead(stmts, stmt));
-        }        
-        
-        // Create the call and translate the method address.
-        kanga.Call call = new kanga.Call((kanga.SExp) getName().toKanga(stmts, stmt));
-
         // Save arguments of calling procedure, but don't need to save spilled args.
         // Need to save all the arguments, even if the called function has less parameters,
         // in case the called function calls another one with more parameters.
         int numParams = Math.min(getContainingProcedureParamCount(), 4);
-        
-        int startStackIndex = Temp.stackIndex;
+        int stackParams = Math.max(getContainingProcedureParamCount() - 4, 0);
         for(int i=0; i<numParams; i++) {
-            kanga.AStore astore = new kanga.AStore(new kanga.SpilledArg(Temp.stackIndex++), new kanga.Reg("a" + i));
+            kanga.AStore astore = new kanga.AStore(new kanga.SpilledArg(i+stackParams), new kanga.Reg("a" + i));
             stmts.add(astore);
         }
         
-        // Pass parameters
-        for(int i = 0; i<params.getNumChild(); i++) {
-            kanga.Reg reg = params.getChild(i);
+        // Generate parameters
+        for(int i = 0; i < getNumParam(); i++) {
+            Temp temp = getParam(i);
             
             // Use the argument registers!
             if(i < 4) {
-                kanga.Move move = new kanga.Move(new kanga.Reg("a" + i), reg);
-                stmts.add(move);
+                if (temp.isArgument()) {
+                    kanga.ALoad aload = new kanga.ALoad(new kanga.Reg("a" + i), new kanga.SpilledArg(temp.getNumber() + stackParams));
+                    stmts.add(aload); 
+                } else {
+                    temp.toKangaRead(stmts, new kanga.Reg("a" + i));
+                }
             }
             else {
-                // PassArg's index starts at 1. SpilledArg starts at 0 D:<
-                kanga.PassArg passArg = new kanga.PassArg(i-3, reg);
-                stmts.add(passArg);
+                if (temp.isArgument()) {
+                    kanga.ALoad aload = new kanga.ALoad(stmt.getCurrentRegister(), new kanga.SpilledArg(temp.getNumber() + stackParams));
+                    stmts.add(aload);
+                    
+                    kanga.PassArg passArg = new kanga.PassArg(i-3, stmt.getCurrentRegister());
+                    stmts.add(passArg);
+                } else {
+	                // PassArg's index starts at 1. SpilledArg starts at 0 D:<
+	                kanga.Reg reg = temp.toKangaRead(stmts, stmt.getCurrentRegister());
+	                kanga.PassArg passArg = new kanga.PassArg(i-3, reg);
+	                stmts.add(passArg);
+                }
             }
         }
+        
+        // Create the call and translate the method address.
+        kanga.Call call = new kanga.Call((kanga.SExp) getName().toKanga(stmts, stmt));
         
         // Actually call the method
         stmts.add(call);
     
         // Restore arguments
         for(int i=0; i<numParams; i++) {
-            kanga.ALoad aload = new kanga.ALoad(new kanga.Reg("a" + i), new kanga.SpilledArg(startStackIndex+i));
+            kanga.ALoad aload = new kanga.ALoad(new kanga.Reg("a" + i), new kanga.SpilledArg(i+stackParams));
             stmts.add(aload);
         }
         
-        // Pop the arguments from the stack!
-        Temp.stackIndex = startStackIndex;
-    
         // Called procedures return their values in register v0.
         return new kanga.Reg("v0");
     }
@@ -375,15 +384,15 @@ aspect KangaASTBuilder {
     // Each statment can use all of the registers.
     // Remember which were already used. Max. of 3 for a Move statement.    
     protected int Stmt.registerStartIndex = 0;
+    syn kanga.Reg Stmt.getCurrentRegister() = new kanga.Reg("t" + registerStartIndex);
     syn kanga.Reg Stmt.getNextRegister() = new kanga.Reg("t" + registerStartIndex++);
     
     // Temp
     // This temp is used on a rhs, so we need to load the value from the stack first.
     syn kanga.Reg Temp.toKangaRead(kanga.List<kanga.Stmt> stmts, Stmt stmt) {
-        int numParams = getContainingProcedureParamCount();
         
         // This is an argument!
-        if (getNumber() < numParams && getNumber() < 4) {
+        if (isArgument()) {
             return new kanga.Reg("a" + getNumber());
         }
         
@@ -394,13 +403,25 @@ aspect KangaASTBuilder {
         return reg;
     }
     
+    syn kanga.Reg Temp.toKangaRead(kanga.List<kanga.Stmt> stmts, kanga.Reg reg) {
+        
+        // This is an argument!
+        if (isArgument()) {
+            return new kanga.Reg("a" + getNumber());
+        }
+        
+        kanga.ALoad aload = new kanga.ALoad(reg, getStackIndex());
+        stmts.add(aload);
+        
+        return reg;
+    }
+    
     // This temp is used as a lhs. We need to write the value back on the stack.
     // Don't care for the old value. It gets overwritten.
     syn kanga.Reg Temp.toKangaWrite(kanga.List<kanga.Stmt> stmts, Stmt stmt) {
-        int numParams = getContainingProcedureParamCount();
         
         // This is an argument!
-        if (getNumber() < numParams && getNumber() < 4) {
+        if (isArgument()) {
             return new kanga.Reg("a" + getNumber());
         }
         
@@ -419,7 +440,13 @@ aspect KangaASTBuilder {
     /*
      * HELPERS
      */
-     syn kanga.List<kanga.Stmt> Stmt.convertToStmtList(kanga.Stmt stmt) {
+    syn Boolean Temp.isArgument() {
+        int numParams = getContainingProcedureParamCount();
+        
+        return getNumber() < numParams && getNumber() < 4;
+    }
+     
+    syn kanga.List<kanga.Stmt> Stmt.convertToStmtList(kanga.Stmt stmt) {
         kanga.List<kanga.Stmt> list = new kanga.List<kanga.Stmt>();
         list.add(stmt);
         return list;

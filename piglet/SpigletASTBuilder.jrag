@@ -216,11 +216,16 @@ aspect SpigletASTBuilder {
     syn lazy spiglet.Temp Exp.toSpigletTemp(spiglet.List<spiglet.LabeledStmt> stmts) {
         spiglet.Exp exp = toSpigletExp(stmts);
         
+        // move into temp
         spiglet.Move move = new spiglet.Move(new spiglet.Temp(Program.currentTemp), exp);
         spiglet.Opt emptyLabel = new spiglet.Opt<spiglet.Label>();
         stmts.add(new spiglet.LabeledStmt(emptyLabel, move));
         
         return new spiglet.Temp(Program.currentTemp++);
+    }
+    
+    eq TempExp.toSpigletTemp(spiglet.List<spiglet.LabeledStmt> stmts) {
+        return getTemp().toSpiglet();
     }
     
 
