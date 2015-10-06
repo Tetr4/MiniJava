@@ -72,7 +72,7 @@ aspect ErrorCheck {
         if (overriddenMethod() != null) {
             TypeInfo superclassType = overriddenMethod().getRetType().type();
             TypeInfo myType = getRetType().type();
-            if (!overriddenMethod().getRetType().type().isSameType(getRetType().type())) {
+            if (!isSubtypeOfIgnoreUnknown(getRetType().type(), overriddenMethod().getRetType().type())) {
                 error(c, "Overridden method \"" + getIdent() + "\" has return type <" + superclassType + "> in super class " + overriddenMethod().containingClass().getIdent() + ", but <" + myType + "> here. They must match.");
             }
         }
