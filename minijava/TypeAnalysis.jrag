@@ -163,6 +163,13 @@ aspect TypeAnalysis {
         return unknownType();
     }
     
+    eq Neg.type() {
+        if(getExp().type().isSubtypeOf(intType())) {
+            return intType();
+        }
+        return unknownType();        
+    }
+    
     // True if there is a cycle in the superclass chain.
     syn lazy boolean ClassDecl.hasCycleOnSuperclassChain() circular [true];
     eq ClassDecl.hasCycleOnSuperclassChain() {

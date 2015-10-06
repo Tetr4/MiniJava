@@ -29,6 +29,7 @@ Sub:BinaryExp;
 Mult:BinaryExp;
 
 Not:Exp ::= Exp:Exp;
+Neg:Exp ::= Exp:Exp;
 IdentUse:Exp ::= <Name:String>;
 ArrayAlloc:Exp ::= Size:Exp;
 ObjAlloc:Exp ::= <Name:String>;

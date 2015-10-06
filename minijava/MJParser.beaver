@@ -242,6 +242,7 @@ Multiplication = Unary
 ;
 
 Unary = BANG Unary.expr {: return new Not(expr); :}
+      | MINUS Unary.expr {: return new Neg(expr); :}
       | Postfix
 ;
 

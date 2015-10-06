@@ -219,6 +219,11 @@ aspect PrettyPrint {
     getExp().print();
     printer().append(")");
   }
+  public void Neg.print() {
+    printer().append("-(");
+    getExp().print();
+    printer().append(")");
+  }
   public void IdentUse.print() {
     printer().append(getName());
   }  

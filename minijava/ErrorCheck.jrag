@@ -120,6 +120,13 @@ aspect ErrorCheck {
         }
     }
     
+    public void Neg.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        if (type() instanceof TUnknown) {
+            error(c, "Only Integer can be negative.");
+        }
+    }
+    
     public void Cmp.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
         if(type() instanceof TUnknown) {

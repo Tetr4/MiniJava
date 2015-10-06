@@ -508,6 +508,10 @@ aspect PigletASTBuilder {
         // 0 < 1 => 1
         return new piglet.Lt(getExp().toPiglet(), new piglet.IntLiteral(1));
     }
+    
+    eq Neg.toPiglet() {
+        return new piglet.Minus(new piglet.IntLiteral(0), getExp().toPiglet());
+    }
 
     eq IdentUse.toPiglet() {
         int fieldOffset = decl().fieldOffset;
