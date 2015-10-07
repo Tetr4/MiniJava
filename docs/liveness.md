@@ -51,14 +51,12 @@ Example: flow(`[CJUMP TEMP 9 [label]]ⁿ`) = { (n, n+1), (n, flow(label)) }
 - use(n) = {`TEMP j`} for `[HLOAD TEMP i TEMP j <int>]ⁿ`
 - use(n) = {useExp(`<Exp>`)} for `[MOVE TEMP i <Exp>]ⁿ`
 - use(n) = {useSExp(`<SExp>`)} for `[PRINT <SExp>]ⁿ`
-
 - useExp(`HALLOC <SExp>`) = {useSExp(`<SExp>`)}
 - useExp(`CALL <SExp> TEMP i ... TEMP j`) = {useSExp(`<SExp>`), `TEMP i`, ..., `TEMP j`}
-- useExp(`TEMP i < <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)} 
+- useExp(`TEMP i < <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)}
 - useExp(`TEMP i + <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)}
-- useExp(`TEMP i - <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)} 
+- useExp(`TEMP i - <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)}
 - useExp(`TEMP i * <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)}
-  
 - useSExp(`TEMP n`) = {`TEMP n`}
 - useSExp(`label`) = {∅}
 - useSExp(`<int>`) = {∅}
