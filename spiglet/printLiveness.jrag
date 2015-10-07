@@ -1,0 +1,63 @@
+aspect LivenessPrinter {
+    
+    public String Program.printLiveness() {
+        StringBuilder builder = new StringBuilder();
+        
+        builder.append("MAIN");
+        builder.append("\n");
+        appendLiveness(getStmtsList(), builder);
+        
+        for(Procedure procedure:getProcsList()) {
+            builder.append(procedure.getLabel().getLabel());
+            builder.append("\n");
+            appendLiveness(procedure.getStmtsRet().getStmtsList(), builder);
+        }
+        
+        return builder.toString();
+    }
+    
+    private void Program.appendLiveness(List<LabeledStmt> labeledStmts, StringBuilder builder) {
+        for(LabeledStmt labeledStmt : labeledStmts) {
+            // statement name
+            builder.append(labeledStmt.pos() + ": ");
+            builder.append(labeledStmt.getStmt().getClass().getSimpleName());
+            builder.append('\n');
+            
+            // def
+            List<Temp> defs = labeledStmt.def();
+            if(defs.getNumChild() != 0) {
+                builder.append("\tdef: ");
+                for(Temp temp: defs) {
+                    builder.append("TEMP " + temp.getNumber());
+                    builder.append(' ');
+                }
+                builder.append('\n');
+            }
+            
+            // use
+            List<Temp> uses = labeledStmt.use();
+            if(uses.getNumChild() != 0) {
+                builder.append("\tuse: ");
+                for(Temp temp: uses) {
+                    builder.append("TEMP " + temp.getNumber());
+                    builder.append(' ');
+                }
+                builder.append('\n');
+            }
+            
+            // edges
+            List<Edge> edges = labeledStmt.flow();
+            if(edges.getNumChild() != 0) {
+                builder.append("\tedges: ");
+                for(Edge edge: edges) {
+                    builder.append(edge.left);
+                    builder.append("->");
+                    builder.append(edge.right);
+                    builder.append(' ');
+                }
+                builder.append('\n');
+            }
+        }
+        builder.append('\n');
+    }
+}

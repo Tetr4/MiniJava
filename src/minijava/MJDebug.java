@@ -76,6 +76,11 @@ public class MJDebug {
             } catch(pigletinterpreter.ParseException e) {
                 System.err.println("Interpreter could not parse: " + e.getMessage());
             }
+            
+            // Print spiglet liveness analysis
+            System.out.println("### Spiglet - Liveness ###");
+            System.out.println(spiglet.printLiveness());
+
 
             
             // Transform spiglet AST to kanga AST
