@@ -7,6 +7,7 @@ aspect LivenessAnalysis {
     syn lazy int LabeledStmt.pos() {
         ASTNode<ASTNode> parent = this;
         
+        // search procedure or program, then return position in statements list
         do {
             if (parent instanceof Procedure) {
                 Procedure procedure = (Procedure)parent;
@@ -20,34 +21,67 @@ aspect LivenessAnalysis {
             parent = parent.getParent();
         } while(parent != null);
         
-        throw new IllegalStateException("node has no procedure as parent!");
+        throw new IllegalStateException("LabeledStmt has no procedure or program as parent!");
     }
     syn lazy int Stmt.pos() {
         if(getParent() instanceof LabeledStmt) {
             LabeledStmt labeledStmt = (LabeledStmt) getParent();
             return labeledStmt.pos();
         }
-        throw new IllegalStateException("statement has no labeledStmt as parent!");
+        throw new IllegalStateException("Statement has no LabeledStmt as parent!");
+    }
+    syn lazy int Label.pos() {
+        ASTNode<ASTNode> parent = this;
+        
+        // search procedure or program, and get the statements list
+        List<LabeledStmt> labeledStmts = null;
+        do {
+            if (parent instanceof Procedure) {
+                Procedure procedure = (Procedure)parent;
+                labeledStmts = procedure.getStmtsRet().getStmtsList();
+            }
+            else if(parent instanceof Program) {
+                Program program = (Program)parent;
+                labeledStmts = program.getStmtsList();
+            }
+            
+            parent = parent.getParent();
+        } while(parent != null);
+        
+        if(parent == null) {
+            throw new IllegalStateException("Label has no procedure or program as parent!");
+        }
+        
+        // search matching label in labeledStmts
+        for(LabeledStmt labeledStmt:labeledStmts) {
+            if(!labeledStmt.hasLabel()) continue;
+            String labelString = labeledStmt.getLabel().getLabel();
+            if(getLabel().equals(labelString)) {
+                return labeledStmt.pos();
+            }
+        }
+        throw new IllegalStateException("Found no matching label for label: "+ getLabel() +"!");
     }
     
     
     /*
      * Flow specification 
      */
-    /*
-    syn lay List<Temp LabeledStmt.flow() = getStmt().flow();
-    syn lazy List<Tuple<int, int>> Stmt.flow();
-    eq Noop.flow();
-	- flow(`[NOOP]ⁿ`) = { (n, n+1) }
-	- flow(`[ERROR]ⁿ`) = {∅}
-	- flow(`[CJUMP TEMP i [label]]ⁿ`) = { (n, n+1), (n, flow(label)) }
-	- flow(`[JUMP [label]]ⁿ`) = { (n, flow(label)) }
-	- flow(`[HSTORE TEMP i <int> TEMP j]ⁿ`) = { (n, n+1) }
-	- flow(`[HLOAD TEMP i TEMP j <int>]ⁿ`) = { (n, n+1) }
-	- flow(`[MOVE TEMP i <Exp>]ⁿ`) = { (n, n+1) }
-	- flow(`[PRINT <SExp>]ⁿ`) = { (n, n+1) }
-    */
-    
+    syn lazy List<Edge> LabeledStmt.flow() = getStmt().flow();
+    syn lazy List<Edge> Stmt.flow();
+    eq Noop.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
+    eq Err.flow() = new List<Edge>();
+    eq CJump.flow() {
+        List<Edge> edges = new List<Edge>();
+        edges.add(new Edge(pos(), pos()+1));
+        edges.add(new Edge(pos(), getLabel().pos()));
+        return edges;
+    }
+    eq Jump.flow() = new List<Edge>().add(new Edge(pos(), getLabel().pos()));
+    eq HStore.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
+    eq HLoad.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
+    eq Move.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
+    eq Print.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
     
     /*
      * Def specification 
