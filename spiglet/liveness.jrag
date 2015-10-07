@@ -58,9 +58,9 @@ aspect LivenessAnalysis {
     eq Err.def() = new List<Temp>();
     eq CJump.def() = new List<Temp>();
     eq Jump.def() = new List<Temp>();
-    eq HStore.def() = new List<Temp>().add(getAddr());
-    eq HLoad.def() = new List<Temp>().add(getDest());
-    eq Move.def() = new List<Temp>().add(getDest());
+    eq HStore.def() = new List<Temp>().add(getAddr().copy());
+    eq HLoad.def() = new List<Temp>().add(getDest().copy());
+    eq Move.def() = new List<Temp>().add(getDest().copy());
     eq Print.def() = new List<Temp>();
     
     
@@ -71,10 +71,10 @@ aspect LivenessAnalysis {
     syn lazy List<Temp> Stmt.use();
     eq Noop.use() = new List<Temp>();
     eq Err.use() = new List<Temp>();
-    eq CJump.use() = new List<Temp>().add(getCond());
+    eq CJump.use() = new List<Temp>().add(getCond().copy());
     eq Jump.use() = new List<Temp>();
-    eq HStore.use() = new List<Temp>().add(getValue());
-    eq HLoad.use() = new List<Temp>().add(getAddr());
+    eq HStore.use() = new List<Temp>().add(getValue().copy());
+    eq HLoad.use() = new List<Temp>().add(getAddr().copy());
     eq Move.use() = getSource().use();
     eq Print.use() = getValue().use();
 	
@@ -85,19 +85,19 @@ aspect LivenessAnalysis {
         List<Temp> temps = new List<Temp>();
         temps.addAll(getName().use());
         for(Temp param:getParamList()) {
-            temps.add(param);
+            temps.add(param.copy());
         }
         return temps;
     }
     eq Binop.use() {
         List<Temp> temps = new List<Temp>();
-        temps.add(getLeft());
+        temps.add(getLeft().copy());
         temps.addAll(getRight().use());
         return temps;    
     }
 
     // SExp use
-    eq TempExp.use() = new List<Temp>().add(getTemp());
+    eq TempExp.use() = new List<Temp>().add(getTemp().copy());
     eq LabelExp.use() = new List<Temp>();
     eq IntLiteral.use() = new List<Temp>(); 
     
