@@ -1,27 +1,12 @@
 aspect LivenessAnalysis {
     // For the specification see docs/liveness.md
     
+    
     /*
      * Pos
      */
     syn lazy int LabeledStmt.pos() {
-        ASTNode<ASTNode> parent = this;
-        
-        // search procedure or program, then return position in statements list
-        do {
-            if (parent instanceof Procedure) {
-                Procedure procedure = (Procedure)parent;
-                return procedure.getStmtsRet().getStmtsList().getIndexOfChild(this);
-            }
-            else if(parent instanceof Program) {
-                Program program = (Program)parent;
-                return program.getStmtsList().getIndexOfChild(this);
-            }
-            
-            parent = parent.getParent();
-        } while(parent != null);
-        
-        throw new IllegalStateException("LabeledStmt has no procedure or program as parent!");
+        return getParentStmts().getIndexOfChild(this);
     }
     syn lazy int Stmt.pos() {
         if(getParent() instanceof LabeledStmt) {
@@ -31,29 +16,8 @@ aspect LivenessAnalysis {
         throw new IllegalStateException("Statement has no LabeledStmt as parent!");
     }
     syn lazy int Label.pos() {
-        ASTNode<ASTNode> parent = this;
-        
-        // search procedure or program, and get the statements list
-        List<LabeledStmt> labeledStmts = null;
-        do {
-            if (parent instanceof Procedure) {
-                Procedure procedure = (Procedure)parent;
-                labeledStmts = procedure.getStmtsRet().getStmtsList();
-            }
-            else if(parent instanceof Program) {
-                Program program = (Program)parent;
-                labeledStmts = program.getStmtsList();
-            }
-            
-            parent = parent.getParent();
-        } while(parent != null);
-        
-        if(parent == null) {
-            throw new IllegalStateException("Label has no procedure or program as parent!");
-        }
-        
         // search matching label in labeledStmts
-        for(LabeledStmt labeledStmt:labeledStmts) {
+        for(LabeledStmt labeledStmt : getParentStmts()) {
             if(!labeledStmt.hasLabel()) continue;
             String labelString = labeledStmt.getLabel().getLabel();
             if(getLabel().equals(labelString)) {
@@ -82,6 +46,7 @@ aspect LivenessAnalysis {
     eq HLoad.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
     eq Move.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
     eq Print.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
+    
     
     /*
      * Def specification 
@@ -140,7 +105,6 @@ aspect LivenessAnalysis {
     eq IntLiteral.use() = new List<Temp>(); 
     
     
-    
     /*
      * Helper
      */
@@ -149,5 +113,24 @@ aspect LivenessAnalysis {
             add(t);
         }
     }
+    
+    syn lazy List<LabeledStmt> ASTNode.getParentStmts() {
+        // search procedure or program, then return statements list
+        ASTNode<T> parent = this;
+        List<LabeledStmt> labeledStmts;
+        do {
+            if (parent instanceof Procedure) {
+                Procedure procedure = (Procedure)parent;
+                return procedure.getStmtsRet().getStmtsList();
+            } else if(parent instanceof Program) {
+                Program program = (Program)parent;
+                return program.getStmtsList();
+            }
+            
+            parent = parent.getParent();
+        } while(parent != null);
+        
+        throw new IllegalStateException("Node has no procedure or program as parent!");
+    } 
     
 } 
