@@ -1,0 +1,115 @@
+aspect LivenessAnalysis {
+    // For the specification see docs/liveness.md
+    
+    /*
+     * Pos
+     */
+    syn lazy int LabeledStmt.pos() {
+        ASTNode<ASTNode> parent = this;
+        
+        do {
+            if (parent instanceof Procedure) {
+                Procedure procedure = (Procedure)parent;
+                return procedure.getStmtsRet().getStmtsList().getIndexOfChild(this);
+            }
+            else if(parent instanceof Program) {
+                Program program = (Program)parent;
+                return program.getStmtsList().getIndexOfChild(this);
+            }
+            
+            parent = parent.getParent();
+        } while(parent != null);
+        
+        throw new IllegalStateException("node has no procedure as parent!");
+    }
+    syn lazy int Stmt.pos() {
+        if(getParent() instanceof LabeledStmt) {
+            LabeledStmt labeledStmt = (LabeledStmt) getParent();
+            return labeledStmt.pos();
+        }
+        throw new IllegalStateException("statement has no labeledStmt as parent!");
+    }
+    
+    
+    /*
+     * Flow specification 
+     */
+    /*
+    syn lay List<Temp LabeledStmt.flow() = getStmt().flow();
+    syn lazy List<Tuple<int, int>> Stmt.flow();
+    eq Noop.flow();
+	- flow(`[NOOP]ⁿ`) = { (n, n+1) }
+	- flow(`[ERROR]ⁿ`) = {∅}
+	- flow(`[CJUMP TEMP i [label]]ⁿ`) = { (n, n+1), (n, flow(label)) }
+	- flow(`[JUMP [label]]ⁿ`) = { (n, flow(label)) }
+	- flow(`[HSTORE TEMP i <int> TEMP j]ⁿ`) = { (n, n+1) }
+	- flow(`[HLOAD TEMP i TEMP j <int>]ⁿ`) = { (n, n+1) }
+	- flow(`[MOVE TEMP i <Exp>]ⁿ`) = { (n, n+1) }
+	- flow(`[PRINT <SExp>]ⁿ`) = { (n, n+1) }
+    */
+    
+    
+    /*
+     * Def specification 
+     */
+    syn lazy List<Temp> LabeledStmt.def() = getStmt().def();
+    syn lazy List<Temp> Stmt.def();
+    eq Noop.def() = new List<Temp>();
+    eq Err.def() = new List<Temp>();
+    eq CJump.def() = new List<Temp>();
+    eq Jump.def() = new List<Temp>();
+    eq HStore.def() = new List<Temp>().add(getAddr());
+    eq HLoad.def() = new List<Temp>().add(getDest());
+    eq Move.def() = new List<Temp>().add(getDest());
+    eq Print.def() = new List<Temp>();
+    
+    
+    /*
+     * Use specification 
+     */
+    syn lazy List<Temp> LabeledStmt.use() = getStmt().use();
+    syn lazy List<Temp> Stmt.use();
+    eq Noop.use() = new List<Temp>();
+    eq Err.use() = new List<Temp>();
+    eq CJump.use() = new List<Temp>().add(getCond());
+    eq Jump.use() = new List<Temp>();
+    eq HStore.use() = new List<Temp>().add(getValue());
+    eq HLoad.use() = new List<Temp>().add(getAddr());
+    eq Move.use() = getSource().use();
+    eq Print.use() = getValue().use();
+	
+	// Exp use
+    syn lazy List<Temp> Exp.use();
+    eq HAlloc.use() = getSize().use();
+    eq Call.use() {
+        List<Temp> temps = new List<Temp>();
+        temps.addAll(getName().use());
+        for(Temp param:getParamList()) {
+            temps.add(param);
+        }
+        return temps;
+    }
+    eq Binop.use() {
+        List<Temp> temps = new List<Temp>();
+        temps.add(getLeft());
+        temps.addAll(getRight().use());
+        return temps;    
+    }
+
+    // SExp use
+    eq TempExp.use() = new List<Temp>().add(getTemp());
+    eq LabelExp.use() = new List<Temp>();
+    eq IntLiteral.use() = new List<Temp>(); 
+    
+    
+    
+    /*
+     * Helper
+     */
+    void List.addAll(List<T> list) {
+        for(T t:list) {
+            add(t);
+        }
+    }
+    
+} 
