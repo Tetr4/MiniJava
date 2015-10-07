@@ -3,52 +3,62 @@
 + **pos(statement)**: Assign a position 0, ..., n for each statement in a procedure with n statements. <br/>
 Example: `[CJUMP TEMP 9 label]⁰ [MOVE TEMP 10 0]¹ [label NOOP]²`
 
-+ **def(pos)**: set of variables that are defined at this position<br/>
++ **def(pos)**: set of temps that are defined at this position<br/>
 Example: def(3) = {`TEMP 6`} for `[MOVE TEMP 6 4]³`
 
-+ **use(pos)**: set of variables that are read at this position<br/>
++ **use(pos)**: set of temps that are read at this position<br/>
 Example: use(7) = {`TEMP 5`, `TEMP 2`} for `[MOVE TEMP 5 PLUS TEMP 5 TEMP 2]⁷`
 
 + **succ(pos)**: set of possible successor positions<br/>
 Example: succ(0) = {1,2} for `[CJUMP TEMP 9 label]⁰ [MOVE TEMP 10 0]¹ [label NOOP]²`
 
-+ **out(pos)**: set of variables, which are alive after this position<br/>
++ **out(pos)**: set of temps which are alive after this position<br/>
 out(pos) = in(i) for each i in succ(position)
 
-+ **in(pos)**: set of variables, which are alive before this position<br/>
++ **in(pos)**: set of temps which are alive before this position<br/>
 in(pos) = use(position) + (out(position) - def(position))
 
 + **flow(statement)**: defines set of edges between positions of statements<br/>
 Example: flow(`[CJUMP TEMP 9 [label]]ⁿ`) = { (n, n+1), (n, flow(label)) }
 
 ## Specification
-*TODO: specify use/def sets of temporaries*
 ### flow
-- flow(`[l:NOOP]ⁿ`) = { (n, n+1) }
-- flow(`ERROR`) = {∅}
-- flow(`[CJUMP TEMP 9 [label]]ⁿ`) = { (n, n+1), (n, flow(label)) }
+- flow(`[NOOP]ⁿ`) = { (n, n+1) }
+- flow(`[ERROR]ⁿ`) = {∅}
+- flow(`[CJUMP TEMP i [label]]ⁿ`) = { (n, n+1), (n, flow(label)) }
 - flow(`[JUMP [label]]ⁿ`) = { (n, flow(label)) }
-- flow(`[HSTORE TEMP 5 0 TEMP 8]ⁿ`) = { (n, n+1) }
-- flow(`[HLOAD TEMP 2 TEMP 3 0]ⁿ`) = { (n, n+1) }
-- flow(`[MOVE TEMP 5 4]ⁿ`) = { (n, n+1) }
-- flow(`[PRINT TEMP 9]ⁿ`) = { (n, n+1) }
-
-#### use
-- Noop:Stmt;
-- Err:Stmt;
-- CJump:Stmt ::= Cond:Temp Label:Label;
-- Jump:Stmt ::= Label:Label;
-- HStore:Stmt ::= Addr:Temp <Offset:Integer> Value:Temp;
-- HLoad:Stmt ::= Dest:Temp Addr:Temp <Offset:Integer>;
-- Move:Stmt ::= Dest:Temp Source:Exp;
-- Print:Stmt ::= Value:SExp;
+- flow(`[HSTORE TEMP i <int> TEMP j]ⁿ`) = { (n, n+1) }
+- flow(`[HLOAD TEMP i TEMP j <int>]ⁿ`) = { (n, n+1) }
+- flow(`[MOVE TEMP i <Exp>]ⁿ`) = { (n, n+1) }
+- flow(`[PRINT <SExp>]ⁿ`) = { (n, n+1) }
 
 #### def
-- Noop:Stmt;
-- Err:Stmt;
-- CJump:Stmt ::= Cond:Temp Label:Label;
-- Jump:Stmt ::= Label:Label;
-- HStore:Stmt ::= Addr:Temp <Offset:Integer> Value:Temp;
-- HLoad:Stmt ::= Dest:Temp Addr:Temp <Offset:Integer>;
-- Move:Stmt ::= Dest:Temp Source:Exp;
-- Print:Stmt ::= Value:SExp;
+- def(n) = {∅} for `[NOOP]ⁿ`
+- def(n) = {∅} for `[ERROR]ⁿ`
+- def(n) = {∅} for `[CJUMP TEMP i [label]]ⁿ`
+- def(n) = {∅} for `[JUMP [label]]ⁿ`}
+- def(n) = {`TEMP i`} for `[HSTORE TEMP i <int> TEMP j]ⁿ`
+- def(n) = {`TEMP i`} for `[HLOAD TEMP i TEMP j <int>]ⁿ`
+- def(n) = {`TEMP i`} for `[MOVE TEMP i <Exp>]ⁿ`
+- def(n) = {∅} for `[PRINT <SExp>]ⁿ`
+
+#### use
+- use(n) = {∅} for `[NOOP]ⁿ`
+- use(n) = {∅} for `[ERROR]ⁿ`
+- use(n) = {`TEMP i`} for `[CJUMP TEMP i [label]]ⁿ`
+- use(n) = {∅} for `[JUMP [label]]ⁿ`}
+- use(n) = {`TEMP j`} for `[HSTORE TEMP i <int> TEMP j]ⁿ`
+- use(n) = {`TEMP j`} for `[HLOAD TEMP i TEMP j <int>]ⁿ`
+- use(n) = {useExp(`<Exp>`)} for `[MOVE TEMP i <Exp>]ⁿ`
+- use(n) = {useSExp(`<SExp>`)} for `[PRINT <SExp>]ⁿ`
+
+- useExp(`HALLOC <SExp>`) = {useSExp(`<SExp>`)}
+- useExp(`CALL <SExp> TEMP i ... TEMP j`) = {useSExp(`<SExp>`), `TEMP i`, ..., `TEMP j`}
+- useExp(`TEMP i < <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)} 
+- useExp(`TEMP i + <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)}
+- useExp(`TEMP i - <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)} 
+- useExp(`TEMP i * <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)}
+  
+- useSExp(`TEMP n`) = {`TEMP n`}
+- useSExp(`label`) = {∅}
+- useSExp(`<int>`) = {∅}
