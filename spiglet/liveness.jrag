@@ -80,6 +80,7 @@ aspect LivenessAnalysis {
     eq HLoad.use() = new List<Temp>().add(getAddr().copy());
     eq Move.use() = getSource().use();
     eq Print.use() = getValue().use();
+    // FIXME Temp may also get used as a StmtExps RetExp
 	
 	// Exp use
     syn lazy List<Temp> Exp.use();
