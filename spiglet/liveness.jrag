@@ -52,6 +52,8 @@ aspect LivenessAnalysis {
     /*
      * Def specification 
      */
+    syn lazy List<Temp> Program.def(int pos) = getStmtsList().getChild(pos).def();
+    syn lazy List<Temp> Procedure.def(int pos) = getStmtsRet().getStmtsList().getChild(pos).def();
     syn lazy List<Temp> LabeledStmt.def() = getStmt().def();
     syn lazy List<Temp> Stmt.def();
     eq Noop.def() = new List<Temp>();
@@ -67,6 +69,8 @@ aspect LivenessAnalysis {
     /*
      * Use specification 
      */
+    syn lazy List<Temp> Program.use(int pos) = getStmtsList().getChild(pos).use();
+    syn lazy List<Temp> Procedure.use(int pos) = getStmtsRet().getStmtsList().getChild(pos).use();
     syn lazy List<Temp> LabeledStmt.use() = getStmt().use();
     syn lazy List<Temp> Stmt.use();
     eq Noop.use() = new List<Temp>();
