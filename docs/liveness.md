@@ -25,8 +25,8 @@ Example: flow(`[CJUMP TEMP 9 [label]]ⁿ`) = { (n, n+1), (n, flow(label)) }
 ### flow
 - flow(`[NOOP]ⁿ`) = { (n, n+1) }
 - flow(`[ERROR]ⁿ`) = {∅}
-- flow(`[CJUMP TEMP i [label]]ⁿ`) = { (n, n+1), (n, flow(label)) }
-- flow(`[JUMP [label]]ⁿ`) = { (n, flow(label)) }
+- flow(`[CJUMP TEMP i [label]]ⁿ`) = { (n, n+1), (n, label) }
+- flow(`[JUMP [label]]ⁿ`) = { (n, label) }
 - flow(`[HSTORE TEMP i <int> TEMP j]ⁿ`) = { (n, n+1) }
 - flow(`[HLOAD TEMP i TEMP j <int>]ⁿ`) = { (n, n+1) }
 - flow(`[MOVE TEMP i <Exp>]ⁿ`) = { (n, n+1) }
