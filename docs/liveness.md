@@ -13,50 +13,51 @@ Example: use(7) = {`TEMP 5`, `TEMP 2`} for `[MOVE TEMP 5 PLUS TEMP 5 TEMP 2]⁷`
 Example: succ(0) = {1,2} for `[CJUMP TEMP 9 label]⁰ [MOVE TEMP 10 0]¹ [label NOOP]²`
 
 + **out(pos)**: set of temps which are alive after this position<br/>
-out(pos) = in(i) for each i in succ(position)
+out(pos) = in(i) for each i in succ(pos)
 
 + **in(pos)**: set of temps which are alive before this position<br/>
-in(pos) = use(position) + (out(position) - def(position))
+in(pos) = use(pos) + (out(pos) - def(pos))
 
 + **flow(statement)**: defines set of edges between positions of statements<br/>
-Example: flow(`[CJUMP TEMP 9 [label]]ⁿ`) = { (n, n+1), (n, flow(label)) }
+Example: flow(`[CJUMP TEMP 9 [label]]ⁱ`) = { (i, i+1), (i, pos(label)) }
 
 ## Specification
-### flow
-- flow(`[NOOP]ⁿ`) = { (n, n+1) }
-- flow(`[ERROR]ⁿ`) = {∅}
-- flow(`[CJUMP TEMP i [label]]ⁿ`) = { (n, n+1), (n, label) }
-- flow(`[JUMP [label]]ⁿ`) = { (n, label) }
-- flow(`[HSTORE TEMP i <int> TEMP j]ⁿ`) = { (n, n+1) }
-- flow(`[HLOAD TEMP i TEMP j <int>]ⁿ`) = { (n, n+1) }
-- flow(`[MOVE TEMP i <Exp>]ⁿ`) = { (n, n+1) }
-- flow(`[PRINT <SExp>]ⁿ`) = { (n, n+1) }
+### flow(statement) for i ∈ {0, ..., n-1}
+- flow(`[NOOP]ⁱ`) = { (i, i+1) }
+- flow(`[ERROR]ⁱ`) = ∅
+- flow(`[CJUMP TEMP t [label]]ⁱ`) = { (i, i+1), (i, pos(label)) }
+- flow(`[JUMP [label]]ⁱ`) = { (i, pos(label)) }
+- flow(`[HSTORE TEMP t <int> TEMP u]ⁱ`) = { (i, i+1) }
+- flow(`[HLOAD TEMP t TEMP u <int>]ⁱ`) = { (i, i+1) }
+- flow(`[MOVE TEMP t <Exp>]ⁱ`) = { (i, i+1) }
+- flow(`[PRINT <SExp>]ⁱ`) = { (i, i+1) }
 
-#### def
-- def(n) = {∅} for `[NOOP]ⁿ`
-- def(n) = {∅} for `[ERROR]ⁿ`
-- def(n) = {∅} for `[CJUMP TEMP i [label]]ⁿ`
-- def(n) = {∅} for `[JUMP [label]]ⁿ`}
-- def(n) = {`TEMP i`} for `[HSTORE TEMP i <int> TEMP j]ⁿ`
-- def(n) = {`TEMP i`} for `[HLOAD TEMP i TEMP j <int>]ⁿ`
-- def(n) = {`TEMP i`} for `[MOVE TEMP i <Exp>]ⁿ`
-- def(n) = {∅} for `[PRINT <SExp>]ⁿ`
+### def(pos)
+- def(i) = ∅ for `[NOOP]ⁱ`
+- def(i) = ∅ for `[ERROR]ⁱ`
+- def(i) = ∅ for `[CJUMP TEMP t [label]]ⁱ`
+- def(i) = ∅ for `[JUMP [label]]ⁱ`}
+- def(i) = {`TEMP t`} for `[HSTORE TEMP t <int> TEMP u]ⁱ`
+- def(i) = {`TEMP t`} for `[HLOAD TEMP t TEMP u <int>]ⁱ`
+- def(i) = {`TEMP t`} for `[MOVE TEMP t <Exp>]ⁱ`
+- def(i) = ∅ for `[PRINT <SExp>]ⁱ`
 
-#### use
-- use(n) = {∅} for `[NOOP]ⁿ`
-- use(n) = {∅} for `[ERROR]ⁿ`
-- use(n) = {`TEMP i`} for `[CJUMP TEMP i [label]]ⁿ`
-- use(n) = {∅} for `[JUMP [label]]ⁿ`}
-- use(n) = {`TEMP j`} for `[HSTORE TEMP i <int> TEMP j]ⁿ`
-- use(n) = {`TEMP j`} for `[HLOAD TEMP i TEMP j <int>]ⁿ`
-- use(n) = {useExp(`<Exp>`)} for `[MOVE TEMP i <Exp>]ⁿ`
-- use(n) = {useSExp(`<SExp>`)} for `[PRINT <SExp>]ⁿ`
-- useExp(`HALLOC <SExp>`) = {useSExp(`<SExp>`)}
-- useExp(`CALL <SExp> TEMP i ... TEMP j`) = {useSExp(`<SExp>`), `TEMP i`, ..., `TEMP j`}
-- useExp(`TEMP i LT <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)}
-- useExp(`TEMP i PLUS <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)}
-- useExp(`TEMP i MINUS <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)}
-- useExp(`TEMP i TIMES <SExp>`) =  {`TEMP i`, useSExp(`<SExp>`)}
-- useSExp(`TEMP i`) = {`TEMP i`}
-- useSExp(`label`) = {∅}
-- useSExp(`<int>`) = {∅}
+### use(pos)
+- use(i) = ∅ for `[NOOP]ⁱ`
+- use(i) = ∅ for `[ERROR]ⁱ`
+- use(i) = {`TEMP t`} for `[CJUMP TEMP t [label]]ⁱ`
+- use(i) = ∅ for `[JUMP [label]]ⁱ`}
+- use(i) = {`TEMP u`} for `[HSTORE TEMP t <int> TEMP u]ⁱ`
+- use(i) = {`TEMP u`} for `[HLOAD TEMP t TEMP u <int>]ⁱ`
+- use(i) = useExp(`<Exp>`) for `[MOVE TEMP t <Exp>]ⁱ`
+- use(i) = useSExp(`<SExp>`) for `[PRINT <SExp>]ⁱ`
+- use(expression) helper
+    - useExp(`HALLOC <SExp>`) = useSExp(`<SExp>`)
+    - useExp(`CALL <SExp> TEMP t ... TEMP u`) = useSExp(`<SExp>`) ∪ {`TEMP t`, ..., `TEMP u`}
+    - useExp(`TEMP t LT <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
+    - useExp(`TEMP t PLUS <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
+    - useExp(`TEMP t MINUS <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
+    - useExp(`TEMP t TIMES <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
+    - useSExp(`TEMP t`) = {`TEMP t`}
+    - useSExp(`label`) = ∅
+    - useSExp(`<int>`) = ∅
