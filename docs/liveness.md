@@ -54,10 +54,10 @@ Example: flow(`[CJUMP TEMP 9 [label]]ⁱ`) = { (i, i+1), (i, pos(label)) }
 - use(expression) helper
     - useExp(`HALLOC <SExp>`) = useSExp(`<SExp>`)
     - useExp(`CALL <SExp> TEMP t ... TEMP u`) = useSExp(`<SExp>`) ∪ {`TEMP t`, ..., `TEMP u`}
-    - useExp(`TEMP t LT <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
-    - useExp(`TEMP t PLUS <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
-    - useExp(`TEMP t MINUS <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
-    - useExp(`TEMP t TIMES <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
+    - useExp(`LT TEMP t <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
+    - useExp(`PLUS TEMP t <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
+    - useExp(`MINUS TEMP t <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
+    - useExp(`TIMES TEMP t <SExp>`) =  useSExp(`<SExp>`) ∪ {`TEMP t`}
     - useSExp(`TEMP t`) = {`TEMP t`}
     - useSExp(`label`) = ∅
     - useSExp(`<int>`) = ∅
