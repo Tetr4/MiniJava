@@ -5,59 +5,85 @@ aspect LivenessPrinter {
     public String Program.printLiveness() {
         StringBuilder builder = new StringBuilder();
         
+        // main name
         builder.append("MAIN");
         builder.append("\n");
-        appendLiveness(getStmtsList(), builder);
+        for(int i = 0; i < getStmtsList().getNumChild(); i++) {
+            appendName(i, getStmtsList().getChild(i), builder);
+            appendDef(def(i), builder);
+            appendUse(use(i), builder);
+            appendFlow(flow(i), builder);
+            builder.append('\n');
+        }
         
         for(Procedure procedure:getProcsList()) {
+            // Procedure name
             builder.append(procedure.getLabel().getLabel());
             builder.append("\n");
-            appendLiveness(procedure.getStmtsRet().getStmtsList(), builder);
+
+            // Statements            
+            List<LabeledStmt> stmts = procedure.getStmtsRet().getStmtsList();
+            for(int i = 0; i < stmts.getNumChild(); i++) {
+                appendName(i, stmts.getChild(i), builder);
+	            appendDef(procedure.def(i), builder);
+	            appendUse(procedure.use(i), builder);
+	            appendFlow(procedure.flow(i), builder);
+	            builder.append('\n');
+            }
+            
+            // Ret Exp
+            int retExpPos = stmts.getNumChild();
+            appendName(retExpPos, procedure.getStmtsRet().getRetExp(), builder);
+            appendDef(procedure.def(retExpPos), builder);
+            appendUse(procedure.use(retExpPos), builder);
+            appendFlow(procedure.flow(retExpPos), builder);
+            builder.append('\n');
         }
         
         return builder.toString();
     }
     
-    private void Program.appendLiveness(List<LabeledStmt> labeledStmts, StringBuilder builder) {
-        for(LabeledStmt labeledStmt : labeledStmts) {
-            // statement name
-            builder.append(labeledStmt.pos() + ": ");
-            builder.append(labeledStmt.getStmt().getClass().getSimpleName());
+    private void Program.appendName(int pos, ASTNode node, StringBuilder builder) {
+        if(node instanceof LabeledStmt) {
+            appendName(pos, ((LabeledStmt) node).getStmt(), builder);
+        } else {
+            builder.append(pos + ": ");
+            builder.append(node.getClass().getSimpleName());
             builder.append('\n');
-            
-            // def
-            Set<Temp> defs = labeledStmt.def();
-            if(defs.size() != 0) {
-                builder.append("\tdef: ");
-                for(Temp temp: defs) {
-                    builder.append("TEMP " + temp.getNumber());
-                    builder.append(' ');
-                }
-                builder.append('\n');
-            }
-            
-            // use
-            Set<Temp> uses = labeledStmt.use();
-            if(uses.size() != 0) {
-                builder.append("\tuse: ");
-                for(Temp temp: uses) {
-                    builder.append("TEMP " + temp.getNumber());
-                    builder.append(' ');
-                }
-                builder.append('\n');
-            }
-            
-            // edges
-            Set<Integer> edges = labeledStmt.flow();
-            if(edges.size() != 0) {
-                builder.append("\tedges: ");
-                for(Integer edge: edges) {
-                    builder.append(edge);
-                    builder.append(' ');
-                }
-                builder.append('\n');
-            }
-        }
-        builder.append('\n');
+        } 
     }
+    
+    private void Program.appendDef(Set<Temp> defs, StringBuilder builder) {
+        if(defs.size() != 0) {
+	        builder.append("\tdef: ");
+	        for(Temp temp: defs) {
+	            builder.append("TEMP " + temp.getNumber());
+	            builder.append(' ');
+	        }
+	        builder.append('\n');
+        }
+    }
+    
+    private void Program.appendUse(Set<Temp> uses, StringBuilder builder) {
+        if(uses.size() != 0) {
+	        builder.append("\tuse: ");
+	        for(Temp temp: uses) {
+	            builder.append("TEMP " + temp.getNumber());
+	            builder.append(' ');
+	        }
+	        builder.append('\n');
+	    }
+    }
+    
+    private void Program.appendFlow(Set<Integer> edges, StringBuilder builder) {
+        if(edges.size() != 0) {
+            builder.append("\tedges: ");
+            for(Integer edge: edges) {
+                builder.append(edge);
+                builder.append(' ');
+            }
+            builder.append('\n');
+        }
+    }
+    
 }

@@ -37,14 +37,27 @@ aspect LivenessAnalysis {
      * Flow specification 
      */
     syn lazy Set<Integer> Stmt.nextPos() {
-        // If this statement is the last in the list, it has no successor.
-        if (pos() == getParentStmts().getNumChild()-1)
+        boolean parentIsProgram = getParentProgramOrProcedure() instanceof Program;
+        boolean isLastPos = pos() == getParentStmts().getNumChild()-1;
+        if(parentIsProgram && isLastPos) {
+            // If this statement is the last in the list, it has no successor.
             return Collections.emptySet();
+        }
         
         // Return the position of the next statement after this one.
+        // In a procedure this may be the position of the RetExp.
         return new HashSet<Integer>(Arrays.asList( pos()+1 ));
     }
+    syn lazy boolean Procedure.isRetExpPos(int pos) = pos == getStmtsRet().getStmtsList().getNumChild();
     
+    syn lazy Set<Integer> Program.flow(int pos) = getStmtsList().getChild(pos).flow();
+    syn lazy Set<Integer> Procedure.flow(int pos) {
+        if(isRetExpPos(pos)) {
+            // no successor after RetExp
+            return Collections.emptySet();
+        }
+        return getStmtsRet().getStmtsList().getChild(pos).flow();
+    }
     syn lazy Set<Integer> LabeledStmt.flow() = getStmt().flow();
     syn lazy Set<Integer> Stmt.flow() = nextPos();
     eq Err.flow() = Collections.emptySet();
@@ -60,7 +73,13 @@ aspect LivenessAnalysis {
      * Def specification 
      */
     syn lazy Set<Temp> Program.def(int pos) = getStmtsList().getChild(pos).def();
-    syn lazy Set<Temp> Procedure.def(int pos) = getStmtsRet().getStmtsList().getChild(pos).def();
+    syn lazy Set<Temp> Procedure.def(int pos) {
+        if(isRetExpPos(pos)) {
+            // RetExp doesn't define any temps
+            return Collections.emptySet();
+        }
+        return getStmtsRet().getStmtsList().getChild(pos).def();
+    }
     syn lazy Set<Temp> LabeledStmt.def() = getStmt().def();
     syn lazy Set<Temp> Stmt.def() = Collections.emptySet();
     eq HStore.def() = new HashSet<Temp>(Arrays.asList( getAddr() ));
@@ -72,7 +91,12 @@ aspect LivenessAnalysis {
      * Use specification 
      */
     syn lazy Set<Temp> Program.use(int pos) = getStmtsList().getChild(pos).use();
-    syn lazy Set<Temp> Procedure.use(int pos) = getStmtsRet().getStmtsList().getChild(pos).use();
+    syn lazy Set<Temp> Procedure.use(int pos) {
+        if(isRetExpPos(pos)) {
+            return getStmtsRet().getRetExp().use();
+        }
+        return getStmtsRet().getStmtsList().getChild(pos).use();
+    }
     syn lazy Set<Temp> LabeledStmt.use() = getStmt().use();
     syn lazy Set<Temp> Stmt.use() = Collections.emptySet();
     eq CJump.use() = new HashSet<Temp>(Arrays.asList( getCond() ));
@@ -80,7 +104,6 @@ aspect LivenessAnalysis {
     eq HLoad.use() = new HashSet<Temp>(Arrays.asList( getAddr() ));
     eq Move.use() = getSource().use();
     eq Print.use() = getValue().use();
-    // FIXME Temp may also get used as a StmtExps RetExp
 	
 	// Exp use
     syn lazy Set<Temp> Exp.use();
@@ -110,16 +133,24 @@ aspect LivenessAnalysis {
      * Helper
      */
     syn lazy List<LabeledStmt> ASTNode.getParentStmts() {
-        // search procedure or program, then return statements list
+        ASTNode<T> parent = getParentProgramOrProcedure();
+        
+        if (parent instanceof Procedure) {
+            Procedure procedure = (Procedure)parent;
+            return procedure.getStmtsRet().getStmtsList();
+        } else {
+            Program program = (Program)parent;
+            return program.getStmtsList();
+        }
+    } 
+    
+    syn lazy ASTNode<T> ASTNode.getParentProgramOrProcedure() {
+        // search procedure or program
         ASTNode<T> parent = this;
         List<LabeledStmt> labeledStmts;
         do {
-            if (parent instanceof Procedure) {
-                Procedure procedure = (Procedure)parent;
-                return procedure.getStmtsRet().getStmtsList();
-            } else if(parent instanceof Program) {
-                Program program = (Program)parent;
-                return program.getStmtsList();
+            if (parent instanceof Procedure || parent instanceof Program) {
+                return parent;
             }
             
             parent = parent.getParent();
