@@ -1,3 +1,5 @@
+import java.util.Set;
+
 aspect LivenessPrinter {
     
     public String Program.printLiveness() {
@@ -24,8 +26,8 @@ aspect LivenessPrinter {
             builder.append('\n');
             
             // def
-            List<Temp> defs = labeledStmt.def();
-            if(defs.getNumChild() != 0) {
+            Set<Temp> defs = labeledStmt.def();
+            if(defs.size() != 0) {
                 builder.append("\tdef: ");
                 for(Temp temp: defs) {
                     builder.append("TEMP " + temp.getNumber());
@@ -35,8 +37,8 @@ aspect LivenessPrinter {
             }
             
             // use
-            List<Temp> uses = labeledStmt.use();
-            if(uses.getNumChild() != 0) {
+            Set<Temp> uses = labeledStmt.use();
+            if(uses.size() != 0) {
                 builder.append("\tuse: ");
                 for(Temp temp: uses) {
                     builder.append("TEMP " + temp.getNumber());
@@ -46,13 +48,11 @@ aspect LivenessPrinter {
             }
             
             // edges
-            List<Edge> edges = labeledStmt.flow();
-            if(edges.getNumChild() != 0) {
+            Set<Integer> edges = labeledStmt.flow();
+            if(edges.size() != 0) {
                 builder.append("\tedges: ");
-                for(Edge edge: edges) {
-                    builder.append(edge.left);
-                    builder.append("->");
-                    builder.append(edge.right);
+                for(Integer edge: edges) {
+                    builder.append(edge);
                     builder.append(' ');
                 }
                 builder.append('\n');

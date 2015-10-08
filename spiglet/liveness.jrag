@@ -1,3 +1,8 @@
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Arrays;
+import java.util.Collections;
+
 aspect LivenessAnalysis {
     // For the specification see docs/liveness.md
     
@@ -31,90 +36,79 @@ aspect LivenessAnalysis {
     /*
      * Flow specification 
      */
-    syn lazy List<Edge> LabeledStmt.flow() = getStmt().flow();
-    syn lazy List<Edge> Stmt.flow();
-    eq Noop.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
-    eq Err.flow() = new List<Edge>();
-    eq CJump.flow() {
-        List<Edge> edges = new List<Edge>();
-        edges.add(new Edge(pos(), pos()+1));
-        edges.add(new Edge(pos(), getLabel().pos()));
-        return edges;
+    syn lazy Set<Integer> Stmt.nextPos() {
+        // If this statement is the last in the list, it has no successor.
+        if (pos() == getParentStmts().getNumChild()-1)
+            return Collections.emptySet();
+        
+        // Return the position of the next statement after this one.
+        return new HashSet<Integer>(Arrays.asList( pos()+1 ));
     }
-    eq Jump.flow() = new List<Edge>().add(new Edge(pos(), getLabel().pos()));
-    eq HStore.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
-    eq HLoad.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
-    eq Move.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
-    eq Print.flow() = new List<Edge>().add(new Edge(pos(), pos()+1));
+    
+    syn lazy Set<Integer> LabeledStmt.flow() = getStmt().flow();
+    syn lazy Set<Integer> Stmt.flow() = nextPos();
+    eq Err.flow() = Collections.emptySet();
+    eq CJump.flow() {
+        Set<Integer> set = nextPos();
+        set.add(getLabel().pos());
+        return set;
+    }
+    eq Jump.flow() = new HashSet<Integer>(Arrays.asList( getLabel().pos() ));
     
     
     /*
      * Def specification 
      */
-    syn lazy List<Temp> Program.def(int pos) = getStmtsList().getChild(pos).def();
-    syn lazy List<Temp> Procedure.def(int pos) = getStmtsRet().getStmtsList().getChild(pos).def();
-    syn lazy List<Temp> LabeledStmt.def() = getStmt().def();
-    syn lazy List<Temp> Stmt.def();
-    eq Noop.def() = new List<Temp>();
-    eq Err.def() = new List<Temp>();
-    eq CJump.def() = new List<Temp>();
-    eq Jump.def() = new List<Temp>();
-    eq HStore.def() = new List<Temp>().add(getAddr().copy());
-    eq HLoad.def() = new List<Temp>().add(getDest().copy());
-    eq Move.def() = new List<Temp>().add(getDest().copy());
-    eq Print.def() = new List<Temp>();
+    syn lazy Set<Temp> Program.def(int pos) = getStmtsList().getChild(pos).def();
+    syn lazy Set<Temp> Procedure.def(int pos) = getStmtsRet().getStmtsList().getChild(pos).def();
+    syn lazy Set<Temp> LabeledStmt.def() = getStmt().def();
+    syn lazy Set<Temp> Stmt.def() = Collections.emptySet();
+    eq HStore.def() = new HashSet<Temp>(Arrays.asList( getAddr() ));
+    eq HLoad.def() = new HashSet<Temp>(Arrays.asList( getDest() ));
+    eq Move.def() = new HashSet<Temp>(Arrays.asList( getDest() ));
     
     
     /*
      * Use specification 
      */
-    syn lazy List<Temp> Program.use(int pos) = getStmtsList().getChild(pos).use();
-    syn lazy List<Temp> Procedure.use(int pos) = getStmtsRet().getStmtsList().getChild(pos).use();
-    syn lazy List<Temp> LabeledStmt.use() = getStmt().use();
-    syn lazy List<Temp> Stmt.use();
-    eq Noop.use() = new List<Temp>();
-    eq Err.use() = new List<Temp>();
-    eq CJump.use() = new List<Temp>().add(getCond().copy());
-    eq Jump.use() = new List<Temp>();
-    eq HStore.use() = new List<Temp>().add(getValue().copy());
-    eq HLoad.use() = new List<Temp>().add(getAddr().copy());
+    syn lazy Set<Temp> Program.use(int pos) = getStmtsList().getChild(pos).use();
+    syn lazy Set<Temp> Procedure.use(int pos) = getStmtsRet().getStmtsList().getChild(pos).use();
+    syn lazy Set<Temp> LabeledStmt.use() = getStmt().use();
+    syn lazy Set<Temp> Stmt.use() = Collections.emptySet();
+    eq CJump.use() = new HashSet<Temp>(Arrays.asList( getCond() ));
+    eq HStore.use() = new HashSet<Temp>(Arrays.asList( getValue() ));
+    eq HLoad.use() = new HashSet<Temp>(Arrays.asList( getAddr() ));
     eq Move.use() = getSource().use();
     eq Print.use() = getValue().use();
     // FIXME Temp may also get used as a StmtExps RetExp
 	
 	// Exp use
-    syn lazy List<Temp> Exp.use();
+    syn lazy Set<Temp> Exp.use();
     eq HAlloc.use() = getSize().use();
     eq Call.use() {
-        List<Temp> temps = new List<Temp>();
+        Set<Temp> temps = new HashSet<Temp>();
         temps.addAll(getName().use());
-        for(Temp param:getParamList()) {
-            temps.add(param.copy());
+        for(Temp param : getParamList()) {
+            temps.add(param);
         }
         return temps;
     }
     eq Binop.use() {
-        List<Temp> temps = new List<Temp>();
-        temps.add(getLeft().copy());
+        Set<Temp> temps = new HashSet<Temp>();
+        temps.add(getLeft());
         temps.addAll(getRight().use());
         return temps;    
     }
 
     // SExp use
-    eq TempExp.use() = new List<Temp>().add(getTemp().copy());
-    eq LabelExp.use() = new List<Temp>();
-    eq IntLiteral.use() = new List<Temp>(); 
+    eq TempExp.use() = new HashSet<Temp>(Arrays.asList( getTemp() ));
+    eq LabelExp.use() = Collections.emptySet();
+    eq IntLiteral.use() = Collections.emptySet();
     
     
     /*
      * Helper
      */
-    void List.addAll(List<T> list) {
-        for(T t:list) {
-            add(t);
-        }
-    }
-    
     syn lazy List<LabeledStmt> ASTNode.getParentStmts() {
         // search procedure or program, then return statements list
         ASTNode<T> parent = this;
