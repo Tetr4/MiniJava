@@ -10,8 +10,6 @@ import minijava.MJFile;
  * Contains tests which check the interpreted results of subclasses
  */
 public abstract class TransformationTest {
-    protected static pigletinterpreter.PigletParser pigletInterpreterParser;
-    protected static kangainterpreter.KangaParser kangaInterpreterParser;
 
     protected abstract String interpret(MJFile file) throws Exception;
     
