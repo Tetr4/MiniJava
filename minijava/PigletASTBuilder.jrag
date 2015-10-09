@@ -1,5 +1,6 @@
 import piglet.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 aspect PigletASTBuilder {
     
@@ -13,21 +14,15 @@ aspect PigletASTBuilder {
         And.collectedStmts = null;
     }
     
+    public HashMap<String, piglet.Procedure> Program.helperProcedures;
     syn lazy piglet.Program Program.toPiglet() {
         // Reset builder state
         reset();
     
         piglet.List<piglet.Procedure> procedures = new piglet.List<piglet.Procedure>();
         
-        // helper procedures
-        procedures.add(createArrayAllocProcedure());
-        procedures.add(createArrayLookupProcedure());
-        procedures.add(createArrayLengthProcedure());
-        procedures.add(createObjNullCheckProcedure());
-        procedures.add(createObjectAllocProcedure());
-        procedures.add(createObjectFieldAccessProcedure());
-        procedures.add(createMethodAddressProcedure());
-        procedures.add(createArrayBoundsCheckProcedure());
+        // Helper procedures are collected here by the time they are used in the code.
+        helperProcedures = new HashMap<String, piglet.Procedure>();
 
         // Assign index to classes in order of declaration
         // Ignore classes that don't need a virtual table (no methods or no changed methods regarding superclass)
@@ -97,6 +92,11 @@ aspect PigletASTBuilder {
         // Add MainClass.main() code now
         for (LabeledStmt labeledStmt: getMain().getPigletStmts(tempIndex)) {
             labeledStmts.add(labeledStmt);
+        }
+        
+        // Add used helper procedures
+        for (piglet.Procedure procedure: helperProcedures.values()) {
+            procedures.add(procedure);
         }
         
         return new piglet.Program(labeledStmts, procedures);
@@ -922,7 +922,52 @@ aspect PigletASTBuilder {
         return new piglet.Label(containingClass().getIdent() + "__" + getIdent());
     }
     
+    syn lazy Program ASTNode.getParentProgram() {
+        ASTNode<T> parent = this;
+        do {
+            if (parent instanceof Program) {
+                return (Program)parent;
+            }
+            parent = parent.getParent();
+        } while (parent != null);
+        throw new IllegalStateException("ASTNode not child of a root Program.");
+    }
+    
     public piglet.Call ASTNode.createCall(String name, piglet.Exp... params) {
+    
+        // See if we have to add this helper method.
+        // This way only used procedures are added.
+        Program program = getParentProgram();
+        if (!program.helperProcedures.containsKey(name)) {
+	        switch (name) {
+	            case "ARRAYALLOC":
+	                program.helperProcedures.put(name, createArrayAllocProcedure());
+	                break;
+	            case "ARRAYLENGTH":
+                    program.helperProcedures.put(name, createArrayLengthProcedure());
+                    break;
+                case "ARRAYLOOKUP":
+                    program.helperProcedures.put(name, createArrayLookupProcedure());
+                    break;
+                case "CHECKARRAYBOUNDS":
+                    program.helperProcedures.put(name, createArrayBoundsCheckProcedure());
+                    break;
+                case "CHECKNULLADDRESS":
+                    program.helperProcedures.put(name, createObjNullCheckProcedure());
+                    break;
+                case "GETMETHODADDRESS":
+                    program.helperProcedures.put(name, createMethodAddressProcedure());
+                    break;
+                case "GETOBJECTFIELD":
+                    program.helperProcedures.put(name, createObjectFieldAccessProcedure());
+                    break;
+                case "OBJECTALLOC":
+                    program.helperProcedures.put(name, createObjectAllocProcedure());
+                    break;
+	        }
+	    }
+    
+        // Wrap the passed parameters into a nice piglet List.
         piglet.Exp procedureLabel = new LabelExp(new Label(name));
         
         piglet.List<piglet.Exp> paramsList = new piglet.List<piglet.Exp>();
