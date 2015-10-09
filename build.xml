@@ -2,13 +2,9 @@
 
 <project name="MiniJavaCompiler" default="compile_all">
 
-    <property name="gen.dir" value="gen" />
+    <property name="gen.dir" value="gen/" />
 
-    <target name="compile_all" depends="clean, minijava, piglet, spiglet, kanga, mips" />
-
-    <target name="clean">
-        <delete dir="${gen.dir}" />
-    </target>
+    <target name="compile_all" depends="minijava" />
 
     <target name="minijava" depends="piglet">
         <ant antfile="build_minijava.xml" target="compile" />
@@ -26,8 +22,15 @@
         <ant antfile="build_kanga.xml" target="compile" />
     </target>
 
-    <target name="mips">
+    <target name="mips" depends="clean">
         <ant antfile="build_mips.xml" target="compile" />
+    </target>
+    
+    <target name="clean">
+        <!-- clean content of gen dir -->
+        <delete>
+            <fileset dir="${gen.dir}" includes="**/*" defaultexcludes="no"/>
+        </delete>
     </target>
 
 </project>
