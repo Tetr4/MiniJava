@@ -45,6 +45,6 @@ public class SPigletTest extends TransformationTest {
 	
     @Override
     protected String interpret(MJFile file) throws ParseException, IOException, beaver.Parser.Exception {
-        return file.parse().toPiglet().toSpiglet().interpret();
+        return file.parse().toPiglet().toSpiglet().liveness().interpret();
     }
 }

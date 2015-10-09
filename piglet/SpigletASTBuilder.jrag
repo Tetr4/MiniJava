@@ -235,7 +235,7 @@ aspect SpigletASTBuilder {
     
     // Generate a new spiglet temp number, if this is the first time we encounter this temp in piglet.
     // Use the old one, if this temp is reused.
-    syn lazy spiglet.Temp Temp.toSpiglet() {
+    syn spiglet.Temp Temp.toSpiglet() {
         if(Program.pigletToSpigletTemps.containsKey(getNumber())) {
             return new spiglet.Temp(Program.pigletToSpigletTemps.get(getNumber()));
         } 

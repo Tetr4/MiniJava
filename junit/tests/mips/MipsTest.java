@@ -7,7 +7,7 @@ public class MipsTest extends TransformationTest {
 
     @Override
     protected String interpret(MJFile file) throws Exception {
-        return file.parse().toPiglet().toSpiglet().toKanga().toMips().interpret();
+        return file.parse().toPiglet().toSpiglet().liveness().toKanga().toMips().interpret();
     }
     
 
