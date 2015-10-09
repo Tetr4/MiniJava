@@ -1,7 +1,7 @@
 # Type analysis
 
 #### TypeInfo
-Adds a abstract class `TypeInfo`. Subclasses are:
+In [TypeAnalysis.jrag](/minijava/TypeAnalysis.jrag) an abstract class `TypeInfo` is added. Subclasses are:
 + `TInt` for integers
 + `TIntArray` for integer arrays
 + `TBool` for booleans

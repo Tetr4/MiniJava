@@ -1,5 +1,6 @@
 # Error checking
-Adds a `SemanticError` class and an `errors()` method to the `Program`. Usage:
+In [ErrorCheck.jrag](/minijava/ErrorCheck.jrag) a `SemanticError` class
+and an `errors()` method is added to the `Program`. Usage:
 ```java
 for (SemanticError e : program.errors()) {
     System.err.println(e.getMessage());
