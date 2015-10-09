@@ -1,5 +1,5 @@
 # Scan input via JFlex
-We use JFlex to generate a scanner from [MJScanner.flex](/minijava/MJScanner.flex).
+We use [JFlex](http://jflex.de/) to generate a scanner from [MJScanner.flex](/minijava/MJScanner.flex).
 
 The Scanner is generated as java files into the *gen* folder.
 
