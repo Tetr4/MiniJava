@@ -52,7 +52,7 @@ public class MJFrontEnd {
         }
 
         // Transform minijava AST to mips AST
-        mips.Program mips = program.toPiglet().toSpiglet().toKanga().toMips();
+        mips.Program mips = program.toPiglet().toSpiglet().liveness().toKanga().toMips();
 
         // Print mips code
         System.out.println(mips.print().getString() + '\n');
