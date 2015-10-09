@@ -17,6 +17,7 @@ aspect PigletInterpreter {
             spiglet.Program.interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
         } else {
             pigletinterpreter.PigletParser.ReInit(pigletInput);
+            pigletinterpreter.visitor.GJPigletInterpreter.HP = 1;
         }
         pigletinterpreter.syntaxtree.Node root = pigletinterpreter.PigletParser.Goal();
 
