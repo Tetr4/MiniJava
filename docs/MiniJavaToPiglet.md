@@ -8,7 +8,7 @@ A MiniJava statement may generate multiple piglet statements, e.g. a `minijava.I
 
 
 #### Helper Procedures
-Often used functions are added as helper procedures to the `piglet.Program`:
+Often used functions are added as helper procedures to the `piglet.Program` when needed:
 + `ArrayAlloc(size)`: Allocates an array of given size in the heap, initialises it with zeros and returns the address. The array length is saved at the first index.
 + `ArrayLookup(address, index)`: Checks address for null and for index out of bounds and returns the value at address + index + 1 (+ 1 as the length is saved at the first index and needs to be skipped).
 + `ArrayLength(address)`: Return value at first index of array, as the length is saved there.
