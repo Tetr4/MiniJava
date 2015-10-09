@@ -10,8 +10,11 @@ aspect LivenessPrinter {
         builder.append("\n");
         for(int i = 0; i < getStmtsList().getNumChild(); i++) {
             appendName(i, getStmtsList().getChild(i), builder);
-            appendDef(def(i), builder);
-            appendUse(use(i), builder);
+            appendSet("def", def(i), builder);
+            appendSet("use", use(i), builder);
+            appendSet("dead", dead(i), builder);
+            appendSet("in", in(i), builder);
+            appendSet("out", out(i), builder);
             appendFlow(flow(i), builder);
             builder.append('\n');
         }
@@ -25,17 +28,23 @@ aspect LivenessPrinter {
             List<LabeledStmt> stmts = procedure.getStmtsRet().getStmtsList();
             for(int i = 0; i < stmts.getNumChild(); i++) {
                 appendName(i, stmts.getChild(i), builder);
-	            appendDef(procedure.def(i), builder);
-	            appendUse(procedure.use(i), builder);
-	            appendFlow(procedure.flow(i), builder);
-	            builder.append('\n');
+                appendSet("def", procedure.def(i), builder);
+                appendSet("use", procedure.use(i), builder);
+                appendSet("dead", procedure.dead(i), builder);
+                appendSet("in", procedure.in(i), builder);
+                appendSet("out", procedure.out(i), builder);
+                appendFlow(procedure.flow(i), builder);
+                builder.append('\n');
             }
             
             // Ret Exp
             int retExpPos = stmts.getNumChild();
             appendName(retExpPos, procedure.getStmtsRet().getRetExp(), builder);
-            appendDef(procedure.def(retExpPos), builder);
-            appendUse(procedure.use(retExpPos), builder);
+            appendSet("def", procedure.def(retExpPos), builder);
+            appendSet("use", procedure.use(retExpPos), builder);
+            appendSet("dead", procedure.dead(retExpPos), builder);
+            appendSet("in", procedure.in(retExpPos), builder);
+            appendSet("out", procedure.out(retExpPos), builder);
             appendFlow(procedure.flow(retExpPos), builder);
             builder.append('\n');
         }
@@ -53,33 +62,24 @@ aspect LivenessPrinter {
         } 
     }
     
-    private void Program.appendDef(Set<Temp> defs, StringBuilder builder) {
-        if(defs.size() != 0) {
-	        builder.append("\tdef: ");
-	        for(Temp temp: defs) {
-	            builder.append("TEMP " + temp.getNumber());
-	            builder.append(' ');
-	        }
-	        builder.append('\n');
-        }
-    }
-    
-    private void Program.appendUse(Set<Temp> uses, StringBuilder builder) {
-        if(uses.size() != 0) {
-	        builder.append("\tuse: ");
-	        for(Temp temp: uses) {
-	            builder.append("TEMP " + temp.getNumber());
-	            builder.append(' ');
-	        }
-	        builder.append('\n');
-	    }
-    }
-    
     private void Program.appendFlow(Set<Integer> edges, StringBuilder builder) {
         if(edges.size() != 0) {
             builder.append("\tedges: ");
             for(Integer edge: edges) {
                 builder.append(edge);
+                builder.append(' ');
+            }
+            builder.append('\n');
+        }
+    }
+    
+    private void Program.appendSet(String setName, Set<Temp> temps, StringBuilder builder) {
+        if(temps.size() != 0) {
+            builder.append("\t");
+            builder.append(setName);
+            builder.append(": ");
+            for(Temp temp: temps) {
+                builder.append("TEMP " + temp.getNumber());
                 builder.append(' ');
             }
             builder.append('\n');

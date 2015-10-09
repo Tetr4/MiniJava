@@ -79,6 +79,7 @@ public class MJDebug {
             
             // Print spiglet liveness analysis
             System.out.println("### Spiglet - Liveness ###");
+            spiglet.calculateDead();
             System.out.println(spiglet.printLiveness());
 
 
