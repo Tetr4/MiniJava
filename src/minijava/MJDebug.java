@@ -81,7 +81,16 @@ public class MJDebug {
             System.out.println("### Spiglet - Liveness ###");
             spiglet.calculateDead();
             System.out.println(spiglet.printLiveness());
-
+            System.out.println("### Spiglet - Pretty Print after reusing dead temps ###");
+            spiglet.liveness();
+            System.out.println(spiglet.print().getString());
+            System.out.println("### Spiglet - Interpreting ###");
+            // subset of piglet -> interpret as piglet
+            try {
+                System.out.println(spiglet.interpret());
+            } catch(pigletinterpreter.ParseException e) {
+                System.err.println("Interpreter could not parse: " + e.getMessage());
+            }
 
             
             // Transform spiglet AST to kanga AST

@@ -1,12 +1,14 @@
 import java.util.HashSet;
+import java.util.TreeSet;
 import java.util.Set;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 
 aspect LivenessAnalysis {
     // For the specification see docs/LivenessAnalysis.md
-
-
+    
+    
     /*
      * Pos
      */
@@ -31,10 +33,10 @@ aspect LivenessAnalysis {
         }
         throw new IllegalStateException("Found no matching label for label: "+ getLabel() +"!");
     }
-
-
+    
+    
     /*
-     * Flow specification
+     * Flow specification 
      */
     syn lazy Set<Integer> Stmt.nextPos() {
         boolean parentIsProgram = getParentStatementList() instanceof Program;
@@ -43,13 +45,13 @@ aspect LivenessAnalysis {
             // If this statement is the last in the list, it has no successor.
             return Collections.emptySet();
         }
-
+        
         // Return the position of the next statement after this one.
         // In a procedure this may be the position of the RetExp.
         return new HashSet<Integer>(Arrays.asList( pos()+1 ));
     }
     syn lazy boolean Procedure.isRetExpPos(int pos) = pos == getStmtsRet().getStmtsList().getNumChild();
-
+    
     syn lazy Set<Integer> Program.flow(int pos) = getStmtsList().getChild(pos).flow();
     syn lazy Set<Integer> Procedure.flow(int pos) {
         if(isRetExpPos(pos)) {
@@ -67,46 +69,46 @@ aspect LivenessAnalysis {
         return set;
     }
     eq Jump.flow() = new HashSet<Integer>(Arrays.asList( getLabel().pos() ));
-
-
+    
+    
     /*
-     * Def specification
+     * Def specification 
      */
-    syn lazy Set<Temp> Program.def(int pos) = getStmtsList().getChild(pos).def();
-    syn lazy Set<Temp> Procedure.def(int pos) {
+    syn Set<Temp> Program.def(int pos) = getStmtsList().getChild(pos).def();
+    syn Set<Temp> Procedure.def(int pos) {
         if(isRetExpPos(pos)) {
             // RetExp doesn't define any temps
             return Collections.emptySet();
         }
         return getStmtsRet().getStmtsList().getChild(pos).def();
     }
-    syn lazy Set<Temp> LabeledStmt.def() = getStmt().def();
-    syn lazy Set<Temp> Stmt.def() = Collections.emptySet();
-    eq HStore.def() = new HashSet<Temp>(Arrays.asList( getAddr() ));
+    syn Set<Temp> LabeledStmt.def() = getStmt().def();
+    syn Set<Temp> Stmt.def() = Collections.emptySet();
+    //eq HStore.def() = new HashSet<Temp>(Arrays.asList( getAddr() ));
     eq HLoad.def() = new HashSet<Temp>(Arrays.asList( getDest() ));
     eq Move.def() = new HashSet<Temp>(Arrays.asList( getDest() ));
-
-
+    
+    
     /*
-     * Use specification
+     * Use specification 
      */
-    syn lazy Set<Temp> Program.use(int pos) = getStmtsList().getChild(pos).use();
-    syn lazy Set<Temp> Procedure.use(int pos) {
+    syn Set<Temp> Program.use(int pos) = getStmtsList().getChild(pos).use();
+    syn Set<Temp> Procedure.use(int pos) {
         if(isRetExpPos(pos)) {
             return getStmtsRet().getRetExp().use();
         }
         return getStmtsRet().getStmtsList().getChild(pos).use();
     }
-    syn lazy Set<Temp> LabeledStmt.use() = getStmt().use();
-    syn lazy Set<Temp> Stmt.use() = Collections.emptySet();
+    syn Set<Temp> LabeledStmt.use() = getStmt().use();
+    syn Set<Temp> Stmt.use() = Collections.emptySet();
     eq CJump.use() = new HashSet<Temp>(Arrays.asList( getCond() ));
-    eq HStore.use() = new HashSet<Temp>(Arrays.asList( getValue() ));
+    eq HStore.use() = new HashSet<Temp>(Arrays.asList( getAddr(), getValue() ));
     eq HLoad.use() = new HashSet<Temp>(Arrays.asList( getAddr() ));
     eq Move.use() = getSource().use();
     eq Print.use() = getValue().use();
-
+    
     // Exp use
-    syn lazy Set<Temp> Exp.use();
+    syn Set<Temp> Exp.use();
     eq HAlloc.use() = getSize().use();
     eq Call.use() {
         Set<Temp> temps = new HashSet<Temp>();
@@ -120,23 +122,23 @@ aspect LivenessAnalysis {
         Set<Temp> temps = new HashSet<Temp>();
         temps.add(getLeft());
         temps.addAll(getRight().use());
-        return temps;
+        return temps;    
     }
 
     // SExp use
     eq TempExp.use() = new HashSet<Temp>(Arrays.asList( getTemp() ));
     eq LabelExp.use() = Collections.emptySet();
     eq IntLiteral.use() = Collections.emptySet();
-
-
+    
+    
     /*
      * Out
      */
     private Set<Temp> Stmt.outSet = new HashSet<Temp>();
     private Set<Temp> Stmt.oldOutSet = new HashSet<Temp>();
-
+    
     // out - Return the most recent out set
-    syn Set<Temp> Program.out(int pos) = getStmtsList().getChild(pos).out();
+    syn Set<Temp> Program.out(int pos) = getStmtsList().getChild(pos).out(); 
     syn Set<Temp> Procedure.out(int pos) {
         if(isRetExpPos(pos)) {
             // out of RetExp is always empty
@@ -146,7 +148,7 @@ aspect LivenessAnalysis {
     }
     syn Set<Temp> LabeledStmt.out() = getStmt().out();
     syn Set<Temp> Stmt.out() = outSet;
-
+    
     // oldOut - Returns the previous out set
     syn Set<Temp> Procedure.oldOut(int pos) {
         if(isRetExpPos(pos)) {
@@ -159,7 +161,7 @@ aspect LivenessAnalysis {
     syn Set<Temp> Stmt.oldOut() = oldOutSet;
 
     // updateOut - Calculates a new out set from the successors in sets
-    syn Set<Temp> Program.updateOut(int pos) = getStmtsList().getChild(pos).updateOut();
+    syn Set<Temp> Program.updateOut(int pos) = getStmtsList().getChild(pos).updateOut(); 
     syn Set<Temp> Procedure.updateOut(int pos) {
         if(isRetExpPos(pos)) {
             // out of RetExp is always empty
@@ -176,26 +178,26 @@ aspect LivenessAnalysis {
         return outSet;
     }
 
-
+    
     /*
      * In
-     */
+     */    
     private Set<Temp> Procedure.retExpInSet = new HashSet<Temp>();
-    private Set<Temp> Procedure.oldRetExpInSet = retExpInSet;
+    private Set<Temp> Procedure.oldRetExpInSet = new HashSet<Temp>();
     private Set<Temp> Stmt.inSet = null;
     private Set<Temp> Stmt.oldInSet = null;
-
+    
     // in - Return the most recent in set
-    syn Set<Temp> Program.in(int pos) = getStmtsList().getChild(pos).in();
+    syn Set<Temp> Program.in(int pos) = getStmtsList().getChild(pos).in(); 
     syn Set<Temp> Procedure.in(int pos) {
         if(isRetExpPos(pos)) {
-            return retExpInSet;
+            return retExpInSet; 
         }
         return getStmtsRet().getStmtsList().getChild(pos).in();
     }
     syn Set<Temp> LabeledStmt.in() = getStmt().in();
     syn Set<Temp> Stmt.in() = inSet;
-
+    
     // oldIn - Returns the previous in set
     syn Set<Temp> Procedure.oldIn(int pos) {
         if(isRetExpPos(pos)) {
@@ -205,18 +207,18 @@ aspect LivenessAnalysis {
     }
     syn Set<Temp> LabeledStmt.oldIn() = getStmt().oldIn();
     syn Set<Temp> Stmt.oldIn() = oldInSet;
-
+    
     // updateIn - Calculates a new in set from the use, out and def sets
-    syn Set<Temp> Program.updateIn(int pos) = getStmtsList().getChild(pos).updateIn();
+    syn Set<Temp> Program.updateIn(int pos) = getStmtsList().getChild(pos).updateIn(); 
     syn Set<Temp> Procedure.updateIn(int pos) {
         if(isRetExpPos(pos)) {
             oldRetExpInSet = new HashSet<Temp>(retExpInSet);
-
+            
             retExpInSet = new HashSet<Temp>(use(pos));
             retExpInSet.addAll(out(pos));
             // def is always empty for the RetExp.
             //retExpInSet.removeAll(def(pos));
-            return retExpInSet;
+            return retExpInSet; 
         }
         return getStmtsRet().getStmtsList().getChild(pos).updateIn();
     }
@@ -233,13 +235,13 @@ aspect LivenessAnalysis {
         inSet.addAll(outWithoutUse);
         return inSet;
     }
-
-
-
+    
+    
+    
     /*
      * dead
      */
-
+     
      // dead - Returns the set of temps, which are dead after this statement
      syn Set<Temp> Program.dead(int pos) = getStmtsList().getChild(pos).dead();
      syn Set<Temp> Procedure.dead(int pos) {
@@ -254,7 +256,7 @@ aspect LivenessAnalysis {
         dead.removeAll(outSet);
         return dead;
      }
-
+     
      // calculates dead for every statement, by repeatedly calling updateIn() and updateOut()
      public void Program.calculateDead() {
         boolean setsChanged;
@@ -266,17 +268,17 @@ aspect LivenessAnalysis {
                     setsChanged = true;
                 }
             }
-
+            
             // Calculate out for all statements
             for(LabeledStmt stmt : getStmts()) {
                 if(!stmt.updateOut().equals(stmt.oldOut())) {
                     setsChanged = true;
                 }
             }
-
-        // Repeat while out() or in() changes for any statement
+            
+        // Repeat while out() or in() changes for any statement            
         } while(setsChanged);
-
+        
         // Also calculate dead sets for procedures
         for(Procedure procedure:getProcsList()) {
             procedure.calculateDead();
@@ -294,23 +296,270 @@ aspect LivenessAnalysis {
                     setsChanged = true;
                 }
             }
-
+            
             // Calculate out for all statements
             for(int pos = 0; pos < stmtCount; pos++) {
                 if(!updateOut(pos).equals(oldOut(pos))) {
                     setsChanged = true;
                 }
             }
-
+        
         // Repeat while out(pos) or in(pos) changes for any pos
         } while(setsChanged);
      }
+    
+    /*
+     * Reset in, out and dead state
+     */
+    public void Program.resetLivenessState() {
+        for (LabeledStmt stmt: getStmts()) {
+            stmt.getStmt().resetLivenessState();
+        }
+        for(Procedure procedure:getProcsList()) {
+            procedure.resetLivenessState();
+        }
+    }
+    public void Procedure.resetLivenessState() {
+        for (LabeledStmt stmt: getStmts()) {
+            stmt.getStmt().resetLivenessState();
+        }
+        retExpInSet = new HashSet<Temp>();
+        oldRetExpInSet = new HashSet<Temp>();
+    }
+    public void Stmt.resetLivenessState() {
+        inSet = oldInSet = null;
+        outSet = new HashSet<Temp>();
+        oldOutSet = new HashSet<Temp>();
+        deadTempNumbers = new HashSet<Integer>();
+    }
 
-
+    /*
+     * Dead cache
+     */
+    // Save dead temp's numbers before rewriting them.
+    // The original dead() set is useless, because it references the changed Temp objects.     
+    private Set<Integer> Stmt.deadTempNumbers = new HashSet<Integer>();
+    syn Set<Integer> LabeledStmt.deadCached() = getStmt().deadCached();
+    syn Set<Integer> Stmt.deadCached() = deadTempNumbers;
+    public void LabeledStmt.cacheDeadTemps() { getStmt().cacheDeadTemps(); }
+    public void Stmt.cacheDeadTemps() {
+        for (Temp temp: dead()) {
+            deadTempNumbers.add(temp.getNumber());
+        }
+    }
+    
+    /*
+     * Make use of the calculated dead temps and reuse dead ones.
+     */
+    public void Program.reuseDeadTemps() {
+        int iteration = 0;
+        int changedTemps;
+        livenessAnalysis:
+        do {
+            // Prepare dead temp sets
+            resetLivenessState();
+            calculateDead();
+            
+            // Cache numbers of dead temps of all statements
+            for (LabeledStmt stmt: getStmts()) {
+                stmt.cacheDeadTemps();
+            }
+            
+            // Use TreeSet because it sorts the set naturally for iteration.
+            Set<Integer> availableTemps = new TreeSet<Integer>();
+            List<LabeledStmt> stmts = getStmts();
+            changedTemps = 0;
+            for (int i = 0; i < stmts.getNumChild(); i++) {
+                LabeledStmt stmt = stmts.getChild(i);
+                
+                // Throw all new dead temps in the pool
+                availableTemps.addAll(stmt.deadCached());
+                
+                // See if the current statement defines a temp with a higher number.
+                for (Temp definedTemp: stmt.def()) {
+                    
+                    // This temp is no longer dead if it were before. We're writing a new value to it.
+                    // If it's been dead before, it seems like the previous code already uses the least
+                    // amount of temps possible.
+                    availableTemps.remove(definedTemp.getNumber());
+                    
+                    // This temp is used in statements before this one. Can't change it here.
+                    if (stmt.in().contains(definedTemp) && stmt.out().contains(definedTemp)) {
+                        continue;
+                    }
+                    
+                    Iterator<Integer> iter = availableTemps.iterator();
+                    while (iter.hasNext()) {
+                        Integer availableTemp = iter.next();
+                    
+                        // This is a temp which is defined later and could reuse the old dead temp number.
+                        if (definedTemp.getNumber() > availableTemp) {
+                            // Reuse the dead temp number for all uses of this new temp in the future
+                            for (int j = i+1; j < stmts.getNumChild(); j++) {
+                                LabeledStmt futureStmt = stmts.getChild(j);
+                                changedTemps += futureStmt.replaceTemp(definedTemp.getNumber(), availableTemp);
+                            }
+                            
+                            // Replace the first write to this temp in this statement too!
+                            changedTemps += definedTemp.replaceTemp(definedTemp.getNumber(), availableTemp);
+                           
+                            // This temp is reused now! Rebuild in and out and start over.
+                            continue livenessAnalysis;
+                        }
+                    }
+                }
+            }
+        } while(changedTemps > 0);
+        
+        // Reuse dead temps in procedures as well
+        for(Procedure procedure: getProcsList()) {
+            procedure.reuseDeadTemps();
+        }
+    }
+    
+    public void Procedure.reuseDeadTemps() {
+        int iteration = 0;
+        int changedTemps;
+        livenessAnalysis:
+        do {
+            // Prepare dead temp sets
+            resetLivenessState();
+            calculateDead();
+            
+            // Cache numbers of dead temps of all statements
+            for (LabeledStmt stmt: getStmts()) {
+                stmt.cacheDeadTemps();
+                
+                // Ignore parameters. They get special treatment depending on whether they are in a register or spilled on the stack.
+                Iterator<Integer> iter = stmt.deadCached().iterator();
+                while (iter.hasNext()) {
+                    int num = iter.next();
+                    if (num < getParams()) {
+                        iter.remove();
+                    }
+                }
+            }
+            
+            // Use TreeSet because it sorts the set naturally for iteration.
+            Set<Integer> availableTemps = new TreeSet<Integer>();
+            List<LabeledStmt> stmts = getStmts();
+            changedTemps = 0;
+            for (int i = 0; i < stmts.getNumChild(); i++) {
+                LabeledStmt stmt = stmts.getChild(i);
+                
+                // Throw all new dead temps in the pool
+                availableTemps.addAll(stmt.deadCached());
+                
+                // See if the current statement defines a temp with a higher number.
+                for (Temp definedTemp: stmt.def()) {
+                    
+                    // This temp is no longer dead if it were before. We're writing a new value to it.
+                    // If it's been dead before, it seems like the previous code already uses the least
+                    // amount of temps possible.
+                    availableTemps.remove(definedTemp.getNumber());
+                    
+                    // This temp is used in statements before us. Can't change it here.
+                    if (stmt.in().contains(definedTemp) && stmt.out().contains(definedTemp)) {
+                        continue;
+                    }
+                    
+                    Iterator<Integer> iter = availableTemps.iterator();
+                    while (iter.hasNext()) {
+                        Integer availableTemp = iter.next();
+                    
+                        // This is a temp which is defined later and could reuse the old dead temp number.
+                        if (definedTemp.getNumber() > availableTemp) {
+                            // Reuse the dead temp number for all uses of this new temp in the future
+                            for (int j = i+1; j < stmts.getNumChild(); j++) {
+                                LabeledStmt futureStmt = stmts.getChild(j);
+                                changedTemps += futureStmt.replaceTemp(definedTemp.getNumber(), availableTemp);
+                            }
+                            
+                            // Update the return statement as well.
+                            changedTemps += getStmtsRet().getRetExp().replaceTemp(definedTemp.getNumber(), availableTemp);
+                            
+                            // Replace the first write to this temp in this statement too!
+                            changedTemps += definedTemp.replaceTemp(definedTemp.getNumber(), availableTemp);
+                           
+                            // This temp is reused now!
+                            continue livenessAnalysis;
+                        }
+                    }
+                }
+            }
+        } while (changedTemps > 0);
+    }
+    
+    // Run liveness analysis and reuse dead temps in later blocks.
+    public Program Program.liveness() {
+        reuseDeadTemps();
+        return this;
+    }
+    
+    /*
+     * Replace a temp number with another one.
+     * Count how many temps were changed.
+     */
+    syn Integer Temp.replaceTemp(int oldTempNumber, int newTempNumber) {
+        if (getNumber().equals(oldTempNumber)) {
+            setNumber(newTempNumber);
+            return 1;
+        }
+        return 0;
+    }
+    
+    // Search for all temp references in the statement
+    syn Integer Stmt.replaceTemp(int oldTempNumber, int newTempNumber) = 0;
+    syn Integer LabeledStmt.replaceTemp(int oldTempNumber, int newTempNumber) { 
+        return getStmt().replaceTemp(oldTempNumber, newTempNumber);
+    }
+    eq CJump.replaceTemp(int oldTempNumber, int newTempNumber) {
+        return getCond().replaceTemp(oldTempNumber, newTempNumber);
+    }
+    eq HStore.replaceTemp(int oldTempNumber, int newTempNumber) {
+        int changedTemps = getAddr().replaceTemp(oldTempNumber, newTempNumber);
+        changedTemps += getValue().replaceTemp(oldTempNumber, newTempNumber);
+        return changedTemps;
+    }
+    eq HLoad.replaceTemp(int oldTempNumber, int newTempNumber) {
+        int changedTemps = getDest().replaceTemp(oldTempNumber, newTempNumber);
+        changedTemps += getAddr().replaceTemp(oldTempNumber, newTempNumber);
+        return changedTemps;
+    }
+    eq Move.replaceTemp(int oldTempNumber, int newTempNumber) {
+        int changedTemps = getDest().replaceTemp(oldTempNumber, newTempNumber);
+        changedTemps += getSource().replaceTemp(oldTempNumber, newTempNumber);
+        return changedTemps;
+    }
+    eq Print.replaceTemp(int oldTempNumber, int newTempNumber) {
+        return getValue().replaceTemp(oldTempNumber, newTempNumber);
+    }
+    
+    // Search for all temp references in the expressions
+    syn Integer Exp.replaceTemp(int oldTempNumber, int newTempNumber) = 0;
+    eq Call.replaceTemp(int oldTempNumber, int newTempNumber) {
+        int changedTemps = getName().replaceTemp(oldTempNumber, newTempNumber);
+        for (Temp param: getParamList()) {
+            changedTemps += param.replaceTemp(oldTempNumber, newTempNumber);
+        }
+        return changedTemps;
+    }
+    eq HAlloc.replaceTemp(int oldTempNumber, int newTempNumber) {
+        return getSize().replaceTemp(oldTempNumber, newTempNumber);
+    }
+    eq Binop.replaceTemp(int oldTempNumber, int newTempNumber) {
+        int changedTemps = getLeft().replaceTemp(oldTempNumber, newTempNumber);
+        changedTemps += getRight().replaceTemp(oldTempNumber, newTempNumber);
+        return changedTemps;
+    }
+    eq TempExp.replaceTemp(int oldTempNumber, int newTempNumber) {
+        return getTemp().replaceTemp(oldTempNumber, newTempNumber);
+    }
+    
     /*
      * Helper
      */
-
+     
     // Abstraction for Program and Procedure
     interface StatementList {
         public List<LabeledStmt> getStmts();
@@ -324,7 +573,7 @@ aspect LivenessAnalysis {
     Procedure implements StatementList;
     syn lazy List<LabeledStmt> Program.getStmts() = getStmtsList();
     syn lazy List<LabeledStmt> Procedure.getStmts() = getStmtsRet().getStmtsList();
-
+    
     syn lazy StatementList ASTNode.getParentStatementList() {
         // search procedure or program
         ASTNode<T> parent = this;
@@ -332,17 +581,17 @@ aspect LivenessAnalysis {
             if (parent instanceof StatementList) {
                 return (StatementList)parent;
             }
-
+            
             parent = parent.getParent();
         } while(parent != null);
-
+        
         throw new IllegalStateException("Node has no procedure or program as parent!");
-    }
+    } 
     syn lazy List<LabeledStmt> ASTNode.getParentStmts() {
         StatementList parent = getParentStatementList();
         return parent.getStmts();
     }
-
+    
     // Allow comparing of Temps in HashSet operations
     public int Temp.hashCode() {
         return getNumber().hashCode();
@@ -355,4 +604,4 @@ aspect LivenessAnalysis {
         Temp other = (Temp) obj;
         return getNumber().equals(other.getNumber());
     }
-}
+} 
