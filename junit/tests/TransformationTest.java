@@ -159,7 +159,7 @@ public abstract class TransformationTest {
 //        assertEquals("1", resultLines[5]);
 //    }
     
-    @Test(timeout=1000)
+    @Test(timeout=5000)
     public void binaryTreeTest() throws Exception {
         String result = interpret(new MJFile("tests/junit/Hauke/BinaryTree.java"));
         String[] resultLines = getLines(result);
@@ -249,7 +249,7 @@ public abstract class TransformationTest {
         assertEquals("55", resultLines[14]);
     }
     
-    @Test(timeout=1000)
+    @Test(timeout=5000)
     public void linkedListTest() throws Exception {
         String result = interpret(new MJFile("tests/junit/Hauke/LinkedList.java"));
         String[] resultLines = getLines(result);
@@ -318,7 +318,7 @@ public abstract class TransformationTest {
         assertEquals("4", resultLines[0]);
     }
     
-    @Test(timeout=1000)
+    @Test(timeout=5000)
     public void quickSortTest() throws Exception {
         String result = interpret(new MJFile("tests/junit/Hauke/QuickSort.java"));
         String[] resultLines = getLines(result);
@@ -347,7 +347,7 @@ public abstract class TransformationTest {
         assertEquals("0", resultLines[21]);
     }
     
-    @Test(timeout=1000)
+    @Test(timeout=5000)
     public void treeVisitorTest() throws Exception {
         String result = interpret(new MJFile("tests/junit/Hauke/TreeVisitor.java"));
         String[] resultLines = getLines(result);
