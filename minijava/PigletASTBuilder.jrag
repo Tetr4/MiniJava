@@ -919,7 +919,7 @@ aspect PigletASTBuilder {
     }
     
     syn lazy piglet.Label MethodDecl.getPigletLabel() {
-        return new piglet.Label(containingClass().getIdent() + "_" + getIdent());
+        return new piglet.Label(containingClass().getIdent() + "__" + getIdent());
     }
     
     public piglet.Call ASTNode.createCall(String name, piglet.Exp... params) {
