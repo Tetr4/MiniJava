@@ -12,7 +12,7 @@
 
   <taskdef name="jflex"   classname="JFlex.anttask.JFlexTask" classpath="${tools}/JFlex.jar"/>
   <taskdef name="beaver"  classname="beaver.comp.run.AntTask" classpath="${tools}/beaver.jar"/>
-  <taskdef name="jastadd" classname="jastadd.JastAddTask" classpath="${tools}/jastadd2.jar" />
+  <taskdef name="jastadd" classname="org.jastadd.JastAddTask" classpath="${tools}/jastadd2.jar" />
 
   <target name="scanner">
     <mkdir dir="${gen.dir}/${package}"/>
