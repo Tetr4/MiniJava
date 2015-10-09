@@ -7,4 +7,4 @@ Parsing rules are described in Extended Backus–Naur Form (EBNF) and use the te
 
 
 The generated parser is a deterministic finite automaton (DFA) which parses the token stream from our [scanner](/docs/Scanning.md) into an Abstract Syntax Tree (AST).
-The generated file [MJParser.stat](/gen/MJParser.stat) allows you to take a look at the generated DFA.
+The generated file [MJParser.stat](/gen/minijava/MJParser.stat) allows you to take a look at the generated DFA.

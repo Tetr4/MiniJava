@@ -1,7 +1,7 @@
 # MIPS Compiler for MiniJava
 ### Setup
 + Building: Run [build.xml](build.xml) with ant.
-+ Testing: Run the [AllTests.java](juni/tests/AllTests.java) suite with junit.
++ Testing: Run the [AllTests.java](junit/tests/AllTests.java) suite with junit.
 
 ### Compilation order
 1. [Scan the input](/docs/Scanning.md) via JFlex
@@ -12,7 +12,7 @@
     + [Error checking](/docs/ErrorChecking.md)
 4. Transform [MiniJava AST to Piglet AST](/docs/MiniJavaToPiglet.md)
 5. Transform [Piglet AST to SPiglet AST](/docs/PigletToSPiglet.md)
-    + Liveness analysis
+    + [Liveness analysis](/docs/LivenessAnalysis.md)
 6. Transform [SPiglet AST to Kanga AST](/docs/SPigletToKanga.md)
 7. Transform [Kanga AST to MIPS AST](/docs/KangaToMIPS.md)
 8. Prettyprint MIPS AST
