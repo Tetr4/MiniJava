@@ -159,4 +159,16 @@ aspect LivenessAnalysis {
         throw new IllegalStateException("Node has no procedure or program as parent!");
     } 
     
+    // Allow comparing of Temps in HashSet operations 
+    public int Temp.hashCode() {
+        return getNumber().hashCode();
+    }
+    public boolean Temp.equals(Object obj) {
+       if (!(obj instanceof Temp))
+            return false;
+        if (obj == this)
+            return true;
+        Temp other = (Temp) obj;
+        return getNumber().equals(other.getNumber());
+    }
 } 
