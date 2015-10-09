@@ -4,9 +4,9 @@ import java.util.Arrays;
 import java.util.Collections;
 
 aspect LivenessAnalysis {
-    // For the specification see docs/liveness.md
-    
-    
+    // For the specification see docs/LivenessAnalysis.md
+
+
     /*
      * Pos
      */
@@ -31,10 +31,10 @@ aspect LivenessAnalysis {
         }
         throw new IllegalStateException("Found no matching label for label: "+ getLabel() +"!");
     }
-    
-    
+
+
     /*
-     * Flow specification 
+     * Flow specification
      */
     syn lazy Set<Integer> Stmt.nextPos() {
         boolean parentIsProgram = getParentStatementList() instanceof Program;
@@ -43,13 +43,13 @@ aspect LivenessAnalysis {
             // If this statement is the last in the list, it has no successor.
             return Collections.emptySet();
         }
-        
+
         // Return the position of the next statement after this one.
         // In a procedure this may be the position of the RetExp.
         return new HashSet<Integer>(Arrays.asList( pos()+1 ));
     }
     syn lazy boolean Procedure.isRetExpPos(int pos) = pos == getStmtsRet().getStmtsList().getNumChild();
-    
+
     syn lazy Set<Integer> Program.flow(int pos) = getStmtsList().getChild(pos).flow();
     syn lazy Set<Integer> Procedure.flow(int pos) {
         if(isRetExpPos(pos)) {
@@ -67,10 +67,10 @@ aspect LivenessAnalysis {
         return set;
     }
     eq Jump.flow() = new HashSet<Integer>(Arrays.asList( getLabel().pos() ));
-    
-    
+
+
     /*
-     * Def specification 
+     * Def specification
      */
     syn lazy Set<Temp> Program.def(int pos) = getStmtsList().getChild(pos).def();
     syn lazy Set<Temp> Procedure.def(int pos) {
@@ -85,10 +85,10 @@ aspect LivenessAnalysis {
     eq HStore.def() = new HashSet<Temp>(Arrays.asList( getAddr() ));
     eq HLoad.def() = new HashSet<Temp>(Arrays.asList( getDest() ));
     eq Move.def() = new HashSet<Temp>(Arrays.asList( getDest() ));
-    
-    
+
+
     /*
-     * Use specification 
+     * Use specification
      */
     syn lazy Set<Temp> Program.use(int pos) = getStmtsList().getChild(pos).use();
     syn lazy Set<Temp> Procedure.use(int pos) {
@@ -104,7 +104,7 @@ aspect LivenessAnalysis {
     eq HLoad.use() = new HashSet<Temp>(Arrays.asList( getAddr() ));
     eq Move.use() = getSource().use();
     eq Print.use() = getValue().use();
-    
+
     // Exp use
     syn lazy Set<Temp> Exp.use();
     eq HAlloc.use() = getSize().use();
@@ -120,23 +120,23 @@ aspect LivenessAnalysis {
         Set<Temp> temps = new HashSet<Temp>();
         temps.add(getLeft());
         temps.addAll(getRight().use());
-        return temps;    
+        return temps;
     }
 
     // SExp use
     eq TempExp.use() = new HashSet<Temp>(Arrays.asList( getTemp() ));
     eq LabelExp.use() = Collections.emptySet();
     eq IntLiteral.use() = Collections.emptySet();
-    
-    
+
+
     /*
      * Out
      */
     private Set<Temp> Stmt.outSet = new HashSet<Temp>();
     private Set<Temp> Stmt.oldOutSet = new HashSet<Temp>();
-    
+
     // out - Return the most recent out set
-    syn Set<Temp> Program.out(int pos) = getStmtsList().getChild(pos).out(); 
+    syn Set<Temp> Program.out(int pos) = getStmtsList().getChild(pos).out();
     syn Set<Temp> Procedure.out(int pos) {
         if(isRetExpPos(pos)) {
             // out of RetExp is always empty
@@ -146,7 +146,7 @@ aspect LivenessAnalysis {
     }
     syn Set<Temp> LabeledStmt.out() = getStmt().out();
     syn Set<Temp> Stmt.out() = outSet;
-    
+
     // oldOut - Returns the previous out set
     syn Set<Temp> Procedure.oldOut(int pos) {
         if(isRetExpPos(pos)) {
@@ -159,7 +159,7 @@ aspect LivenessAnalysis {
     syn Set<Temp> Stmt.oldOut() = oldOutSet;
 
     // updateOut - Calculates a new out set from the successors in sets
-    syn Set<Temp> Program.updateOut(int pos) = getStmtsList().getChild(pos).updateOut(); 
+    syn Set<Temp> Program.updateOut(int pos) = getStmtsList().getChild(pos).updateOut();
     syn Set<Temp> Procedure.updateOut(int pos) {
         if(isRetExpPos(pos)) {
             // out of RetExp is always empty
@@ -176,26 +176,26 @@ aspect LivenessAnalysis {
         return outSet;
     }
 
-    
+
     /*
      * In
-     */    
+     */
     private Set<Temp> Procedure.retExpInSet = new HashSet<Temp>();
     private Set<Temp> Procedure.oldRetExpInSet = retExpInSet;
     private Set<Temp> Stmt.inSet = null;
     private Set<Temp> Stmt.oldInSet = null;
-    
+
     // in - Return the most recent in set
-    syn Set<Temp> Program.in(int pos) = getStmtsList().getChild(pos).in(); 
+    syn Set<Temp> Program.in(int pos) = getStmtsList().getChild(pos).in();
     syn Set<Temp> Procedure.in(int pos) {
         if(isRetExpPos(pos)) {
-            return retExpInSet; 
+            return retExpInSet;
         }
         return getStmtsRet().getStmtsList().getChild(pos).in();
     }
     syn Set<Temp> LabeledStmt.in() = getStmt().in();
     syn Set<Temp> Stmt.in() = inSet;
-    
+
     // oldIn - Returns the previous in set
     syn Set<Temp> Procedure.oldIn(int pos) {
         if(isRetExpPos(pos)) {
@@ -205,18 +205,18 @@ aspect LivenessAnalysis {
     }
     syn Set<Temp> LabeledStmt.oldIn() = getStmt().oldIn();
     syn Set<Temp> Stmt.oldIn() = oldInSet;
-    
+
     // updateIn - Calculates a new in set from the use, out and def sets
-    syn Set<Temp> Program.updateIn(int pos) = getStmtsList().getChild(pos).updateIn(); 
+    syn Set<Temp> Program.updateIn(int pos) = getStmtsList().getChild(pos).updateIn();
     syn Set<Temp> Procedure.updateIn(int pos) {
         if(isRetExpPos(pos)) {
             oldRetExpInSet = new HashSet<Temp>(retExpInSet);
-            
+
             retExpInSet = new HashSet<Temp>(use(pos));
             retExpInSet.addAll(out(pos));
             // def is always empty for the RetExp.
             //retExpInSet.removeAll(def(pos));
-            return retExpInSet; 
+            return retExpInSet;
         }
         return getStmtsRet().getStmtsList().getChild(pos).updateIn();
     }
@@ -233,13 +233,13 @@ aspect LivenessAnalysis {
         inSet.addAll(outWithoutUse);
         return inSet;
     }
-    
-    
-    
+
+
+
     /*
      * dead
      */
-     
+
      // dead - Returns the set of temps, which are dead after this statement
      syn Set<Temp> Program.dead(int pos) = getStmtsList().getChild(pos).dead();
      syn Set<Temp> Procedure.dead(int pos) {
@@ -254,7 +254,7 @@ aspect LivenessAnalysis {
         dead.removeAll(outSet);
         return dead;
      }
-     
+
      // calculates dead for every statement, by repeatedly calling updateIn() and updateOut()
      public void Program.calculateDead() {
         boolean setsChanged;
@@ -266,17 +266,17 @@ aspect LivenessAnalysis {
                     setsChanged = true;
                 }
             }
-            
+
             // Calculate out for all statements
             for(LabeledStmt stmt : getStmts()) {
                 if(!stmt.updateOut().equals(stmt.oldOut())) {
                     setsChanged = true;
                 }
             }
-            
-        // Repeat while out() or in() changes for any statement            
+
+        // Repeat while out() or in() changes for any statement
         } while(setsChanged);
-        
+
         // Also calculate dead sets for procedures
         for(Procedure procedure:getProcsList()) {
             procedure.calculateDead();
@@ -294,23 +294,23 @@ aspect LivenessAnalysis {
                     setsChanged = true;
                 }
             }
-            
+
             // Calculate out for all statements
             for(int pos = 0; pos < stmtCount; pos++) {
                 if(!updateOut(pos).equals(oldOut(pos))) {
                     setsChanged = true;
                 }
             }
-        
+
         // Repeat while out(pos) or in(pos) changes for any pos
         } while(setsChanged);
      }
-    
-    
+
+
     /*
      * Helper
      */
-     
+
     // Abstraction for Program and Procedure
     interface StatementList {
         public List<LabeledStmt> getStmts();
@@ -324,7 +324,7 @@ aspect LivenessAnalysis {
     Procedure implements StatementList;
     syn lazy List<LabeledStmt> Program.getStmts() = getStmtsList();
     syn lazy List<LabeledStmt> Procedure.getStmts() = getStmtsRet().getStmtsList();
-    
+
     syn lazy StatementList ASTNode.getParentStatementList() {
         // search procedure or program
         ASTNode<T> parent = this;
@@ -332,18 +332,18 @@ aspect LivenessAnalysis {
             if (parent instanceof StatementList) {
                 return (StatementList)parent;
             }
-            
+
             parent = parent.getParent();
         } while(parent != null);
-        
+
         throw new IllegalStateException("Node has no procedure or program as parent!");
-    } 
+    }
     syn lazy List<LabeledStmt> ASTNode.getParentStmts() {
         StatementList parent = getParentStatementList();
         return parent.getStmts();
     }
-    
-    // Allow comparing of Temps in HashSet operations 
+
+    // Allow comparing of Temps in HashSet operations
     public int Temp.hashCode() {
         return getNumber().hashCode();
     }
@@ -355,4 +355,4 @@ aspect LivenessAnalysis {
         Temp other = (Temp) obj;
         return getNumber().equals(other.getNumber());
     }
-} 
+}
