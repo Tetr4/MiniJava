@@ -2,6 +2,8 @@
 ### Setup
 + Building: Run [build.xml](build.xml) with ant.
 + Testing: Run the [AllTests.java](junit/tests/AllTests.java) suite with junit.
++ (optional) JastAdd Syntax Highlighting in Eclipse: [JastAdd Eclipse Plugin](http://jastadd.org/web/tool-support/syntax-highlighting.php). <br>
+Then in *Preferences* under *File->Editors->FileAssociations* associate "\*.beaver" with "JastAdd Parser Editor"
 
 ### Compilation order
 1. [Scan the input](/docs/Scanning.md) via JFlex
