@@ -13,7 +13,7 @@ Then in *Preferences* under *File->Editors->FileAssociations* associate "\*.beav
     + [Type analysis](/docs/TypeAnalysis.md)
     + [Error checking](/docs/ErrorChecking.md)
 4. Transform [MiniJava AST to Piglet AST](/docs/MiniJavaToPiglet.md)
-5. Transform [Piglet AST to SPiglet AST](/docs/PigletToSPiglet.md)
+5. Transform [Piglet AST to Simplified Piglet AST](/docs/PigletToSPiglet.md)
     + [Liveness analysis](/docs/LivenessAnalysis.md)
 6. Transform [SPiglet AST to Kanga AST](/docs/SPigletToKanga.md)
 7. Transform [Kanga AST to MIPS AST](/docs/KangaToMIPS.md)
