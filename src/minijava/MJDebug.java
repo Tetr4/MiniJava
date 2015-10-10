@@ -54,11 +54,7 @@ public class MJDebug {
 
             // Interpret piglet program
             System.out.println("### Piglet - Interpreting ###");
-            try {
-                System.out.println(piglet.interpret());
-            } catch(pigletinterpreter.ParseException e) {
-                System.err.println("Interpreter could not parse: " + e.getMessage());
-            }
+            System.out.println(piglet.interpret());
 
             
             // Transform piglet AST to spiglet AST
@@ -71,11 +67,7 @@ public class MJDebug {
             // Interpret spiglet program
             System.out.println("### Spiglet - Interpreting ###");
             // subset of piglet -> interpret as piglet
-            try {
-                System.out.println(spiglet.interpret());
-            } catch(pigletinterpreter.ParseException e) {
-                System.err.println("Interpreter could not parse: " + e.getMessage());
-            }
+            System.out.println(spiglet.interpret());
             
             // Print spiglet liveness analysis
             System.out.println("### Spiglet - Liveness ###");
@@ -86,11 +78,7 @@ public class MJDebug {
             System.out.println(spiglet.print().getString());
             System.out.println("### Spiglet - Interpreting ###");
             // subset of piglet -> interpret as piglet
-            try {
-                System.out.println(spiglet.interpret());
-            } catch(pigletinterpreter.ParseException e) {
-                System.err.println("Interpreter could not parse: " + e.getMessage());
-            }
+            System.out.println(spiglet.interpret());
 
             
             // Transform spiglet AST to kanga AST
@@ -102,11 +90,7 @@ public class MJDebug {
             
             // Interpret kanga program
             System.out.println("### Kanga - Interpreting ###");
-            try {
-                System.out.println(kanga.interpret());
-            } catch(kangainterpreter.ParseException e) {
-                System.err.println("Interpreter could not parse: " + e.getMessage());
-            }
+            System.out.println(kanga.interpret());
             
             
             // Transform kanga AST to mips AST

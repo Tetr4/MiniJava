@@ -6,20 +6,25 @@ import java.io.InputStream;
 import pigletinterpreter.visitor.GJPigletInterpreter;
 
 aspect PigletInterpreter {
-    public String Program.interpret() throws pigletinterpreter.ParseException {
+    public String Program.interpret() {
         String code = print().getString();
         
         // parse
-        InputStream pigletInput = new ByteArrayInputStream(code.getBytes());
-        if (spiglet.Program.interpreterParser == null) {
-            // use same static piglet and spiglet. 
-            // static is at spiglet.Program to prevent circular build dependency, as spiglet is build first
-            spiglet.Program.interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
-        } else {
-            pigletinterpreter.PigletParser.ReInit(pigletInput);
-            pigletinterpreter.visitor.GJPigletInterpreter.HP = 1;
-        }
-        pigletinterpreter.syntaxtree.Node root = pigletinterpreter.PigletParser.Goal();
+        pigletinterpreter.syntaxtree.Node root;
+        try {
+	        InputStream pigletInput = new ByteArrayInputStream(code.getBytes());
+	        if (spiglet.Program.interpreterParser == null) {
+	            // use same static piglet and spiglet. 
+	            // static is at spiglet.Program to prevent circular build dependency, as spiglet is build first
+	            spiglet.Program.interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
+	        } else {
+	            pigletinterpreter.PigletParser.ReInit(pigletInput);
+	            pigletinterpreter.visitor.GJPigletInterpreter.HP = 1;
+	        }
+	        root = pigletinterpreter.PigletParser.Goal();
+	    } catch (pigletinterpreter.ParseException e) {
+	        return e.getMessage();
+	    }
 
         // interpret and put result into stream
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();

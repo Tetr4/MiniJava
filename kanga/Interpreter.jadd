@@ -12,17 +12,23 @@ import kangainterpreter.visitor.SetLabel;
 aspect KangaInterpreter {
     public static kangainterpreter.KangaParser Program.interpreterParser;
     
-    public String Program.interpret() throws kangainterpreter.ParseException {
+    public String Program.interpret() {
         String code = print().getString();
         
-        // parse
-        InputStream kangaInput = new ByteArrayInputStream(code.getBytes());
-        if (interpreterParser == null) {
-            interpreterParser = new kangainterpreter.KangaParser(kangaInput);
-        } else {
-            kangainterpreter.KangaParser.ReInit(kangaInput);
-        }
-        kangainterpreter.syntaxtree.Node root = kangainterpreter.KangaParser.Goal();
+        kangainterpreter.syntaxtree.Node root;
+        try {
+	        // parse
+	        InputStream kangaInput = new ByteArrayInputStream(code.getBytes());
+	        if (interpreterParser == null) {
+	            interpreterParser = new kangainterpreter.KangaParser(kangaInput);
+	        } else {
+	            kangainterpreter.KangaParser.ReInit(kangaInput);
+	        }
+	        root = kangainterpreter.KangaParser.Goal();
+	    }
+	    catch (kangainterpreter.ParseException e) {
+	       return e.getMessage();
+	    }
 
         // get line numbers
         Hashtable<kangainterpreter.syntaxtree.Stmt, String> stmtInfo = new Hashtable<kangainterpreter.syntaxtree.Stmt, String>();
@@ -32,9 +38,15 @@ aspect KangaInterpreter {
         // interpret and put result into stream
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(outStream);
+        
+        PrintStream oldErrorStream = System.err;
+        System.setErr(printStream);
+        
         KangaRuntime runtime = new KangaRuntime(stmtInfo, printStream, printStream);
         root.accept(new SetLabel(runtime));
         runtime.run();
+
+        System.setErr(oldErrorStream);
 
         return outStream.toString();
     }

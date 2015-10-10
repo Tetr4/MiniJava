@@ -9,18 +9,23 @@ import pigletinterpreter.visitor.GJPigletInterpreter;
 aspect SpigletInterpreter {
     public static pigletinterpreter.PigletParser Program.interpreterParser;
     
-    public String Program.interpret() throws pigletinterpreter.ParseException {
+    public String Program.interpret() {
         String code = print().getString();
         
-        // parse
-        InputStream pigletInput = new ByteArrayInputStream(code.getBytes());
-        if (interpreterParser == null) {
-            interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
-        } else {
-            pigletinterpreter.PigletParser.ReInit(pigletInput);
-            pigletinterpreter.visitor.GJPigletInterpreter.HP = 1;
+        pigletinterpreter.syntaxtree.Node root;
+        try {
+	        // parse
+	        InputStream pigletInput = new ByteArrayInputStream(code.getBytes());
+	        if (interpreterParser == null) {
+	            interpreterParser = new pigletinterpreter.PigletParser(pigletInput);
+	        } else {
+	            pigletinterpreter.PigletParser.ReInit(pigletInput);
+	            pigletinterpreter.visitor.GJPigletInterpreter.HP = 1;
+	        }
+	        root = pigletinterpreter.PigletParser.Goal();
+        } catch (pigletinterpreter.ParseException e) {
+            return e.getMessage();
         }
-        pigletinterpreter.syntaxtree.Node root = pigletinterpreter.PigletParser.Goal();
 
         // interpret and put result into stream
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
