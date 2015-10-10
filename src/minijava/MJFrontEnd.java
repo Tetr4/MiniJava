@@ -10,16 +10,24 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 public class MJFrontEnd {
+    private static final int SUCCESS = 0;
     private static final int ERROR = 1;
 
     public static void main(String args[]) {
         Options options = new Options();
         options.addOption("liveness", false, "perform liveness analysis on temps during SPiglet phase");
-        options.addOption("interpret", false, "interpret program using SPIM");
+        options.addOption("interpret", false, "interpret program using appropriate interpreter");
+        options.addOption("target", true, "desired output language");
+        Option target = Option.builder("target").argName("language")
+                                     .hasArg()
+                                     .desc("desired output language (piglet, spiglet, kanga, mips)")
+                                     .build();
+        options.addOption(target);
         
         CommandLineParser cmdParser = new DefaultParser();
         CommandLine cmd = null;
@@ -72,21 +80,50 @@ public class MJFrontEnd {
             System.exit(ERROR);
         }
 
-        // Transform minijava AST to spiglet AST
-        spiglet.Program spiglet = program.toPiglet().toSpiglet();
+        // Transform
+        piglet.Program piglet = program.toPiglet();
+        if (cmd.hasOption("target") && cmd.getOptionValue("target").equals("piglet")) {
+            System.out.println(piglet.print().getString());
+            if (cmd.hasOption("interpret")) {
+                System.out.println("Interpreting Piglet code...");
+                System.out.println(piglet.interpret());
+            }
+            System.exit(SUCCESS);
+        }
+        
+        spiglet.Program spiglet = piglet.toSpiglet();
         // Perform optional liveness analysis
         if (cmd.hasOption("liveness")) {
             spiglet.liveness();
         }
-        // Transform spiglet AST to mips AST
-        mips.Program mips = spiglet.toKanga().toMips();
+        
+        if (cmd.hasOption("target") && cmd.getOptionValue("target").equals("spiglet")) {
+            System.out.println(spiglet.print().getString());
+            if (cmd.hasOption("interpret")) {
+                System.out.println("Interpreting SPiglet code...");
+                System.out.println(spiglet.interpret());
+            }
+            System.exit(SUCCESS);
+        }
+        
+        kanga.Program kanga = spiglet.toKanga();
+        if (cmd.hasOption("target") && cmd.getOptionValue("target").equals("kanga")) {
+            System.out.println(kanga.print().getString());
+            if (cmd.hasOption("interpret")) {
+                System.out.println("Interpreting Kanga code...");
+                System.out.println(kanga.interpret());
+            }
+            System.exit(SUCCESS);
+        }
+        
+        mips.Program mips = kanga.toMips();
 
         // Print mips code
         System.out.println(mips.print().getString() + '\n');
         
         if (cmd.hasOption("interpret")) {
-            System.out.println("Interpreting MIPS code...");
-            System.out.println(mips.interpret());
+            System.out.println("Interpreting Kanga code...");
+            System.out.println(kanga.interpret());
         }
     }
 
