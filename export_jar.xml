@@ -4,13 +4,13 @@
     <property name="dir.jarfile" value="${dir.buildfile}/bin"/>
     
     <target name="create_run_jar">
-        <jar destfile="${dir.jarfile}/compile.jar" filesetmanifest="mergewithoutmain">
+        <jar destfile="${dir.jarfile}/minijava2mips.jar" filesetmanifest="mergewithoutmain">
             <manifest>
                 <attribute name="Main-Class" value="minijava.MJFrontEnd"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
             <fileset dir="${dir.jarfile}">
-                <exclude name="compile.jar"/>
+                <exclude name="minijava2mips.jar"/>
                 <exclude name="tests/**"/>
             </fileset>
             <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/tools/beaver-rt.jar"/>
