@@ -27,10 +27,7 @@
     </target>
     
     <target name="clean">
-        <!-- clean content of gen dir -->
-        <delete>
-            <fileset dir="${gen.dir}" includes="**/*" defaultexcludes="no"/>
-        </delete>
+        <delete dir="${gen.dir}"/>
     </target>
 
 </project>
