@@ -5,6 +5,7 @@
     <property name="build.dir" value="bin" />
     <property name="tools.dir" value="tools" />
     <property name="support.dir" value="support" />
+    <property name="test.dir" value="junit" />
 
     <property name="export.dir" value="bin"/>
     <property name="jarfile" value="minijava2mips.jar"/>
@@ -36,6 +37,25 @@
             <zipfileset excludes="META-INF/*.SF" src="${support.dir}/kgi.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${support.dir}/spp.jar"/>
         </jar>
+    </target>
+
+    <target name="test">
+        <junit showoutput="true" printsummary="withOutAndErr" fork="true" haltonfailure="true">
+            <formatter usefile="false" type="brief"/>
+            <classpath >
+                <pathelement location="${support.dir}/pgi.jar"/>
+                <pathelement location="${support.dir}/kgi.jar"/>
+                <pathelement location="${tools.dir}/beaver-rt.jar"/>
+                <pathelement location="${tools.dir}/junit-4.12.jar" />
+                <pathelement location="${tools.dir}/hamcrest-core-1.3.jar" />
+                <pathelement location="${build.dir}" />
+            </classpath>
+            <batchtest>
+                <fileset dir="${test.dir}">
+                    <include name="**/AllTests.java"/>
+                </fileset>
+            </batchtest>
+        </junit>
     </target>
 
     <target name="clean">
