@@ -1,94 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
 <project name="piglet" default="compile" basedir=".">
 
-  <property name="parser.name" value="PigletParser"/>
+    <property name="src.dir" value="${basedir}/src" />
+    <property name="build.dir" value="${basedir}/bin" />
+    <property name="gen.dir" value="${basedir}/gen" />
+    <property name="tools.dir" value="${basedir}/tools" />
+    <property name="support.dir" value="${basedir}/support" />
+    <property name="grammar.dir" value="${basedir}/piglet" />
 
-  <property name="package" value="piglet"/>
+    <property name="package" value="piglet" />
 
-  <property name="src.dir" value="src"/>
-  <property name="grammar.dir" value="piglet/"/>
-  <property name="gen.dir" value="${basedir}/gen"/>
-  <property name="classes.dir" value="bin"/>
-  <property name="tools" value="tools"/>
-  <property name="support" value="support"/>
+    <taskdef name="jflex" classname="JFlex.anttask.JFlexTask" classpath="${tools.dir}/JFlex.jar" />
+    <taskdef name="beaver" classname="beaver.comp.run.AntTask" classpath="${tools.dir}/beaver.jar" />
+    <taskdef name="jastadd" classname="org.jastadd.JastAddTask" classpath="${tools.dir}/jastadd2.jar" />
 
-  <taskdef name="jflex"   classname="JFlex.anttask.JFlexTask" classpath="${tools}/JFlex.jar"/>
-  <taskdef name="beaver"  classname="beaver.comp.run.AntTask" classpath="${tools}/beaver.jar"/>
-  <taskdef name="jastadd" classname="org.jastadd.JastAddTask" classpath="${tools}/jastadd2.jar" />
 
-  <target name="scanner">
-    <mkdir dir="${gen.dir}/${package}"/>
-    <jflex file="${grammar.dir}/PigletScanner.flex" outdir="${gen.dir}/${package}" nobak="true" />
-  </target>
+    <target name="compile" depends="generate, compile.gen, compile.src" />
 
-  <target name="parser">
-    <mkdir dir="${gen.dir}/${package}"/>
-    <beaver file="${grammar.dir}/PigletParser.beaver" destdir="${gen.dir}/${package}" terminalNames="yes" compress="no" useSwitch="yes" reportActions="yes" />
-  </target>
+    <target name="generate" depends="clean, scanner, parser, jastadd" />
 
-  <target name="jastadd">
-    <mkdir dir="${gen.dir}"/>
-    <jastadd package="${package}" grammar="${grammar.dir}" outdir="${gen.dir}" beaver="true" debug="true">
-        <fileset dir=".">
-          <include name="${grammar.dir}/*.ast"/>
-          <include name="${grammar.dir}/*.jrag"/>
-          <include name="${grammar.dir}/*.jadd"/>
-        </fileset>
-      </jastadd>
-  </target>
+    <target name="compile.gen">
+        <mkdir dir="${build.dir}" />
+        <javac srcdir="${gen.dir}" destdir="${build.dir}" debug="true" debuglevel="lines,vars,source" includeantruntime="false">
+            <include name="**/*.java" />
+            <classpath>
+                <pathelement location="${support.dir}/pgi.jar"/>
+                <pathelement location="${support.dir}/kgi.jar"/>
+                <pathelement location="${tools.dir}/beaver-rt.jar"/>
+            </classpath>
+        </javac>
+    </target>
 
-  <target name="preprocess" depends="jastadd,parser,scanner">
-  </target>
+    <target name="compile.src">
+        <mkdir dir="${build.dir}" />
+        <javac srcdir="${src.dir}" destdir="${build.dir}" debug="true" debuglevel="lines,vars,source" includeantruntime="false">
+            <include name="**/*.java" />
+            <classpath>
+                <pathelement path="${build.dir}"/>
+                <pathelement location="${tools.dir}/beaver-rt.jar"/>
+                <pathelement location="${support.dir}/commons-cli-1.3.1.jar"/>
+            </classpath>
+        </javac>
+    </target>
 
-  <target name="compile" depends="preprocess">
-     <mkdir dir="${classes.dir}"/>
-     <javac srcdir="${gen.dir}"
-            destdir="${classes.dir}"
-            classpath="${tools}/beaver-rt.jar:${support}/pgi.jar"
-            debug="true" debuglevel="lines,vars,source"
-     	    includeantruntime="false">
-             <include name="**/*.java"/>
-     </javac>
-     <javac srcdir="${src.dir}"
-            destdir="${classes.dir}"
-            classpath="${classes.dir}:${tools}/beaver-rt.jar"
-            debug="true" debuglevel="lines,vars,source"
-         	includeantruntime="false">
-            <include name="**/*.java"/>
-     </javac>
-  </target>
+    <target name="scanner">
+        <mkdir dir="${gen.dir}/${package}" />
+        <jflex file="${grammar.dir}/PigletScanner.flex" outdir="${gen.dir}/${package}" nobak="true" />
+    </target>
 
-  <target name="clean">
-     <delete dir="${gen.dir}"/>
-  </target>
+    <target name="parser">
+        <mkdir dir="${gen.dir}/${package}" />
+        <beaver file="${grammar.dir}/PigletParser.beaver" destdir="${gen.dir}/${package}" terminalNames="yes" compress="no" useSwitch="yes" reportActions="yes" />
+    </target>
 
-  <target name="test" depends="compile">
-    <java
-      classname="piglet.FrontEnd"
-      classpath="${classes.dir}:${tools}/junit.jar:${tools}/beaver-rt.jar"
-      fork="true"
-      dir=".">
-      <arg value="${target}"/>
-    </java>
-  </target>
+    <target name="jastadd">
+        <mkdir dir="${gen.dir}" />
+        <jastadd package="${package}" grammar="${grammar.dir}" outdir="${gen.dir}" beaver="true" debug="true">
+            <fileset dir="${grammar.dir}">
+                <include name="**/*.ast" />
+                <include name="**/*.jrag" />
+                <include name="**/*.jadd" />
+            </fileset>
+        </jastadd>
+    </target>
 
-  <target name="alltests" depends="compile">
-    <apply executable="java" parallel="false" force="true">
-      <arg value="-classpath" />
-      <arg path="${classes.dir}:${tools}/junit.jar:${tools}/beaver-rt.jar" />
-      <arg value="piglet.FrontEnd" />
-      <srcfile />
-        <!--fileset dir="tests/" includes="*.java" /-->
+    <target name="clean">
+        <delete dir="${gen.dir}/${package}" />
+    </target>
 
-      <fileset dir="../sheets/ex4/testing2/tests/" includes="*.pg" />
-    </apply>
-  </target>
-
-  <target name="jar" depends="compile">
-    <jar basedir="${classes.dir}" destfile="J2P.jar" >
-      <zipgroupfileset dir="tools" includes="*.jar"/>
-      <manifest>
-        <attribute name="Main-Class" value="${package}.Main"/>
-      </manifest>
-    </jar>
-  </target>
 </project>

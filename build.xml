@@ -1,33 +1,21 @@
-<?xml version="1.0" ?>
-
+<?xml version="1.0" encoding="utf-8"?>
 <project name="MiniJavaCompiler" default="compile_all">
 
     <property name="gen.dir" value="gen/" />
-
-    <target name="compile_all" depends="minijava" />
-
-    <target name="minijava" depends="piglet">
+    <property name="build.dir" value="bin/" />
+    
+    <target name="compile_all" depends="clean" >
+        <ant antfile="build_mips.xml" target="generate" />
+        <ant antfile="build_kanga.xml" target="generate" />
+        <ant antfile="build_spiglet.xml" target="generate" />
+        <ant antfile="build_piglet.xml" target="generate" />
+        <!-- minijava step compiles all generated files + src -->
         <ant antfile="build_minijava.xml" target="compile" />
     </target>
 
-    <target name="piglet" depends="spiglet">
-        <ant antfile="build_piglet.xml" target="compile" />
-    </target>
-
-    <target name="spiglet" depends="kanga">
-        <ant antfile="build_spiglet.xml" target="compile" />
-    </target>
-
-    <target name="kanga" depends="mips">
-        <ant antfile="build_kanga.xml" target="compile" />
-    </target>
-
-    <target name="mips" depends="clean">
-        <ant antfile="build_mips.xml" target="compile" />
-    </target>
-    
     <target name="clean">
         <delete dir="${gen.dir}"/>
+        <delete dir="${build.dir}"/>
     </target>
 
 </project>
