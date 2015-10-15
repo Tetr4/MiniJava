@@ -1,16 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<project name="MiniJavaCompiler" default="compile_all">
+<project name="MiniJavaCompiler" default="all">
 
-    <property name="gen.dir" value="gen/" />
-    <property name="build.dir" value="bin/" />
-    
-    <target name="compile_all" depends="clean" >
+    <property name="gen.dir" value="gen" />
+    <property name="build.dir" value="bin" />
+    <property name="tools.dir" value="tools" />
+    <property name="support.dir" value="support" />
+
+    <property name="export.dir" value="bin"/>
+    <property name="jarfile" value="minijava2mips.jar"/>
+
+
+    <target name="all" depends="clean" >
         <ant antfile="mips/build_mips.xml" target="generate" />
         <ant antfile="kanga/build_kanga.xml" target="generate" />
         <ant antfile="spiglet/build_spiglet.xml" target="generate" />
         <ant antfile="piglet/build_piglet.xml" target="generate" />
         <!-- minijava step compiles all generated files + src -->
         <ant antfile="minijava/build_minijava.xml" target="compile" />
+    </target>
+
+    <target name="jar">
+        <jar destfile="${export.dir}/${jarfile}" filesetmanifest="mergewithoutmain" update="true">
+            <manifest>
+                <attribute name="Main-Class" value="minijava.MJFrontEnd"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <fileset dir="${build.dir}">
+                <!-- don't include jar in itself, should it be exported to the ${build.dir} -->
+                <exclude name="minijava2mips.jar"/>
+                <exclude name="tests/**"/>
+            </fileset>
+            <zipfileset excludes="META-INF/*.SF" src="${tools.dir}/beaver-rt.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${support.dir}/commons-cli-1.3.1.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${support.dir}/pgi.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${support.dir}/kgi.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${support.dir}/spp.jar"/>
+        </jar>
     </target>
 
     <target name="clean">
