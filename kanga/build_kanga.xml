@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<project name="kanga" default="compile" basedir=".">
+<project name="kanga" default="compile" basedir="..">
 
     <property name="src.dir" value="${basedir}/src" />
     <property name="build.dir" value="${basedir}/bin" />

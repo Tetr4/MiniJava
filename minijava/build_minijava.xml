@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<project name="piglet" default="compile" basedir=".">
+<project name="minijava" default="compile" basedir="..">
 
     <property name="src.dir" value="${basedir}/src" />
     <property name="build.dir" value="${basedir}/bin" />
     <property name="gen.dir" value="${basedir}/gen" />
     <property name="tools.dir" value="${basedir}/tools" />
     <property name="support.dir" value="${basedir}/support" />
-    <property name="grammar.dir" value="${basedir}/piglet" />
+    <property name="grammar.dir" value="${basedir}/minijava" />
 
-    <property name="package" value="piglet" />
+    <property name="package" value="minijava" />
 
     <taskdef name="jflex" classname="JFlex.anttask.JFlexTask" classpath="${tools.dir}/JFlex.jar" />
     <taskdef name="beaver" classname="beaver.comp.run.AntTask" classpath="${tools.dir}/beaver.jar" />
     <taskdef name="jastadd" classname="org.jastadd.JastAddTask" classpath="${tools.dir}/jastadd2.jar" />
-
+    
 
     <target name="compile" depends="generate, compile.gen, compile.src" />
 
@@ -21,7 +21,7 @@
 
     <target name="compile.gen">
         <mkdir dir="${build.dir}" />
-        <javac srcdir="${gen.dir}" destdir="${build.dir}" debug="true" debuglevel="lines,vars,source" includeantruntime="false">
+        <javac srcdir="${gen.dir}" destdir="${build.dir}" includeantruntime="false" debug="true" debuglevel="lines,vars,source">
             <include name="**/*.java" />
             <classpath>
                 <pathelement location="${support.dir}/pgi.jar"/>
@@ -30,10 +30,10 @@
             </classpath>
         </javac>
     </target>
-
+    
     <target name="compile.src">
         <mkdir dir="${build.dir}" />
-        <javac srcdir="${src.dir}" destdir="${build.dir}" debug="true" debuglevel="lines,vars,source" includeantruntime="false">
+        <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false" debug="true" debuglevel="lines,vars,source">
             <include name="**/*.java" />
             <classpath>
                 <pathelement path="${build.dir}"/>
@@ -42,15 +42,15 @@
             </classpath>
         </javac>
     </target>
-
+    
     <target name="scanner">
         <mkdir dir="${gen.dir}/${package}" />
-        <jflex file="${grammar.dir}/PigletScanner.flex" outdir="${gen.dir}/${package}" nobak="true" />
+        <jflex file="${grammar.dir}/MJScanner.flex" outdir="${gen.dir}/${package}" nobak="true" />
     </target>
 
     <target name="parser">
         <mkdir dir="${gen.dir}/${package}" />
-        <beaver file="${grammar.dir}/PigletParser.beaver" destdir="${gen.dir}/${package}" terminalNames="yes" compress="no" useSwitch="yes" reportActions="yes" />
+        <beaver file="${grammar.dir}/MJParser.beaver" destdir="${gen.dir}/${package}" terminalNames="yes" compress="no" useSwitch="yes" reportActions="yes" />
     </target>
 
     <target name="jastadd">
@@ -65,7 +65,7 @@
     </target>
 
     <target name="clean">
-        <delete dir="${gen.dir}/${package}" />
+        <delete dir="${gen.dir}/${package}"/>
     </target>
 
 </project>
