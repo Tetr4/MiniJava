@@ -568,6 +568,9 @@ aspect LivenessAnalysis {
         public Set<Temp> updateOut(int pos);
         public Set<Temp> updateIn(int pos);
         public void calculateDead();
+        
+        // Register allocation..
+        public Set<Temp> temps();
     }
     Program implements StatementList;
     Procedure implements StatementList;

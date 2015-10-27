@@ -1,0 +1,54 @@
+aspect LiferangePrinter {
+    syn String Program.printLiferanges() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("MAIN\n");
+    
+        Set<Temp> temps = temps();
+        builder.append(String.format("%80s", ""));
+        // List all temps first
+        for (Temp temp : temps) {
+            builder.append(String.format(" %2d", temp.getNumber()));
+        }
+        builder.append("\n");
+        
+        for (LabeledStmt labeledStmt : getStmts()) {
+            labeledStmt.printer().reset();
+            labeledStmt.print();
+            builder.append(String.format("%-80s ", labeledStmt.printer().getString()));
+            
+            for (Temp temp : temps) {
+                builder.append(String.format(" %s", temp.liferange().contains(labeledStmt.pos()) ? " |" : "  "));
+            }
+            builder.append("\n");
+        }
+        
+        for (Procedure procedures : getProcsList()) {
+            builder.append("\n");
+            procedures.printLiferanges(builder);
+        }
+        return builder.toString();
+    }
+    
+    public void Procedure.printLiferanges(StringBuilder builder) {
+        builder.append(getLabel().getLabel() + "\n");
+        
+        Set<Temp> temps = temps();
+        builder.append(String.format("%80s", ""));
+        // List all temps first
+        for (Temp temp : temps) {
+            builder.append(String.format(" %2d", temp.getNumber()));
+        }
+        builder.append("\n");
+        
+        for (LabeledStmt labeledStmt : getStmts()) {
+            labeledStmt.printer().reset();
+            labeledStmt.print();
+            builder.append(String.format("%-80s ", labeledStmt.printer().getString()));
+            
+            for (Temp temp : temps) {
+                builder.append(String.format(" %s", temp.liferange().contains(labeledStmt.pos()) ? " |" : "  "));
+            }
+            builder.append("\n");
+        }
+    }
+}

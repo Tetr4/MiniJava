@@ -80,6 +80,10 @@ public class MJDebug {
             // subset of piglet -> interpret as piglet
             System.out.println(spiglet.interpret());
 
+            // Print liferanges of temps
+            System.out.println("### Spiglet - Temp Liferanges");
+            System.out.println(spiglet.printLiferanges());
+            System.out.println();
             
             // Transform spiglet AST to kanga AST
             kanga.Program kanga = spiglet.toKanga();

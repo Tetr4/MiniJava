@@ -1,0 +1,62 @@
+import java.util.HashSet;
+import java.util.Set;
+
+aspect RegisterAllocation {
+
+    // The life range of a temporary variable is the
+    // set of program positions at which it is alive.
+    syn lazy Set<Integer> Temp.liferange() {
+        StatementList stmtList = getParentStatementList();
+        List<LabeledStmt> stmts = stmtList.getStmts();
+        
+        Set<Integer> liferange = new HashSet<Integer>();
+        boolean alive = false;
+        for (int pos = 0; pos < stmts.getNumChild(); pos++) {
+            if (stmts.getChild(pos).out().contains(this))
+                alive = true;
+            
+            if (stmts.getChild(pos).dead().contains(this))
+                alive = false;
+            
+            if (alive)
+                liferange.add(pos);
+        }
+        
+        return liferange;
+    }
+    
+    // Two temporary variables interfere if their 
+    // life ranges have a non-empty intersection.
+    syn lazy Boolean Temp.interferes(Temp other) {
+        return !Collections.disjoint(liferange(), other.liferange());
+    }
+    
+    syn lazy Set<Temp> Program.temps() {
+        Set<Temp> temps = new HashSet<Temp>();
+        for (int i = 0; i < getStmts().getNumChild(); i++) {
+            temps.addAll(out(i));
+            temps.addAll(in(i));
+        }
+        return temps;
+    }
+    
+    syn lazy Set<Temp> Procedure.temps() {
+        Set<Temp> temps = new HashSet<Temp>();
+        for (int i = 0; i < getStmts().getNumChild(); i++) {
+            temps.addAll(out(i));
+            temps.addAll(in(i));
+        }
+        return temps;
+    }
+    
+    syn lazy Set<Temp> Temp.interferences() {
+        StatementList stmtList = getParentStatementList();
+        Set<Temp> temps = stmtList.temps();
+        Set<Temp> interferences = new HashSet<Temp>();
+        for (Temp temp : temps) {
+            if (interferes(temp))
+                interferences.add(temp);
+        }
+        return interferences;
+    }
+}
