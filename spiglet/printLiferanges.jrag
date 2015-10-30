@@ -19,7 +19,6 @@ aspect LiferangePrinter {
             for (Temp temp : temps) {
                 builder.append(String.format(" %s", temp.liferange().contains(labeledStmt.pos()) ? " |" : "  "));
             }
-            builder.append("\n");
         }
         
         for (Procedure procedures : getProcsList()) {
@@ -48,7 +47,6 @@ aspect LiferangePrinter {
             for (Temp temp : temps) {
                 builder.append(String.format(" %s", temp.liferange().contains(labeledStmt.pos()) ? " |" : "  "));
             }
-            builder.append("\n");
         }
     }
 }
