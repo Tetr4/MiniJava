@@ -51,20 +51,71 @@ aspect ErrorCheck {
         for (ClassDecl classDecl : getDeclsList()) {
             String className = classDecl.getIdent();
             if (classNames.contains(className)) {
-                error(c, "Class " + className + " is already defined");
+                error(c, "Class \"" + className + "\" is already defined");
             }
             classNames.add(className);
         }
     }
     
+    public void Decl.checkDuplicateVars(Collection<SemanticError> c, List<TypedVar> variables, String label) {
+        // check for duplicate variable declarations
+        int numVars = variables.getNumChild();
+        for (int varIndex = 0; varIndex < numVars; varIndex++) {
+            TypedVar variable = variables.getChild(varIndex);
+            // check previous variable declarations
+            for (int otherVarIndex = varIndex - 1; otherVarIndex >= 0; otherVarIndex--) {
+                TypedVar otherVariable = variables.getChild(otherVarIndex);
+                if (variable.getIdent().equals(otherVariable.getIdent())) {
+                    int otherLine = otherVariable.getLine(otherVariable.getStart());
+                    variable.error(c, label + " \"" + variable.getIdent() + "\" already declared at line " + otherLine);
+                    break;
+                }
+            }
+        }
+    }
+    
+    public void MainClass.collectErrors(Collection<SemanticError> c) {
+        super.collectErrors(c);
+        
+        // check args
+        for(TypedVar variable : getLocalVarsList()) {
+            if(variable.getIdent().equals(getMainArgs())) {
+                variable.error(c, "Variable \"" + variable.getIdent() + "\" already declared as parameter");
+                break;
+            }
+        }
+        
+        // check for duplicate variable declarations
+        checkDuplicateVars(c, getLocalVarsList(), "Variable");
+    }
+        
     public void ClassDecl.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
-        if(hasCycleOnSuperclassChain())
+        if(hasCycleOnSuperclassChain()) {
             error(c, "Cyclic inheritance chain for class " + getIdent());
+        }
+        
+        // check for duplicate field declarations
+        checkDuplicateVars(c, getFieldsList(), "Field");
     }
     
     public void MethodDecl.collectErrors(Collection<SemanticError> c) {
         super.collectErrors(c);
+        
+        // check for duplicate parameters
+        checkDuplicateVars(c, getFormalParamsList(), "Parameter");
+        
+        // check for duplicate variable declarations
+        for(TypedVar variable : getLocalVarsList()) {
+            for (TypedVar param : getFormalParamsList()) {
+                if (variable.getIdent().equals(param.getIdent())) {
+                    variable.error(c, "Variable \"" + variable.getIdent() + "\" already declared as parameter");
+                    break;
+                }
+            }
+        }
+        checkDuplicateVars(c, getLocalVarsList(), "Variable");
+        
         if (!isSubtypeOfIgnoreUnknown(getRetExp().type(), getRetType().type())) {
             getRetExp().error(c, "Invalid return type. Expected <" + getRetType().type() + ">, but got <" + getRetExp().type() + ">.");
         }
