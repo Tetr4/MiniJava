@@ -1,11 +1,13 @@
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Stack;
+import java.util.Map;
 
 aspect RegisterAllocation {
 
     // The life range of a temporary variable is the
     // set of program positions at which it is alive.
-    syn lazy Set<Integer> Temp.liferange() {
+    syn Set<Integer> Temp.liferange() {
         StatementList stmtList = getParentStatementList();
         List<LabeledStmt> stmts = stmtList.getStmts();
         
@@ -27,29 +29,47 @@ aspect RegisterAllocation {
     
     // Two temporary variables interfere if their 
     // life ranges have a non-empty intersection.
-    syn lazy Boolean Temp.interferes(Temp other) {
+    syn Boolean Temp.interferes(Temp other) {
         return !Collections.disjoint(liferange(), other.liferange());
     }
     
-    syn lazy Set<Temp> Program.temps() {
+    syn Set<Temp> Program.temps() {
         Set<Temp> temps = new HashSet<Temp>();
         for (int i = 0; i < getStmts().getNumChild(); i++) {
             temps.addAll(out(i));
             temps.addAll(in(i));
         }
+        
+        // Remove soft removed temps.
+        Iterator<Temp> iter = temps.iterator();
+        while (iter.hasNext()) {
+            Temp temp = iter.next();
+            if (temp.isMarkedAsRemoved())
+                iter.remove();
+        }
+        
         return temps;
     }
     
-    syn lazy Set<Temp> Procedure.temps() {
+    syn Set<Temp> Procedure.temps() {
         Set<Temp> temps = new HashSet<Temp>();
         for (int i = 0; i < getStmts().getNumChild(); i++) {
             temps.addAll(out(i));
             temps.addAll(in(i));
         }
+        
+        // Remove soft removed temps.
+        Iterator<Temp> iter = temps.iterator();
+        while (iter.hasNext()) {
+            Temp temp = iter.next();
+            if (temp.isMarkedAsRemoved())
+                iter.remove();
+        }
+        
         return temps;
     }
     
-    syn lazy Set<Temp> Temp.interferences() {
+    syn Set<Temp> Temp.interferences() {
         StatementList stmtList = getParentStatementList();
         Set<Temp> temps = stmtList.temps();
         Set<Temp> interferences = new HashSet<Temp>();
@@ -58,5 +78,121 @@ aspect RegisterAllocation {
                 interferences.add(temp);
         }
         return interferences;
+    }
+    
+    
+    // Step 1.
+    // Simplify graph with marking
+    public boolean Temp.markedAsRemoved = false;
+    public void Temp.markAsRemoved() { markedAsRemoved = true; }
+    public void Temp.unmarkAsRemoved() { markedAsRemoved = false; }
+    syn Boolean Temp.isMarkedAsRemoved() = markedAsRemoved;
+    
+    public boolean Temp.markedForGraphColoring = false;
+    public void Temp.markForGraphColoring() { markedForGraphColoring = true; }
+    public void Temp.unmarkForGraphColoring() { markedForGraphColoring = false; }
+    syn Boolean Temp.isMarkedForGraphColoring() = markedForGraphColoring;
+    
+    syn Stack<Temp> Program.simplifyWithMarking() {
+        StatementList stmtList = getParentStatementList();
+        Stack<Temp> stack = new Stack<Temp>();
+         
+        // Loop until we can't remove any more nodes from the graph.
+        for (;;) {
+            // Try to remove all nodes from the graph,
+            // which have less neighbors than we have registers.
+	        boolean onlyMoreNeighbors = false;
+	        while (!onlyMoreNeighbors) {
+	            onlyMoreNeighbors = true;
+	            
+		        Set<Temp> temps = stmtList.temps();
+		        for (Temp temp : temps) {
+		            // Remove iteratively nodes with less than 
+		            // rn neighbors from the graph and push them onto a stack.
+		            if (temp.interferences().size() < 10) { // 10 tX registers
+		                stack.push(temp);
+		                temp.markAsRemoved();
+		                // This node has less than 10 neighbors!
+		                onlyMoreNeighbors = false;
+		            }
+		        }
+	        }
+	        
+	        Set<Temp> temps = stmtList.temps();
+	        // There are still nodes left with more neighbors than we have registers..
+	        if (!temps.isEmpty()) {
+	            // Choose a suitable node as candidate for storing it
+	            // temporarily, mark it, push it onto the stack and continue simplification.
+	            // SUITABLE! The first one looks fine to me.
+	            Temp temp = temps.iterator().next();
+	            temp.markAsRemoved();
+	            temp.markForGraphColoring();
+	            stack.push(temp);
+	            continue;
+	        }
+	        
+	        return stack;
+	   }
+    }
+    
+    // Step 2.
+    // Color the graph.
+    public Map<Temp, Integer> Program.tempToColor = new HashMap<Temp, Integer>();
+    public int Program.currentColor = 0;
+    public void Program.graphColoring() {
+        Stack<Temp> stack = simplifyWithMarking();
+        
+        while (!stack.empty()) {
+            Temp temp = stack.pop();
+            
+            // temp is not marked. Thus, it has less than rn neighbors. 
+            // Then, temp can be colored with a new color.
+            if (!temp.isMarkedForGraphColoring()) {
+                tempToColor.put(temp, currentColor++);
+                temp.unmarkAsRemoved();
+            }
+            // temp is marked.
+            else {
+                Set<Temp> neighbors = temp.interferences();
+                // Collect all colors of the neighbors
+                Set<Integer> usedColors = new HashSet<Integer>();
+                for (Temp neighbor : neighbors) {
+                    if (tempToColor.containsKey(neighbor)) {
+                       usedColors.add(tempToColor.get(neighbor));
+                    }
+                }
+                
+                // the rn or more neighbors have less than rn-1 different colors.
+                // Then, color temp appropriately.
+                if (usedColors.size() < 10 -1) {
+                    // The neighbors use all colors which are used until now.
+                    // Just give the temp a new color.
+                    if (usedColors.size() == currentColor) {
+	                    tempToColor.put(temp, currentColor++);
+	                    temp.unmarkAsRemoved();
+                    }
+                    else {
+	                    // Find a color which isn't used by one of the neighbors
+	                    for (int i = 0; i < currentColor; i++) {
+	                        if (!usedColors.contains(i)) {
+	                            // And set the current node to a color
+	                            tempToColor.put(temp, i);
+	                            temp.unmarkAsRemoved();
+	                            break;
+	                        }
+	                    }
+                    }
+                }
+                // there are rn or more colors in the neighborhood. 
+                // Leave temp uncolored.
+                else {
+                    temp.unmarkAsRemoved();
+                }
+            }
+        }
+        
+        // TODO: Rename same colored temps to the one with the lowest number in that color.
+        // Repeat whole process (liveness analysis, marking and coloring) 
+        // until no temps are merged anymore.
     }
 }
